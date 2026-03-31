@@ -1,0 +1,89 @@
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+site/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+MedicalSAM3/.venv/
+
+# Tooling and environment files
+.python-version
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Jupyter and notebook checkpoints
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+
+# Logs and runtime files
+logs/
+log/
+*.log
+*.out
+*.err
+nohup.out
+MedicalSAM3/logs/
+
+# Training outputs, experiment artifacts, and checkpoints
+outputs/
+results/
+runs/
+wandb/
+mlruns/
+tensorboard/
+tb_logs/
+checkpoints/
+checkpoint/
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+MedicalSAM3/checkpoint/
+MedicalSAM3/outputs/
+MedicalSAM3/results/
+
+# Datasets and large generated assets
+data/
+datasets/
+cache/
+.cache/
+artifacts/
+downloads/
+MedicalSAM3/data/
+
+# Package managers
+poetry.lock
+Pipfile.lock
+
+# Project-specific temporary files
+MedicalSAM3/__pycache__/
