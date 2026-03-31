@@ -1,0 +1,31 @@
+# config_lora.yaml
+model:
+  pretrained_checkpoint: "./MedicalSAM3/checkpoints/sam3_huge.pth" # 预训练权重路径
+  model_type: “None”
+  use_lora: true
+  lora_rank: 16          # LoRA秩，通常8, 16, 32。任务越复杂，可适当增大
+  lora_alpha: 32         # 缩放因子，通常设为秩的2倍
+  lora_dropout: 0.1      # 防止过拟合
+  target_modules: ["q_proj", "k_proj", "v_proj", "out_proj"] # 在哪些注意力模块注入LoRA
+
+data:
+  train_root: "./MedicalSAM3/data/留空"
+  val_root: "./MedicalSAM3/data/留空"
+  image_size: 1024
+  batch_size: 2          # 根据显存调整，1024图像下，4090可能只能跑batch_size=1-2
+  num_workers: 4
+
+training:
+  epochs: 50
+  learning_rate: 3e-4    # LoRA学习率可以比全参数微调稍高
+  weight_decay: 0.01
+  warmup_steps: 100
+  gradient_accumulation_steps: 4 # 模拟更大batch size
+  mixed_precision: "fp16" # 大幅节省显存，加速训练
+  save_dir: "./lora_checkpoints"
+  save_every_n_epochs: 5
+  evaluation_interval: 2  # 每2个epoch在验证集上评估一次
+
+optimizer:
+  name: "adamw"
+  betas: [0.9, 0.999]
