@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent
 def print_header(title: str) -> None:
 	print(f"\n=== {title} ===")
 
-
+ 
 def print_kv(key: str, value: object) -> None:
 	print(f"{key}: {value}")
 
