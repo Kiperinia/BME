@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-white text-gray-800 antialiased;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply min-h-screen bg-white font-sans text-gray-800 dark:bg-slate-900 dark:text-gray-100;
+  }
+
+  #app {
+    @apply min-h-screen;
+  }
+
+  * {
+    @apply border-gray-200 dark:border-slate-700;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    @apply outline-none;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply min-h-screen bg-white dark:bg-slate-900;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-soft dark:border-slate-700 dark:bg-slate-800;
+  }
+
+  .surface-input {
+    @apply w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm leading-relaxed text-gray-700 transition placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-gray-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-400;
+  }
+
+  .surface-button-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 active:scale-[0.98] dark:bg-sky-500 dark:hover:bg-sky-400;
+  }
+
+  .surface-button-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:scale-[0.98] dark:border-slate-600 dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-slate-800;
+  }
+
+  .surface-badge {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium;
+  }
+}
