@@ -12,6 +12,10 @@ import FeedbackToast from '@/components/common/FeedbackToast.vue'
 import PatientInfoCard from '@/components/common/PatientInfoCard.vue'
 import SmartAnnotationTags from '@/components/common/SmartAnnotationTags.vue'
 import TumorMaskViewer from '@/components/common/TumorMaskViewer.vue'
+import ReportAgentForm from '@/components/report/ReportAgentForm.vue'
+import ReportCaptureGallery from '@/components/report/ReportCaptureGallery.vue'
+import ReportDraftStatusCard from '@/components/report/ReportDraftStatusCard.vue'
+import ReportPreviewPanel from '@/components/report/ReportPreviewPanel.vue'
 import type {
   AnnotationTag,
   CaptureFramePayload,
@@ -139,12 +143,6 @@ const formattedSavedAt = computed(() => {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(lastSavedAt.value))
-})
-
-const reportHeadline = computed(() => {
-  return context.value?.patient.patientName
-    ? `${context.value.patient.patientName} 内镜检查报告`
-    : '内镜检查报告'
 })
 
 const handleInvokeAgent = async () => {
@@ -304,27 +302,7 @@ onMounted(async () => {
           @update:show-mask="showMask = $event"
         />
 
-        <div class="surface-card p-6">
-          <div class="flex flex-col gap-3 border-b border-gray-100 pb-4 dark:border-slate-700 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">抓拍上下文</h3>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">抓帧结果会被直接纳入 Agent 上下文。</p>
-            </div>
-            <span class="surface-badge bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200">
-              {{ captureImages.length }} 张图像
-            </span>
-          </div>
-
-          <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <div
-              v-for="(imageSrc, index) in captureImages"
-              :key="`${imageSrc}-${index}`"
-              class="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-900"
-            >
-              <img :src="imageSrc" :alt="`抓拍图像 ${index + 1}`" class="aspect-[4/3] h-full w-full object-cover" />
-            </div>
-          </div>
-        </div>
+        <ReportCaptureGallery :images="captureImages" />
 
         <SmartAnnotationTags
           :video-frame-data="context.videoFrameData"
@@ -336,60 +314,18 @@ onMounted(async () => {
           @tag-click="handleTagClick"
         />
 
-        <div class="surface-card p-6">
-          <div class="space-y-6">
-            <div>
-              <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Agent 交互面板</h3>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                左侧编辑医生初步意见，生成后继续修订正式报告字段。
-              </p>
-            </div>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-200">医生初步意见</span>
-              <textarea
-                v-model="initialOpinion"
-                class="surface-input min-h-28"
-                placeholder="补充病灶部位、形态、处理建议等重点描述。"
-              />
-            </label>
-
-            <div class="rounded-2xl bg-slate-950 p-4 text-sm text-slate-100">
-              <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
-                <span class="font-medium">流式输出</span>
-                <span class="text-xs text-slate-400">{{ isAgentLoading ? 'Streaming' : 'Idle' }}</span>
-              </div>
-              <pre class="mt-4 min-h-28 whitespace-pre-wrap font-sans leading-7 text-slate-200">{{ streamText || '等待 Agent 输出...' }}</pre>
-            </div>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-200">检查所见</span>
-              <textarea
-                v-model="findings"
-                class="surface-input min-h-32"
-                placeholder="用于填写镜下所见、部位和形态特征。"
-              />
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-200">诊断结论</span>
-              <textarea
-                v-model="conclusion"
-                class="surface-input min-h-28"
-                placeholder="用于填写诊断结论和建议。"
-              />
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-200">排版建议</span>
-              <textarea
-                v-model="layoutSuggestion"
-                class="surface-input min-h-24"
-                placeholder="用于填写排版顺序、独立段落和书写注意事项。"
-              />
-            </label>
-          </div>
-        </div>
+        <ReportAgentForm
+          :initial-opinion="initialOpinion"
+          :findings="findings"
+          :conclusion="conclusion"
+          :layout-suggestion="layoutSuggestion"
+          :stream-text="streamText"
+          :is-agent-loading="isAgentLoading"
+          @update:initial-opinion="initialOpinion = $event"
+          @update:findings="findings = $event"
+          @update:conclusion="conclusion = $event"
+          @update:layout-suggestion="layoutSuggestion = $event"
+        />
 
         <TumorMaskViewer
           :tumor-image-src="context.tumorFocus.tumorImageSrc"
@@ -401,59 +337,17 @@ onMounted(async () => {
       </div>
 
       <div class="space-y-6 xl:sticky xl:top-6 xl:self-start">
-        <div class="surface-card p-6">
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">草稿状态</p>
-              <p class="mt-2 text-lg font-semibold text-gray-800 dark:text-gray-100">{{ formattedSavedAt }}</p>
-            </div>
-            <span class="surface-badge bg-blue-50 text-blue-700 dark:bg-sky-950/70 dark:text-sky-200">
-              {{ annotationTags.length }} 个标签
-            </span>
-          </div>
-        </div>
+        <ReportDraftStatusCard :saved-at-label="formattedSavedAt" :annotation-count="annotationTags.length" />
 
-        <div class="surface-card bg-gray-50 p-4 dark:bg-slate-900/60">
-          <div class="mx-auto w-full max-w-[794px] rounded-[28px] bg-white p-8 text-gray-800 shadow-soft">
-            <div class="border-b border-gray-200 pb-6">
-              <p class="text-xs uppercase tracking-[0.2em] text-gray-400">A4 Report Preview</p>
-              <h3 class="mt-3 text-2xl font-semibold text-gray-900">{{ reportHeadline }}</h3>
-              <div class="mt-4 grid gap-3 text-sm text-gray-500 sm:grid-cols-2">
-                <p>病历号：{{ context.patient.patientId }}</p>
-                <p>检查日期：{{ context.patient.examDate }}</p>
-                <p>患者：{{ context.patient.patientName }}</p>
-                <p>状态：{{ context.patient.status === 2 ? '已出报告' : context.patient.status === 1 ? '检查中' : '候诊' }}</p>
-              </div>
-            </div>
-
-            <div class="space-y-8 py-8">
-              <section>
-                <h4 class="text-sm font-semibold uppercase tracking-[0.16em] text-gray-400">检查所见</h4>
-                <p class="mt-4 whitespace-pre-line text-[15px] leading-8 text-gray-700">
-                  {{ findings || '等待 Agent 生成或医生补充检查所见。' }}
-                </p>
-              </section>
-
-              <section>
-                <h4 class="text-sm font-semibold uppercase tracking-[0.16em] text-gray-400">诊断结论</h4>
-                <p class="mt-4 whitespace-pre-line text-[15px] leading-8 text-gray-700">
-                  {{ conclusion || '等待 Agent 生成或医生补充诊断结论。' }}
-                </p>
-              </section>
-
-              <section>
-                <h4 class="text-sm font-semibold uppercase tracking-[0.16em] text-gray-400">排版建议</h4>
-                <p class="mt-4 whitespace-pre-line text-[15px] leading-8 text-gray-700">
-                  {{ layoutSuggestion || '建议按标准段落顺序排版，并确保结论单列。' }}
-                </p>
-              </section>
-            </div>
-
-            <div class="border-t border-gray-200 pt-6 text-sm text-gray-500">
-              <p>草稿更新时间：{{ formattedSavedAt }}</p>
-            </div>
-          </div>
-        </div>
+        <ReportPreviewPanel
+          class="min-h-[640px]"
+          :patient="context.patient"
+          :saved-at-label="formattedSavedAt"
+          :findings="findings"
+          :conclusion="conclusion"
+          :layout-suggestion="layoutSuggestion"
+          :annotation-count="annotationTags.length"
+        />
       </div>
     </div>
   </section>

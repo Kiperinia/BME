@@ -33,20 +33,12 @@ from .medsam3_wrapper import MedSAM3Wrapper  # noqa: E402
 # ─────────────────── 医学数据集文本提示词映射 ───────────────────
 DATASET_TEXT_PROMPTS = {
     "kvasir": "polyp",
-    "busi": "breast lesion",
-    "chase_db1": "retinal blood vessel",
-    "stare": "retinal blood vessel",
-    "cvc_clinicdb": "polyp",
-    "etis_larib": "polyp",
-    "ph2": "skin lesion",
-    "tn3k": "thyroid nodule",
-    "ddti": "thyroid nodule",
-    "hc18": "fetal head",
-    "dsb18": "cell nucleus",
+
 }
 
 
 def build_medsam3(
+#配置
     checkpoint_path: Optional[str] = None,
     image_size: int = 1024,
     device: str = "cuda",
@@ -70,7 +62,6 @@ def build_medsam3(
     if not HAS_SAM3:
         raise RuntimeError(
             "sam3 包不可用，无法构建 MedSAM3。"
-            "请在支持 triton 的 Linux / macOS 环境下安装 sam3。"
         )
 
     logger.info("Building MedSAM3 with SAM3 backend")

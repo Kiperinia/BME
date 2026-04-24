@@ -1,724 +1,522 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
-/* ---------- Theme ---------- */
-const currentTheme = ref(document.documentElement.getAttribute('data-theme') || 'light')
-function setTheme(theme: string) {
-  currentTheme.value = theme
-  document.documentElement.setAttribute('data-theme', theme)
-}
+import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
+import { useThemeStore, type ThemeMode } from '@/stores/theme'
 
-/* ---------- General Settings ---------- */
+type SectionId = 'general' | 'appearance' | 'viewer' | 'notifications' | 'ai' | 'dicom'
+
+const themeStore = useThemeStore()
+
+const sectionItems: Array<{ id: SectionId; label: string; description: string }> = [
+  { id: 'general', label: '常规设置', description: '语言、自动保存与默认检查类型' },
+  { id: 'appearance', label: '外观主题', description: '主题模式与界面偏好' },
+  { id: 'viewer', label: '影像查看器', description: '布局、显示和测量习惯' },
+  { id: 'notifications', label: '通知', description: '危急值、审核和提示音' },
+  { id: 'ai', label: 'AI 辅助', description: '自动分析与置信度阈值' },
+  { id: 'dicom', label: 'DICOM 连接', description: 'PACS 服务连接参数' },
+]
+
+const activeSection = ref<SectionId>('general')
+
 const language = ref('zh-CN')
 const autoSaveInterval = ref(30)
 const defaultModality = ref('CT')
 const imageQuality = ref('high')
 const fontSize = ref('medium')
 
-/* ---------- Notification ---------- */
 const notifyCritical = ref(true)
 const notifyNewCase = ref(true)
 const notifyReport = ref(true)
 const soundEnabled = ref(false)
 
-/* ---------- Viewer ---------- */
 const defaultLayout = ref('2x2')
 const showOverlay = ref(true)
 const scrollDirection = ref('natural')
 const crosshair = ref(false)
 const measureUnit = ref('mm')
 
-/* ---------- AI ---------- */
 const aiAutoAnalyze = ref(true)
 const aiConfidenceThreshold = ref(75)
 const aiHighlightFindings = ref(true)
 
-/* ---------- DICOM ---------- */
 const dicomServerHost = ref('192.168.1.100')
 const dicomServerPort = ref('4242')
 const dicomAeTitle = ref('MEDIMAGEDX')
 const dicomAutoFetch = ref(true)
 
-/* ---------- Save ---------- */
 const saved = ref(false)
-function handleSave() {
-  saved.value = true
-  setTimeout(() => { saved.value = false }, 2000)
-}
+
+const languageOptions = [
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'en-US', label: 'English' },
+]
+
+const modalityOptions = [
+  { value: 'CT', label: 'CT' },
+  { value: 'MRI', label: 'MRI' },
+  { value: 'X-Ray', label: 'X-Ray' },
+  { value: 'Ultrasound', label: '超声' },
+  { value: 'PET', label: 'PET' },
+]
+
+const fontSizeOptions = [
+  { value: 'small', label: '小 (14px)' },
+  { value: 'medium', label: '中 (16px)' },
+  { value: 'large', label: '大 (18px)' },
+]
 
 const layoutOptions = [
   { value: '1x1', label: '1×1 单窗格' },
   { value: '2x2', label: '2×2 四窗格' },
   { value: '1+2', label: '1+2 混合' },
 ]
+
+const imageQualityOptions = [
+  { value: 'low', label: '低质量（快速加载）' },
+  { value: 'medium', label: '中等质量' },
+  { value: 'high', label: '高质量' },
+]
+
+const scrollDirectionOptions = [
+  { value: 'natural', label: '自然方向' },
+  { value: 'reverse', label: '反向' },
+]
+
+const measureUnitOptions = [
+  { value: 'mm', label: '毫米 (mm)' },
+  { value: 'cm', label: '厘米 (cm)' },
+]
+
+const themeOptions: Array<{ value: ThemeMode; label: string; description: string }> = [
+  { value: 'light', label: '浅色模式', description: '适合明亮环境和打印预览' },
+  { value: 'dark', label: '深色模式', description: '降低夜间工作时的视觉刺激' },
+  { value: 'system', label: '跟随系统', description: '自动同步操作系统主题' },
+]
+
+let saveTimer: number | undefined
+
+const quickSummary = computed(() => [
+  `${themeStore.mode === 'system' ? '系统' : '手动'}主题`,
+  `${autoSaveInterval.value} 秒自动保存`,
+  `AI 阈值 ${aiConfidenceThreshold.value}%`,
+])
+
+const setThemeMode = (mode: ThemeMode) => {
+  if (mode === 'system') {
+    themeStore.resetToSystem()
+    return
+  }
+
+  themeStore.setMode(mode)
+}
+
+const handleSave = () => {
+  saved.value = true
+
+  if (saveTimer) {
+    window.clearTimeout(saveTimer)
+  }
+
+  saveTimer = window.setTimeout(() => {
+    saved.value = false
+  }, 2200)
+}
+
+const resetDefaults = () => {
+  language.value = 'zh-CN'
+  autoSaveInterval.value = 30
+  defaultModality.value = 'CT'
+  imageQuality.value = 'high'
+  fontSize.value = 'medium'
+  notifyCritical.value = true
+  notifyNewCase.value = true
+  notifyReport.value = true
+  soundEnabled.value = false
+  defaultLayout.value = '2x2'
+  showOverlay.value = true
+  scrollDirection.value = 'natural'
+  crosshair.value = false
+  measureUnit.value = 'mm'
+  aiAutoAnalyze.value = true
+  aiConfidenceThreshold.value = 75
+  aiHighlightFindings.value = true
+  dicomServerHost.value = '192.168.1.100'
+  dicomServerPort.value = '4242'
+  dicomAeTitle.value = 'MEDIMAGEDX'
+  dicomAutoFetch.value = true
+  themeStore.resetToSystem()
+  handleSave()
+}
+
+const updateActiveSection = () => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const offset = 180
+
+  for (const item of [...sectionItems].reverse()) {
+    const element = document.getElementById(item.id)
+
+    if (element && element.getBoundingClientRect().top <= offset) {
+      activeSection.value = item.id
+      return
+    }
+  }
+
+  activeSection.value = 'general'
+}
+
+onMounted(() => {
+  updateActiveSection()
+  window.addEventListener('scroll', updateActiveSection, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', updateActiveSection)
+
+  if (saveTimer) {
+    window.clearTimeout(saveTimer)
+  }
+})
 </script>
 
 <template>
-  <div class="settings-page">
-    <div class="settings-header">
-      <h1 class="settings-title">系统设置</h1>
-      <p class="settings-desc">配置系统参数、显示偏好和连接选项</p>
-    </div>
+  <main class="mx-auto w-full max-w-[1600px] px-6 py-6 lg:px-8 lg:py-8">
+    <div class="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+      <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
+        <section class="surface-card overflow-hidden">
+          <div class="border-b border-slate-200 bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_58%,#eef2ff_100%)] px-5 py-5 dark:border-slate-700 dark:bg-[linear-gradient(135deg,rgba(14,165,233,0.22)_0%,rgba(15,23,42,0.86)_58%,rgba(30,41,59,0.96)_100%)]">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 dark:text-sky-300">System Console</p>
+            <h1 class="mt-3 text-2xl font-semibold text-slate-900 dark:text-white">系统设置</h1>
+            <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              用项目现有的 Vue 3、Pinia 和 Tailwind 约定重构后的设置页，统一主题行为和表单外观。
+            </p>
+          </div>
 
-    <div class="settings-body">
-      <!-- Left: Section Nav -->
-      <nav class="settings-nav">
-        <a href="#general" class="settings-nav-item active">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          常规设置
-        </a>
-        <a href="#appearance" class="settings-nav-item">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 3a7 7 0 000 14V3z" fill="currentColor" opacity="0.15"/></svg>
-          外观主题
-        </a>
-        <a href="#viewer" class="settings-nav-item">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 10h16M10 2v16" stroke="currentColor" stroke-width="1.5"/></svg>
-          影像查看器
-        </a>
-        <a href="#notifications" class="settings-nav-item">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2a5 5 0 00-5 5v3l-1.5 2h13L15 10V7a5 5 0 00-5-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 16a2 2 0 004 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          通知
-        </a>
-        <a href="#ai" class="settings-nav-item">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          AI 辅助
-        </a>
-        <a href="#dicom" class="settings-nav-item">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 5V3h6v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5"/></svg>
-          DICOM 连接
-        </a>
-      </nav>
+          <div class="space-y-5 px-5 py-5">
+            <ThemeToggleButton :is-dark="themeStore.isDark" :mode="themeStore.mode" @toggle="themeStore.toggleTheme" />
 
-      <!-- Right: Settings Forms -->
-      <div class="settings-content">
-        <!-- General -->
-        <section id="general" class="settings-section">
-          <h2 class="section-title">常规设置</h2>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">界面语言</label>
-              <span class="setting-hint">设置系统显示语言</span>
+            <div class="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900/70">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">当前摘要</p>
+              <ul class="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                <li v-for="item in quickSummary" :key="item" class="flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                  <span>{{ item }}</span>
+                </li>
+              </ul>
             </div>
-            <select v-model="language" class="setting-select">
-              <option value="zh-CN">简体中文</option>
-              <option value="en-US">English</option>
-            </select>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">自动保存间隔</label>
-              <span class="setting-hint">报告自动保存的时间间隔（秒）</span>
-            </div>
-            <select v-model="autoSaveInterval" class="setting-select">
-              <option :value="15">15 秒</option>
-              <option :value="30">30 秒</option>
-              <option :value="60">60 秒</option>
-              <option :value="120">2 分钟</option>
-            </select>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">默认检查类型</label>
-              <span class="setting-hint">新建检查时的默认模态</span>
-            </div>
-            <select v-model="defaultModality" class="setting-select">
-              <option value="CT">CT</option>
-              <option value="MRI">MRI</option>
-              <option value="X-Ray">X-Ray</option>
-              <option value="Ultrasound">超声</option>
-              <option value="PET">PET</option>
-            </select>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">字体大小</label>
-              <span class="setting-hint">界面字体大小偏好</span>
-            </div>
-            <select v-model="fontSize" class="setting-select">
-              <option value="small">小 (14px)</option>
-              <option value="medium">中 (16px)</option>
-              <option value="large">大 (18px)</option>
-            </select>
           </div>
         </section>
 
-        <!-- Appearance -->
-        <section id="appearance" class="settings-section">
-          <h2 class="section-title">外观主题</h2>
-          <div class="theme-cards">
-            <button
-              class="theme-card"
-              :class="{ active: currentTheme === 'light' }"
-              @click="setTheme('light')"
-              aria-label="切换到浅色模式"
-            >
-              <div class="theme-preview theme-light-preview">
-                <div class="tp-sidebar"></div>
-                <div class="tp-main">
-                  <div class="tp-header"></div>
-                  <div class="tp-content">
-                    <div class="tp-block"></div>
-                    <div class="tp-block"></div>
-                  </div>
-                </div>
+        <nav class="surface-card p-3">
+          <a
+            v-for="item in sectionItems"
+            :key="item.id"
+            :href="`#${item.id}`"
+            class="block rounded-2xl px-4 py-3 transition"
+            :class="activeSection === item.id
+              ? 'bg-sky-50 text-sky-700 shadow-soft dark:bg-sky-500/10 dark:text-sky-200'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'"
+          >
+            <p class="text-sm font-medium">{{ item.label }}</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ item.description }}</p>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="space-y-6">
+        <section class="surface-card overflow-hidden">
+          <div class="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+            <div class="max-w-3xl">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300">Workspace Preferences</p>
+              <h2 class="mt-3 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">统一配置界面、主题模式与工作站偏好</h2>
+              <p class="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                当前页面改为完全基于 Tailwind 实现的表单布局，主题状态交由 Pinia 管理，避免继续依赖未定义的 CSS 变量和独立主题逻辑。
+              </p>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
+                <p class="text-xs uppercase tracking-[0.18em] text-slate-400">Theme</p>
+                <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{{ themeStore.mode }}</p>
               </div>
-              <span class="theme-label">浅色模式</span>
-            </button>
-            <button
-              class="theme-card"
-              :class="{ active: currentTheme === 'dark' }"
-              @click="setTheme('dark')"
-              aria-label="切换到深色模式"
-            >
-              <div class="theme-preview theme-dark-preview">
-                <div class="tp-sidebar"></div>
-                <div class="tp-main">
-                  <div class="tp-header"></div>
-                  <div class="tp-content">
-                    <div class="tp-block"></div>
-                    <div class="tp-block"></div>
-                  </div>
-                </div>
+              <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
+                <p class="text-xs uppercase tracking-[0.18em] text-slate-400">Viewer</p>
+                <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{{ defaultLayout }}</p>
               </div>
-              <span class="theme-label">深色模式</span>
+              <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
+                <p class="text-xs uppercase tracking-[0.18em] text-slate-400">DICOM</p>
+                <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{{ dicomServerPort }}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="general" class="surface-card p-6">
+          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">常规设置</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">设置默认语言、自动保存频率和新建检查的基础偏好。</p>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">界面语言</span>
+              <select v-model="language" class="surface-input">
+                <option v-for="option in languageOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">自动保存间隔</span>
+              <select v-model="autoSaveInterval" class="surface-input">
+                <option :value="15">15 秒</option>
+                <option :value="30">30 秒</option>
+                <option :value="60">60 秒</option>
+                <option :value="120">2 分钟</option>
+              </select>
+            </label>
+
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">默认检查类型</span>
+              <select v-model="defaultModality" class="surface-input">
+                <option v-for="option in modalityOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">字体大小</span>
+              <select v-model="fontSize" class="surface-input">
+                <option v-for="option in fontSizeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section id="appearance" class="surface-card p-6">
+          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">外观主题</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">主题状态完全接入 Pinia store，与全局 dark class 保持一致。</p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-3">
+            <button
+              v-for="option in themeOptions"
+              :key="option.value"
+              type="button"
+              class="rounded-3xl border p-5 text-left transition"
+              :class="themeStore.mode === option.value
+                ? 'border-sky-400 bg-sky-50 shadow-soft dark:border-sky-400 dark:bg-sky-500/10'
+                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-slate-600 dark:hover:bg-slate-900'"
+              @click="setThemeMode(option.value)"
+            >
+              <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ option.label }}</p>
+              <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{{ option.description }}</p>
+              <p class="mt-4 text-xs uppercase tracking-[0.2em] text-slate-400">
+                {{ themeStore.mode === option.value ? '当前生效' : '点击切换' }}
+              </p>
             </button>
           </div>
         </section>
 
-        <!-- Viewer -->
-        <section id="viewer" class="settings-section">
-          <h2 class="section-title">影像查看器</h2>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">默认布局</label>
-              <span class="setting-hint">打开影像时的默认窗格布局</span>
-            </div>
-            <select v-model="defaultLayout" class="setting-select">
-              <option v-for="opt in layoutOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
+        <section id="viewer" class="surface-card p-6">
+          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">影像查看器</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">为阅片工作流设置默认布局、叠加显示和交互方向。</p>
           </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">影像质量</label>
-              <span class="setting-hint">影像渲染质量（高质量需要更多带宽）</span>
-            </div>
-            <select v-model="imageQuality" class="setting-select">
-              <option value="low">低质量（快速加载）</option>
-              <option value="medium">中等质量</option>
-              <option value="high">高质量</option>
-            </select>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">显示叠加信息</label>
-              <span class="setting-hint">在影像上显示患者信息和技术参数</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="showOverlay">
-              <span class="toggle-slider"></span>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">默认布局</span>
+              <select v-model="defaultLayout" class="surface-input">
+                <option v-for="option in layoutOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">影像质量</span>
+              <select v-model="imageQuality" class="surface-input">
+                <option v-for="option in imageQualityOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">滚动方向</span>
+              <select v-model="scrollDirection" class="surface-input">
+                <option v-for="option in scrollDirectionOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">测量单位</span>
+              <select v-model="measureUnit" class="surface-input">
+                <option v-for="option in measureUnitOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
             </label>
           </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">滚动方向</label>
-              <span class="setting-hint">鼠标滚轮切换层面的方向</span>
-            </div>
-            <select v-model="scrollDirection" class="setting-select">
-              <option value="natural">自然方向</option>
-              <option value="reverse">反向</option>
-            </select>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">显示十字线</label>
-              <span class="setting-hint">多平面重建时显示十字交叉线</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="crosshair">
-              <span class="toggle-slider"></span>
+
+          <div class="mt-6 grid gap-3 sm:grid-cols-3">
+            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
+              <span>
+                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">显示叠加信息</span>
+                <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">患者信息与技术参数</span>
+              </span>
+              <input v-model="showOverlay" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
             </label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">测量单位</label>
-              <span class="setting-hint">长度和面积的测量单位</span>
+
+            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
+              <span>
+                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">显示十字线</span>
+                <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">多平面重建定位</span>
+              </span>
+              <input v-model="crosshair" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
+            </label>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
+              <p class="text-sm font-medium text-slate-800 dark:text-slate-100">当前布局建议</p>
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">根据工作站偏好自动预设</p>
+              <p class="mt-4 text-xl font-semibold text-slate-900 dark:text-white">{{ defaultLayout }}</p>
             </div>
-            <select v-model="measureUnit" class="setting-select">
-              <option value="mm">毫米 (mm)</option>
-              <option value="cm">厘米 (cm)</option>
-            </select>
           </div>
         </section>
 
-        <!-- Notifications -->
-        <section id="notifications" class="settings-section">
-          <h2 class="section-title">通知设置</h2>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">危急值通知</label>
-              <span class="setting-hint">检测到危急值时立即通知</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="notifyCritical">
-              <span class="toggle-slider"></span>
-            </label>
+        <section id="notifications" class="surface-card p-6">
+          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">通知设置</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">定义哪些事件需要在工作台里高优先级提示。</p>
           </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">新病例通知</label>
-              <span class="setting-hint">有新分配的病例时通知</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="notifyNewCase">
-              <span class="toggle-slider"></span>
+
+          <div class="grid gap-3 md:grid-cols-2">
+            <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+              <span>
+                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">危急值通知</span>
+                <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">检测到危急值时立即发出通知</span>
+              </span>
+              <input v-model="notifyCritical" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
             </label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">报告审核通知</label>
-              <span class="setting-hint">报告被审核或退回时通知</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="notifyReport">
-              <span class="toggle-slider"></span>
+
+            <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+              <span>
+                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">新病例通知</span>
+                <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">有新分配病例时提醒值班医生</span>
+              </span>
+              <input v-model="notifyNewCase" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
             </label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">提示音</label>
-              <span class="setting-hint">收到通知时播放提示音</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="soundEnabled">
-              <span class="toggle-slider"></span>
+
+            <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+              <span>
+                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">报告审核通知</span>
+                <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">审核通过或退回时同步更新</span>
+              </span>
+              <input v-model="notifyReport" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
+            </label>
+
+            <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+              <span>
+                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">提示音</span>
+                <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">通知到达时播放音频提示</span>
+              </span>
+              <input v-model="soundEnabled" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
             </label>
           </div>
         </section>
 
-        <!-- AI Settings -->
-        <section id="ai" class="settings-section">
-          <h2 class="section-title">AI 辅助设置</h2>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">自动分析</label>
-              <span class="setting-hint">打开影像时自动启动 AI 分析</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="aiAutoAnalyze">
-              <span class="toggle-slider"></span>
-            </label>
+        <section id="ai" class="surface-card p-6">
+          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">AI 辅助设置</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">配置自动分析策略、阈值和结果高亮方式。</p>
           </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">置信度阈值</label>
-              <span class="setting-hint">低于此值的 AI 建议将被标记为低置信度</span>
+
+          <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <div class="space-y-4">
+              <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+                <span>
+                  <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">自动分析</span>
+                  <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">打开影像时自动触发 AI 推理</span>
+                </span>
+                <input v-model="aiAutoAnalyze" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
+              </label>
+
+              <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+                <span>
+                  <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">高亮发现区域</span>
+                  <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">在原图中叠加可疑病灶区域</span>
+                </span>
+                <input v-model="aiHighlightFindings" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
+              </label>
             </div>
-            <div class="range-group">
-              <input type="range" v-model.number="aiConfidenceThreshold" min="50" max="99" class="setting-range">
-              <span class="range-value">{{ aiConfidenceThreshold }}%</span>
+
+            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900/70">
+              <p class="text-sm font-medium text-slate-800 dark:text-slate-100">置信度阈值</p>
+              <p class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">低于此值的 AI 建议将被标记为低置信度。</p>
+              <input v-model="aiConfidenceThreshold" type="range" min="50" max="99" class="mt-6 w-full accent-blue-600 dark:accent-sky-400" />
+              <div class="mt-4 flex items-end justify-between">
+                <span class="text-xs uppercase tracking-[0.2em] text-slate-400">当前值</span>
+                <span class="text-3xl font-semibold text-slate-900 dark:text-white">{{ aiConfidenceThreshold }}%</span>
+              </div>
             </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">高亮发现区域</label>
-              <span class="setting-hint">在影像上高亮显示 AI 检测到的异常区域</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="aiHighlightFindings">
-              <span class="toggle-slider"></span>
-            </label>
           </div>
         </section>
 
-        <!-- DICOM -->
-        <section id="dicom" class="settings-section">
-          <h2 class="section-title">DICOM 服务器连接</h2>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">服务器地址</label>
-              <span class="setting-hint">DICOM 服务器 IP 地址或主机名</span>
-            </div>
-            <input type="text" v-model="dicomServerHost" class="setting-input" placeholder="192.168.1.100">
+        <section id="dicom" class="surface-card p-6">
+          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">DICOM 服务器连接</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">维护 PACS 服务的地址、端口与 AE Title 等基础连接参数。</p>
           </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">端口</label>
-              <span class="setting-hint">DICOM 服务端口号</span>
-            </div>
-            <input type="text" v-model="dicomServerPort" class="setting-input setting-input-sm" placeholder="4242">
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">AE Title</label>
-              <span class="setting-hint">本系统的 Application Entity 标识</span>
-            </div>
-            <input type="text" v-model="dicomAeTitle" class="setting-input" placeholder="MEDIMAGEDX">
-          </div>
-          <div class="setting-row">
-            <div class="setting-info">
-              <label class="setting-label">自动拉取影像</label>
-              <span class="setting-hint">接收到检查时自动从 PACS 拉取影像</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="dicomAutoFetch">
-              <span class="toggle-slider"></span>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="block space-y-2 md:col-span-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">服务器地址</span>
+              <input v-model="dicomServerHost" type="text" class="surface-input" placeholder="192.168.1.100" />
+            </label>
+
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">端口</span>
+              <input v-model="dicomServerPort" type="text" class="surface-input" placeholder="4242" />
+            </label>
+
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">AE Title</span>
+              <input v-model="dicomAeTitle" type="text" class="surface-input" placeholder="MEDIMAGEDX" />
             </label>
           </div>
-          <div class="setting-row" style="justify-content: flex-end;">
-            <button class="btn-outline" style="margin-right: var(--space-3);">测试连接</button>
+
+          <div class="mt-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/70 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-800 dark:text-slate-100">自动拉取影像</p>
+              <p class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">新检查到达时自动从 PACS 拉取序列和元数据。</p>
+            </div>
+            <input v-model="dicomAutoFetch" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button type="button" class="surface-button-secondary px-4 py-2.5">测试连接</button>
           </div>
         </section>
 
-        <!-- Save Bar -->
-        <div class="save-bar">
-          <transition name="fade">
-            <span v-if="saved" class="save-indicator">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-5" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              已保存
-            </span>
-          </transition>
-          <button class="btn-outline">重置默认</button>
-          <button class="btn-primary" @click="handleSave">保存设置</button>
+        <div class="sticky bottom-4 z-20 rounded-3xl border border-white/70 bg-white/90 p-4 shadow-soft backdrop-blur dark:border-slate-700 dark:bg-slate-950/88">
+          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-900 dark:text-white">设置变更</p>
+              <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {{ saved ? '设置已保存并同步到当前会话。' : '完成调整后可保存为当前工作站默认配置。' }}
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+              <span
+                v-if="saved"
+                class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+              >
+                已保存
+              </span>
+              <button type="button" class="surface-button-secondary px-4 py-2.5" @click="resetDefaults">重置默认</button>
+              <button type="button" class="surface-button-primary px-5 py-2.5" @click="handleSave">保存设置</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </main>
 </template>
-
-<style scoped>
-.settings-page {
-  padding: var(--space-8);
-  max-width: 960px;
-  margin: 0 auto;
-}
-
-.settings-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.settings-desc {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin: var(--space-2) 0 0;
-}
-
-.settings-body {
-  display: flex;
-  gap: var(--space-8);
-  margin-top: var(--space-8);
-}
-
-/* Section Navigation */
-.settings-nav {
-  width: 200px;
-  flex-shrink: 0;
-  position: sticky;
-  top: calc(var(--header-height) + var(--space-8));
-  align-self: flex-start;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.settings-nav-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: all 200ms ease;
-}
-
-.settings-nav-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.settings-nav-item.active {
-  background: var(--bg-active);
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-/* Content */
-.settings-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.settings-section {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: var(--space-6);
-  margin-bottom: var(--space-6);
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 var(--space-6);
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.setting-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.setting-row:first-of-type {
-  padding-top: 0;
-}
-
-.setting-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.setting-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.setting-hint {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.setting-select,
-.setting-input {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 14px;
-  min-width: 180px;
-  outline: none;
-  transition: border-color 200ms ease;
-}
-
-.setting-select:focus,
-.setting-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-}
-
-.setting-input-sm {
-  min-width: 100px;
-  max-width: 120px;
-}
-
-/* Toggle */
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-  cursor: pointer;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-slider {
-  position: absolute;
-  inset: 0;
-  background: var(--border-color);
-  border-radius: 24px;
-  transition: background 200ms ease;
-}
-
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 2px;
-  width: 20px;
-  height: 20px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 200ms ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-.toggle-switch input:checked + .toggle-slider {
-  background: var(--color-primary);
-}
-
-.toggle-switch input:checked + .toggle-slider::before {
-  transform: translateX(20px);
-}
-
-.toggle-switch input:focus-visible + .toggle-slider {
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-}
-
-/* Range */
-.range-group {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.setting-range {
-  width: 140px;
-  accent-color: var(--color-primary);
-}
-
-.range-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-primary);
-  min-width: 40px;
-  text-align: right;
-}
-
-/* Theme Cards */
-.theme-cards {
-  display: flex;
-  gap: var(--space-4);
-}
-
-.theme-card {
-  flex: 1;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  padding: var(--space-4);
-  background: var(--bg-input);
-  cursor: pointer;
-  transition: all 200ms ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.theme-card:hover {
-  border-color: var(--color-primary);
-}
-
-.theme-card.active {
-  border-color: var(--color-primary);
-  background: var(--bg-active);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-}
-
-.theme-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-/* Theme preview mini mockups */
-.theme-preview {
-  width: 100%;
-  height: 80px;
-  border-radius: 8px;
-  overflow: hidden;
-  display: flex;
-}
-
-.theme-light-preview { background: #f1f5f9; }
-.theme-light-preview .tp-sidebar { background: #fff; width: 24%; border-right: 1px solid #e2e8f0; }
-.theme-light-preview .tp-main { flex: 1; display: flex; flex-direction: column; }
-.theme-light-preview .tp-header { height: 16px; background: #fff; border-bottom: 1px solid #e2e8f0; }
-.theme-light-preview .tp-content { flex: 1; display: flex; gap: 4px; padding: 4px; }
-.theme-light-preview .tp-block { flex: 1; background: #fff; border-radius: 4px; }
-
-.theme-dark-preview { background: #0f172a; }
-.theme-dark-preview .tp-sidebar { background: #1e293b; width: 24%; border-right: 1px solid #334155; }
-.theme-dark-preview .tp-main { flex: 1; display: flex; flex-direction: column; }
-.theme-dark-preview .tp-header { height: 16px; background: #1e293b; border-bottom: 1px solid #334155; }
-.theme-dark-preview .tp-content { flex: 1; display: flex; gap: 4px; padding: 4px; }
-.theme-dark-preview .tp-block { flex: 1; background: #1e293b; border-radius: 4px; }
-
-/* Buttons */
-.btn-primary {
-  padding: var(--space-2) var(--space-6);
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 200ms ease;
-}
-
-.btn-primary:hover {
-  background: var(--color-primary-hover);
-}
-
-.btn-outline {
-  padding: var(--space-2) var(--space-4);
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 200ms ease;
-}
-
-.btn-outline:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-/* Save Bar */
-.save-bar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  padding: var(--space-6) 0;
-  position: sticky;
-  bottom: 0;
-  background: var(--bg-body);
-}
-
-.save-indicator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: 13px;
-  color: var(--color-success);
-  font-weight: 500;
-  margin-right: auto;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .settings-body {
-    flex-direction: column;
-  }
-  .settings-nav {
-    position: static;
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-}
-</style>
