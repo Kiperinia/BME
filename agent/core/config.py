@@ -1,35 +1,40 @@
-# 配置管理
-"""配置管理"""
-import os
-from typing import Optional, Dict, Any
-from pydantic import BaseModel
+"""项目配置：扩展 hello_agents 包内 Config，补充项目自定义字段。"""
 
-class Config(BaseModel):
-    """HelloAgents配置类"""
-    
-    # LLM配置
-    default_model: str = "gpt-3.5-turbo"
-    default_provider: str = "openai"
-    temperature: float = 0.7
-    max_tokens: Optional[int] = None
-    
-    # 系统配置
-    debug: bool = False
-    log_level: str = "INFO"
-    
-    # 其他配置
-    max_history_length: int = 100
-    
+import os
+from typing import Any, Dict, Optional
+
+from hello_agents.core.config import Config as HelloAgentsConfig
+
+
+class Config(HelloAgentsConfig):
+    """基于 hello_agents.Config 的项目配置。"""
+
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    timeout: int = 60
+    modelscope_api_key: Optional[str] = None
+    modelscope_base_url: str = "https://api-inference.modelscope.cn/v1/"
+
     @classmethod
     def from_env(cls) -> "Config":
-        """从环境变量创建配置"""
-        return cls(
-            debug=os.getenv("DEBUG", "false").lower() == "true",
-            log_level=os.getenv("LOG_LEVEL", "INFO"),
-            temperature=float(os.getenv("TEMPERATURE", "0.7")),
-            max_tokens=int(os.getenv("MAX_TOKENS")) if os.getenv("MAX_TOKENS") else None,
+        """从环境变量创建配置，并保留 hello_agents 的默认字段。"""
+        data = HelloAgentsConfig.from_env().dict()
+        data.update(
+            {
+                "default_model": os.getenv("LLM_MODEL_ID", data.get("default_model", "gpt-3.5-turbo")),
+                "default_provider": os.getenv("LLM_PROVIDER", data.get("default_provider", "openai")),
+                "api_key": os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY"),
+                "base_url": os.getenv("LLM_BASE_URL") or os.getenv("OPENAI_BASE_URL"),
+                "timeout": int(os.getenv("LLM_TIMEOUT", "60")),
+                "modelscope_api_key": os.getenv("MODELSCOPE_API_KEY"),
+                "modelscope_base_url": os.getenv(
+                    "MODELSCOPE_BASE_URL",
+                    "https://api-inference.modelscope.cn/v1/",
+                ),
+            }
         )
-    
+        return cls(**data)
+
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
+        """转换为字典。"""
         return self.dict()

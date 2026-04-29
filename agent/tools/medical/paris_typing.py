@@ -20,11 +20,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol
 
-from agent.tools.medical.feature_extractor import (
+from .feature_extractor import (
     FeatureExtractor,
     LesionFeatures,
 )
-from agent.tools.medical.morphology_classifier import (
+from .morphology_classifier import (
     MorphologyClassifier,
     MorphologyResult,
     PedicleType,

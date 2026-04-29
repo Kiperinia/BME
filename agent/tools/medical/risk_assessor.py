@@ -24,17 +24,17 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol
 
-from agent.tools.medical.feature_extractor import (
+from .feature_extractor import (
     ColorTone,
     LesionFeatures,
     SurfacePattern,
 )
-from agent.tools.medical.morphology_classifier import (
+from .morphology_classifier import (
     MorphologyResult,
     PedicleType,
     SizeGrade,
 )
-from agent.tools.medical.paris_typing import (
+from .paris_typing import (
     InvasionRisk,
     ParisType,
     ParisTypingResult,

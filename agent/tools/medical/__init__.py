@@ -8,11 +8,11 @@
 #   2. LLM 增强：当规则置信度不足时，调用 LLM 做二次判断
 #   3. 可独立运行：每个模块均可单独调用，也可通过 MedicalPipeline 串联
 
-from agent.tools.medical.feature_extractor import FeatureExtractor
-from agent.tools.medical.morphology_classifier import MorphologyClassifier
-from agent.tools.medical.paris_typing import ParisTypingEngine
-from agent.tools.medical.risk_assessor import RiskAssessor
-from agent.tools.medical.report_generator import ReportGenerator
+from .feature_extractor import FeatureExtractor
+from .morphology_classifier import MorphologyClassifier
+from .paris_typing import ParisTypingEngine
+from .risk_assessor import RiskAssessor
+from .report_generator import ReportGenerator
 
 __all__ = [
     "FeatureExtractor",

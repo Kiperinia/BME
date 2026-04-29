@@ -22,7 +22,7 @@ from typing import Any, Protocol
 
 import numpy as np
 
-from agent.tools.medical.feature_extractor import (
+from .feature_extractor import (
     ColorTone,
     FeatureExtractor,
     LesionFeatures,

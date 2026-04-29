@@ -36,7 +36,7 @@ def load_case(image_path: Path | None, mask_path: Path | None) -> tuple[np.ndarr
         if mask is None:
             raise FileNotFoundError(f"Cannot read mask: {mask_path}")
         return image, mask, None
-
+    """如果没有提供图像和掩码，则使用默认的示例数据。"""
     image = np.zeros((256, 256, 3), dtype=np.uint8)
     image[:] = (28, 55, 92)
     cv2.circle(image, (128, 128), 44, (18, 42, 210), -1)

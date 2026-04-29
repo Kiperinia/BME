@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 
 import numpy as np
+from hello_agents import HelloAgentsLLM
+from hello_agents.core.agent import Agent as HelloAgent
+from hello_agents.tools import ToolRegistry
 
-from hello_agents import HelloAgent, HelloAgentsLLM
-from agent.tools.medical.feature_extractor import FeatureExtractor, LesionFeatures
-from agent.tools.medical.morphology_classifier import MorphologyClassifier, MorphologyResult
-from agent.tools.medical.paris_typing import ParisTypingEngine, ParisTypingResult
-from agent.tools.medical.report_generator import ReportData, ReportGenerator
-from agent.tools.medical.risk_assessor import RiskAssessmentResult, RiskAssessor, RiskLevel
+from core.config import Config
+from core.llm import MyLLM, RuleOnlyLLM
+from tools.medical.feature_extractor import FeatureExtractor, LesionFeatures
+from tools.medical.morphology_classifier import MorphologyClassifier, MorphologyResult
+from tools.medical.paris_typing import ParisTypingEngine, ParisTypingResult
+from tools.medical.report_generator import ReportData, ReportGenerator
+from tools.medical.risk_assessor import RiskAssessmentResult, RiskAssessor, RiskLevel
 
 
 @dataclass(slots=True)
@@ -67,16 +72,7 @@ class BatchDiagnosisResult:
 
 
 class DiagnosisAgent(HelloAgent):
-    """
-    最小可运行诊断 Agent。
-
-    使用固定推理管线：
-    1. extract_features
-    2. morphology_classify
-    3. paris_typing
-    4. assess_risk
-    5. generate_report
-    """
+    """业务侧医学诊断 Agent，底层复用 hello_agents.Agent。"""
 
     _RISK_PRIORITY = {
         RiskLevel.LOW: 0,
@@ -88,55 +84,106 @@ class DiagnosisAgent(HelloAgent):
         self,
         llm: HelloAgentsLLM | None = None,
         *,
+        config: Config | None = None,
         pixel_size_mm: float | None = 0.15,
         use_llm_report: bool = False,
         feature_extractor: FeatureExtractor | None = None,
+        tool_registry: ToolRegistry | None = None,
     ):
+        resolved_config = config or Config.from_env()
+        resolved_llm = llm or RuleOnlyLLM(
+            model=resolved_config.default_model,
+            provider=resolved_config.default_provider,
+        )
+
         super().__init__(
             name="medical-diagnosis-agent",
-            description="基于提示词和医学工具链的最小 HelloAgent 诊断编排器",
-            llm=llm,
-            metadata={"pipeline": "feature -> morphology -> paris -> risk -> report"},
+            llm=resolved_llm,
+            system_prompt="你是一名结构化的消化内镜病灶诊断助手。",
+            config=resolved_config,
+            tool_registry=tool_registry,
         )
+
+        self.description = "基于提示词和医学工具链的最小 HelloAgent 诊断编排器"
+        self.metadata = {"pipeline": "feature -> morphology -> paris -> risk -> report"}
         self.pixel_size_mm = pixel_size_mm
+        llm_client = None if isinstance(resolved_llm, RuleOnlyLLM) else resolved_llm
         self.feature_extractor = feature_extractor or FeatureExtractor(pixel_size_mm=pixel_size_mm)
         self.morphology_classifier = MorphologyClassifier(
             pixel_size_mm=pixel_size_mm,
-            llm_client=llm,
+            llm_client=llm_client,
         )
-        self.paris_typing_engine = ParisTypingEngine(llm_client=llm)
-        self.risk_assessor = RiskAssessor(llm_client=llm)
+        self.paris_typing_engine = ParisTypingEngine(llm_client=llm_client)
+        self.risk_assessor = RiskAssessor(llm_client=llm_client)
         self.report_generator = ReportGenerator(
-            llm_client=llm,
-            use_llm=use_llm_report and llm is not None,
+            llm_client=llm_client,
+            use_llm=use_llm_report and llm_client is not None,
         )
 
     @classmethod
     def from_env(cls, use_llm: bool = False, **kwargs: Any) -> "DiagnosisAgent":
-        if not use_llm:
-            return cls(llm=None, **kwargs)
-
-        from core.llm import MyLLM
-
+        config = kwargs.pop("config", None) or Config.from_env()
         llm_kwargs = kwargs.pop("llm_kwargs", {})
+
+        if not use_llm:
+            llm = RuleOnlyLLM(model=config.default_model, provider=config.default_provider)
+            return cls(llm=llm, config=config, **kwargs)
+
         try:
-            llm = MyLLM(**llm_kwargs)
+            llm = MyLLM(config=config, **llm_kwargs)
         except Exception as exc:
             raise RuntimeError(
-                "Failed to initialize LLM. Configure OPENAI_API_KEY or MODELSCOPE_API_KEY before enabling LLM mode."
+                "Failed to initialize LLM. Configure LLM_API_KEY/LLM_BASE_URL or MODELSCOPE_API_KEY before enabling LLM mode."
             ) from exc
 
-        return cls(llm=llm, **kwargs)
+        return cls(llm=llm, config=config, **kwargs)
 
-    async def run(self, input_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def run(self, input_text: str, **kwargs: Any) -> str:
+        payload = kwargs.pop("input_data", None)
+        if payload is None:
+            if kwargs:
+                payload = dict(kwargs)
+                if input_text:
+                    payload.setdefault("input_text", input_text)
+            elif input_text:
+                payload = self._parse_input_text(input_text)
+            else:
+                payload = {}
+
+        result = self.run_payload(payload)
+        return json.dumps(result, ensure_ascii=False)
+
+    def run_payload(self, input_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         payload = dict(input_data or {})
         payload.update(kwargs)
 
         patient_context = payload.get("patient_context") or payload.get("context")
         lesions = payload.get("lesions")
         if lesions is not None:
-            result = await self.diagnose_batch(lesions, patient_context)
-            return result.to_dict()
+            return self.diagnose_batch_sync(lesions, patient_context).to_dict()
+
+        image = payload.get("image")
+        mask = payload.get("mask")
+        if image is None or mask is None:
+            raise ValueError("Single-run payload must contain image and mask.")
+
+        result = self.diagnose_single_sync(
+            image=image,
+            mask=mask,
+            bbox=payload.get("bbox"),
+            context=patient_context,
+            lesion_id=payload.get("lesion_id", "lesion-1"),
+        )
+        return result.to_dict()
+
+    async def arun_payload(self, input_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        payload = dict(input_data or {})
+        payload.update(kwargs)
+
+        patient_context = payload.get("patient_context") or payload.get("context")
+        lesions = payload.get("lesions")
+        if lesions is not None:
+            return (await self.diagnose_batch(lesions, patient_context)).to_dict()
 
         image = payload.get("image")
         mask = payload.get("mask")
@@ -151,6 +198,17 @@ class DiagnosisAgent(HelloAgent):
             lesion_id=payload.get("lesion_id", "lesion-1"),
         )
         return result.to_dict()
+
+    def run_sync(self, input_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        return self.run_payload(input_data, **kwargs)
+
+    def summary(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "llm_configured": not isinstance(self.llm, RuleOnlyLLM),
+            "metadata": self.metadata,
+        }
 
     async def diagnose_single(
         self,
@@ -253,13 +311,9 @@ class DiagnosisAgent(HelloAgent):
         return normalized
 
     @staticmethod
-    def _normalize_lesion(
-        lesion: LesionInput | dict[str, Any],
-        index: int,
-    ) -> LesionInput:
+    def _normalize_lesion(lesion: LesionInput | dict[str, Any], index: int) -> LesionInput:
         if isinstance(lesion, LesionInput):
             return lesion
-
         if not isinstance(lesion, dict):
             raise TypeError(f"Unsupported lesion input at index {index}: {type(lesion)!r}")
 
@@ -278,11 +332,7 @@ class DiagnosisAgent(HelloAgent):
         )
 
     @classmethod
-    def _build_batch_report(
-        cls,
-        results: list[DiagnosisResult],
-        context: dict[str, Any],
-    ) -> dict[str, Any]:
+    def _build_batch_report(cls, results: list[DiagnosisResult], context: dict[str, Any]) -> dict[str, Any]:
         if not results:
             return {
                 "patient_id": context["patient_id"],
@@ -299,7 +349,6 @@ class DiagnosisAgent(HelloAgent):
                 item.risk_assessment.total_score,
             ),
         )
-
         findings = (
             f"本次共评估 {len(results)} 处病灶。最高风险病灶为 {highest_risk.lesion_id}，"
             f"{highest_risk.report.findings}"
@@ -320,10 +369,7 @@ class DiagnosisAgent(HelloAgent):
         }
 
     @staticmethod
-    def _build_label(
-        paris_typing: ParisTypingResult,
-        risk_assessment: RiskAssessmentResult,
-    ) -> str:
+    def _build_label(paris_typing: ParisTypingResult, risk_assessment: RiskAssessmentResult) -> str:
         return f"{paris_typing.paris_type.value}/{risk_assessment.risk_level.value}"
 
     @staticmethod
@@ -338,6 +384,13 @@ class DiagnosisAgent(HelloAgent):
         )
 
     @staticmethod
+    def _parse_input_text(input_text: str) -> dict[str, Any]:
+        try:
+            return json.loads(input_text)
+        except json.JSONDecodeError:
+            return {"input_text": input_text}
+
+    @staticmethod
     def _run_coroutine(coroutine: Any) -> Any:
         try:
             asyncio.get_running_loop()
@@ -345,3 +398,11 @@ class DiagnosisAgent(HelloAgent):
             return asyncio.run(coroutine)
 
         raise RuntimeError("Synchronous helper cannot run inside an active event loop; use await instead.")
+
+
+__all__ = [
+    "LesionInput",
+    "DiagnosisResult",
+    "BatchDiagnosisResult",
+    "DiagnosisAgent",
+]

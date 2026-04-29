@@ -17,10 +17,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol
 
-from agent.tools.medical.feature_extractor import LesionFeatures
-from agent.tools.medical.morphology_classifier import MorphologyResult
-from agent.tools.medical.paris_typing import ParisTypingResult
-from agent.tools.medical.risk_assessor import (
+from .feature_extractor import LesionFeatures
+from .morphology_classifier import MorphologyResult
+from .paris_typing import ParisTypingResult
+from .risk_assessor import (
     Disposition,
     RiskAssessmentResult,
     RiskLevel,
