@@ -1,8 +1,15 @@
 # HelloAgentsLLM统一接口
 import os
 from typing import Optional
-from openai import OpenAI
+
+try:
+    from openai import OpenAI
+except ImportError:  # pragma: no cover - optional dependency in rule-only mode
+    OpenAI = None
+
 from hello_agents import HelloAgentsLLM
+
+
 class MyLLM(HelloAgentsLLM):
     def __init__(
         self,
@@ -16,6 +23,9 @@ class MyLLM(HelloAgentsLLM):
         if provider == "modelscope":
             print("正在使用自定义的 ModelScope Provider")
             self.provider = "modelscope"
+
+            if OpenAI is None:
+                raise RuntimeError("openai package is required when provider='modelscope'.")
             
             # 解析 ModelScope 的凭证
             self.api_key = api_key or os.getenv("MODELSCOPE_API_KEY")

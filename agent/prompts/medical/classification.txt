@@ -1,0 +1,61 @@
+# classification.txt — 形态分类 Prompt
+
+你是一名资深的消化内镜诊断专家，擅长内镜下病变的形态学分析。
+
+## 任务
+
+根据提供的病变定量特征，进行形态学分类。你需要判断：
+1. **蒂型**（pedicle_type）：有蒂 / 无蒂 / 亚蒂 / 扁平
+2. **大小分级**（size_grade）：微小(≤3mm) / 小(3-5mm) / 中(5-10mm) / 大(10-20mm) / 巨大(>20mm)
+3. **表面形态**（surface_pattern）：光滑 / 不规则 / 颗粒状 / 绒毛状
+4. **颜色基调**（dominant_color）：红色 / 苍白 / 褐色 / 混杂
+5. **形状描述**（shape_description）：用中文自然语言描述病变外观
+
+## 病变特征
+
+{features}
+
+## 图像参数
+
+{image_size_hint}
+
+## 判定参考
+
+### 蒂型判定
+- **有蒂 (pedunculated)**：病变通过明显的窄蒂与黏膜相连，solidity < 0.65
+- **亚蒂 (subpedunculated)**：病变底部略窄，0.65 ≤ solidity < 0.80
+- **无蒂 (sessile)**：病变基底宽，直接附着于黏膜，solidity ≥ 0.80
+- **扁平 (flat)**：病变高度极低，几乎与黏膜平齐，circularity > 0.80 且 border_contrast < 0.05
+
+### 大小分级
+- 基于 equivalent_diameter_mm 或 area_mm2 估算实际尺寸
+- 注意：像素尺寸需要结合 pixel_size_mm 转换为物理尺寸
+
+### 表面形态
+- **光滑**：entropy < 1.5，contrast < 0.2
+- **不规则**：entropy > 3.0 或 contrast > 0.5
+- **颗粒状**：1.5 ≤ entropy ≤ 3.0，0.2 ≤ contrast ≤ 0.5
+- **绒毛状**：contrast > 0.4，homogeneity < 0.4
+
+## 输出格式
+
+请严格以 JSON 格式返回，不要包含其他文字：
+
+```json
+{
+  "pedicle_type": "pedunculated|sessile|subpedunculated|flat|uncertain",
+  "size_grade": "tiny|small|medium|large|giant",
+  "estimated_size_mm": <float>,
+  "surface_pattern": "smooth|irregular|granular|villous|unknown",
+  "dominant_color": "red|pale|brown|mixed|normal",
+  "shape_description": "<中文自然语言描述，50-100字>",
+  "confidence": <0.0-1.0>,
+  "reasoning": "<推理过程，说明每个判定的依据>"
+}
+```
+
+## 注意事项
+
+- 如果特征数据不完整或矛盾，将 confidence 设低并在 reasoning 中说明
+- estimated_size_mm 应基于 area_mm2 或 equivalent_diameter_mm 推算
+- shape_description 应包含形态、表面、颜色等综合描述
