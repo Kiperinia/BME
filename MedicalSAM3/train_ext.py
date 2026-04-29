@@ -592,6 +592,29 @@ def save_checkpoint(
     )
 
 
+def save_brh_checkpoint(
+    path: Path,
+    model: nn.Module,
+    epoch: int,
+    best_metric: float,
+    args: argparse.Namespace,
+) -> None:
+    if not hasattr(model, "brh"):
+        return
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(
+        {
+            "epoch": epoch,
+            "model": model.brh.state_dict(),
+            "best_metric": best_metric,
+            "args": vars(args),
+            "module": "brh",
+        },
+        path,
+    )
+
+
 def maybe_resume(
     model: nn.Module,
     optimizer: torch.optim.Optimizer,
@@ -655,9 +678,11 @@ def main() -> int:
             if current_dice >= best_dice:
                 best_dice = current_dice
                 save_checkpoint(save_dir / "best.pt", model, optimizer, epoch, best_dice, args)
+                save_brh_checkpoint(save_dir / "brh_best.pt", model, epoch, best_dice, args)
 
         history.append(epoch_record)
         save_checkpoint(save_dir / "last.pt", model, optimizer, epoch, best_dice, args)
+        save_brh_checkpoint(save_dir / "brh_last.pt", model, epoch, best_dice, args)
 
         print(json.dumps(epoch_record, ensure_ascii=False))
 

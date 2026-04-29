@@ -6,6 +6,7 @@
 3. BRH 使用误差置信度和息肉形状先验联合控制边界精修强度。
 """
 
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import torch
@@ -190,6 +191,39 @@ class MedSAM3Extended(nn.Module):
 
         return results
 
+    def load_extension_checkpoint(self, checkpoint_path: str, strict: bool = False) -> Dict[str, List[str]]:
+        """加载 train_ext.py 保存的整套扩展模型 checkpoint。"""
+        state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        state_dict = state["model"] if isinstance(state, dict) and "model" in state else state
+        missing, unexpected = self.load_state_dict(state_dict, strict=strict)
+        return {
+            "missing_keys": list(missing),
+            "unexpected_keys": list(unexpected),
+        }
+
+    def load_brh_checkpoint(self, checkpoint_path: str, strict: bool = True) -> Dict[str, List[str]]:
+        """只加载 BRH 权重，适用于 brh_best.pt / brh_last.pt 或整套 checkpoint 中的 brh.* 子集。"""
+        if not hasattr(self, "brh"):
+            raise ValueError("Current model does not have BRH enabled.")
+
+        state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        state_dict = state["model"] if isinstance(state, dict) and "model" in state else state
+
+        if any(key.startswith("brh.") for key in state_dict):
+            brh_state = {
+                key.removeprefix("brh."): value
+                for key, value in state_dict.items()
+                if key.startswith("brh.")
+            }
+        else:
+            brh_state = state_dict
+
+        missing, unexpected = self.brh.load_state_dict(brh_state, strict=strict)
+        return {
+            "missing_keys": list(missing),
+            "unexpected_keys": list(unexpected),
+        }
+
 
 def build_medsam3_extended(
     base_model: nn.Module,
@@ -214,3 +248,19 @@ def build_medsam3_extended(
     if base_param is not None:
         model = model.to(base_param.device)
     return model
+
+
+def load_medsam3_extended_checkpoint(
+    model: MedSAM3Extended,
+    checkpoint_path: str,
+    strict: bool = False,
+) -> Dict[str, List[str]]:
+    return model.load_extension_checkpoint(checkpoint_path, strict=strict)
+
+
+def load_brh_checkpoint(
+    model: MedSAM3Extended,
+    checkpoint_path: str,
+    strict: bool = True,
+) -> Dict[str, List[str]]:
+    return model.load_brh_checkpoint(checkpoint_path, strict=strict)
