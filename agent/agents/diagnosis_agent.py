@@ -133,7 +133,7 @@ class DiagnosisAgent(HelloAgent):
             llm = MyLLM(config=config, **llm_kwargs)
         except Exception as exc:
             raise RuntimeError(
-                "Failed to initialize LLM. Configure LLM_API_KEY/LLM_BASE_URL or MODELSCOPE_API_KEY before enabling LLM mode."
+                "Failed to initialize LLM. Fill agent/config/llm_profiles.json or configure LLM_API_KEY/LLM_BASE_URL or MODELSCOPE_API_KEY before enabling LLM mode."
             ) from exc
 
         return cls(llm=llm, config=config, **kwargs)

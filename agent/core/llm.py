@@ -57,7 +57,9 @@ class MyLLM(HelloAgentsLLM):
             self.api_key = api_key or resolved_config.modelscope_api_key
             self.base_url = base_url or resolved_config.modelscope_base_url
             if not self.api_key:
-                raise ValueError("ModelScope API key not found. Please set MODELSCOPE_API_KEY environment variable.")
+                raise ValueError(
+                    "ModelScope API key not found. Please set MODELSCOPE_API_KEY or fill modelscope_api_key in agent/config/llm_profiles.json."
+                )
 
             self.model = resolved_model or "Qwen/Qwen2.5-VL-72B-Instruct"
             self.temperature = resolved_temperature
