@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -10,6 +11,7 @@ from app.services.sam3_runtime import SAM3RuntimeSingleton
 
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.app_name,
@@ -29,5 +31,8 @@ async def healthz() -> dict[str, str]:
 @app.on_event("startup")
 async def on_startup() -> None:
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
-    await init_models()
+    try:
+        await init_models()
+    except Exception as exc:
+        logger.warning("Database initialization skipped because MySQL is unavailable: %s", exc)
     SAM3RuntimeSingleton.get_instance(settings=settings)

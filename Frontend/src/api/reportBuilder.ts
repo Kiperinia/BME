@@ -1,8 +1,10 @@
 import axios from 'axios'
 
 import type {
+  AgentWorkflowSummary,
   AnnotationTag,
   ApiContractDefinition,
+  FetchAnnotationTagsResponse,
   FetchAnnotationTagsRequest,
   GenerateReportDraftRequest,
   GenerateReportDraftResponse,
@@ -12,39 +14,155 @@ import type {
   ReportContextData,
   ReportDraftRecord,
   SaveReportDraftRequest,
+  SegmentFrameResponse,
   TumorDetails,
 } from '@/types/eis'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
-const agentApiBaseUrl = import.meta.env.VITE_AGENT_API_BASE_URL ?? '/agent-api'
+const agentApiBaseUrl = import.meta.env.VITE_AGENT_API_BASE_URL ?? `${apiBaseUrl}/agent`
 
 export const httpClient = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 15000,
+  timeout: 45000,
 })
 
-export const reportBuilderApiContracts: Record<string, ApiContractDefinition> = {
+interface ApiResponseEnvelope<T> {
+  code: number
+  message: string
+  data: T
+}
+
+interface SegmentFrameApiPayload {
+  mask_coordinates: [number, number][]
+  bounding_box: [number, number, number, number]
+}
+
+export const reportBuilderApiContracts = {
   generateDraft: {
-    url: `${agentApiBaseUrl}/v1/report-drafts/generate`,
+    url: `${agentApiBaseUrl}/report-drafts/generate`,
     method: 'POST',
     requestType: 'GenerateReportDraftRequest',
     responseType: 'GenerateReportDraftResponse',
   },
   saveDraft: {
-    url: `${apiBaseUrl}/v1/report-drafts`,
+    url: `${agentApiBaseUrl}/report-drafts`,
     method: 'POST',
     requestType: 'SaveReportDraftRequest',
     responseType: 'ReportDraftRecord',
   },
   fetchAnnotationTags: {
-    url: `${agentApiBaseUrl}/v1/annotation-tags/infer`,
+    url: `${agentApiBaseUrl}/annotation-tags/infer`,
     method: 'POST',
     requestType: 'FetchAnnotationTagsRequest',
-    responseType: 'AnnotationTag[]',
+    responseType: 'FetchAnnotationTagsResponse',
   },
-}
+  segmentFrame: {
+    url: `${apiBaseUrl}/analysis/segment-frame`,
+    method: 'POST',
+    requestType: 'multipart/form-data',
+    responseType: 'SegmentFrameResponse',
+  },
+} satisfies Record<'generateDraft' | 'saveDraft' | 'fetchAnnotationTags' | 'segmentFrame', ApiContractDefinition>
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+
+const extractApiData = <T>(response: { data: ApiResponseEnvelope<T> }) => response.data.data
+
+const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+  const image = new Image()
+  image.crossOrigin = 'anonymous'
+  image.onload = () => resolve(image)
+  image.onerror = () => reject(new Error(`failed to load image source: ${src}`))
+  image.src = src
+})
+
+const rasterizeImageSource = async (source: string): Promise<string> => {
+  if (!source) {
+    return source
+  }
+
+  const isRasterDataUrl = source.startsWith('data:image/') && !source.startsWith('data:image/svg+xml')
+  const needsCanvasRasterization = source.endsWith('.svg') || source.startsWith('data:image/svg+xml')
+
+  if (isRasterDataUrl && !needsCanvasRasterization) {
+    return source
+  }
+
+  const image = await loadImage(source)
+  const width = image.naturalWidth || 1280
+  const height = image.naturalHeight || 720
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+
+  if (!context) {
+    throw new Error('failed to create canvas context for rasterization')
+  }
+
+  canvas.width = width
+  canvas.height = height
+  context.drawImage(image, 0, 0, width, height)
+
+  return canvas.toDataURL('image/png')
+}
+
+const normalizeImageSource = async (source: string) => {
+  if (!source) {
+    return source
+  }
+
+  if (source.startsWith('data:image/') && !source.startsWith('data:image/svg+xml')) {
+    return source
+  }
+
+  return rasterizeImageSource(source)
+}
+
+const dataUrlToBlob = (dataUrl: string) => {
+  const [header, encodedPayload] = dataUrl.split(',', 2)
+  if (!header || !encodedPayload) {
+    throw new Error('invalid image data url')
+  }
+  const mimeType = header.match(/data:(.*?);base64/i)?.[1] ?? 'image/png'
+  const binary = window.atob(encodedPayload)
+  const buffer = new Uint8Array(binary.length)
+
+  for (let index = 0; index < binary.length; index += 1) {
+    buffer[index] = binary.charCodeAt(index)
+  }
+
+  return new Blob([buffer], { type: mimeType })
+}
+
+const prepareReportContextForAgent = async (contextData: ReportContextData): Promise<ReportContextData> => {
+  const [tumorImageSrc, captureImageSrcs] = await Promise.all([
+    normalizeImageSource(contextData.tumorFocus.tumorImageSrc),
+    Promise.all(contextData.captureImageSrcs.map((imageSrc) => normalizeImageSource(imageSrc))),
+  ])
+
+  return {
+    ...contextData,
+    captureImageSrcs,
+    tumorFocus: {
+      ...contextData.tumorFocus,
+      tumorImageSrc,
+    },
+  }
+}
+
+const streamAgentMessages = async (
+  workflow: AgentWorkflowSummary,
+  onChunk?: (chunk: string) => void,
+) => {
+  for (const message of workflow.steps) {
+    onChunk?.(`${message}\n`)
+    await wait(120)
+  }
+
+  for (const warning of workflow.warnings) {
+    onChunk?.(`注意：${warning}\n`)
+    await wait(120)
+  }
+}
 
 const mapRawPatientRecord = (rawRecord: RawPatientRecord): PatientRecord => ({
   patientId: rawRecord.patient_id,
@@ -129,46 +247,12 @@ const mockTumorMaskData: PolygonMask[] = [
   },
 ]
 
-const mockAnnotationTags: AnnotationTag[] = [
-  {
-    id: 'tag-1',
-    label: '管状腺瘤',
-    confidence: 0.92,
-    targetTime: 12.5,
-    locationLabel: '乙状结肠',
-    needsReview: false,
-  },
-  {
-    id: 'tag-2',
-    label: 'Paris 0-Is',
-    confidence: 0.86,
-    targetTime: 12.8,
-    locationLabel: '距肛缘 28 cm',
-    needsReview: false,
-  },
-  {
-    id: 'tag-3',
-    label: '边界需复核',
-    confidence: 0.67,
-    targetTime: 13.1,
-    locationLabel: '病灶远端侧',
-    needsReview: true,
-  },
-]
-
 const mockTumorDetails: TumorDetails = {
   estimatedSizeMm: 6.4,
   classification: '疑似管状腺瘤',
   location: '乙状结肠距肛缘约 28 cm',
   surfacePattern: '表面细颗粒样，边缘轻度隆起',
   confidence: 0.92,
-}
-
-const mockAgentDraftResponse: GenerateReportDraftResponse = {
-  findings:
-    '肠道准备尚可，镜下进至回盲部。乙状结肠距肛缘约 28 cm 处见一枚约 6 mm 广基隆起性病灶，表面细颗粒样，边界较清，NBI 下腺管结构轻度不规则。余结肠及直肠黏膜未见明确新发出血或活动性溃疡。',
-  conclusion: '乙状结肠息肉，形态倾向腺瘤性病变，建议结合病理结果并安排常规随访。',
-  layoutSuggestion: '正文建议按进镜范围、肠道准备、病灶部位与形态、处理建议四段排布，诊断结论单列。',
 }
 
 export const getPatientPreviewCards = async (): Promise<PatientRecord[]> => {
@@ -207,37 +291,66 @@ export const invokeReportDraftAgent = async (
   request: GenerateReportDraftRequest,
   onChunk?: (chunk: string) => void,
 ): Promise<GenerateReportDraftResponse> => {
-  const streamChunks = [
-    `正在分析患者 ${request.contextData.patient.patientName} 的检查上下文...\n`,
-    '已提取病灶位置、形态及 NBI 特征。\n',
-    '正在组织检查所见与诊断结论。\n',
-    '已生成符合 EIS 排版习惯的结构化草稿。',
-  ]
+  const preparedContext = await prepareReportContextForAgent(request.contextData)
+  const response = await httpClient.post<ApiResponseEnvelope<GenerateReportDraftResponse>>(
+    reportBuilderApiContracts.generateDraft.url,
+    {
+      ...request,
+      contextData: preparedContext,
+    },
+  )
+  const payload = extractApiData(response)
 
-  for (const chunk of streamChunks) {
-    await wait(320)
-    onChunk?.(chunk)
-  }
-
-  await wait(240)
-  return mockAgentDraftResponse
+  await streamAgentMessages(payload.workflow, onChunk)
+  return payload
 }
 
 export const fetchSmartAnnotationTags = async (
-  _request: FetchAnnotationTagsRequest,
-): Promise<AnnotationTag[]> => {
-  await wait(220)
-  return mockAnnotationTags
+  request: FetchAnnotationTagsRequest,
+): Promise<FetchAnnotationTagsResponse> => {
+  const preparedContext = await prepareReportContextForAgent(request.contextData)
+  const response = await httpClient.post<ApiResponseEnvelope<FetchAnnotationTagsResponse>>(
+    reportBuilderApiContracts.fetchAnnotationTags.url,
+    {
+      ...request,
+      contextData: preparedContext,
+    },
+  )
+
+  return extractApiData(response)
 }
 
 export const saveReportDraft = async (
   request: SaveReportDraftRequest,
 ): Promise<ReportDraftRecord> => {
-  await wait(260)
+  const response = await httpClient.post<ApiResponseEnvelope<ReportDraftRecord>>(
+    reportBuilderApiContracts.saveDraft.url,
+    request,
+  )
 
+  return extractApiData(response)
+}
+
+export const segmentFrameWithSam3 = async (imageSource: string): Promise<SegmentFrameResponse> => {
+  const normalizedImageSource = await normalizeImageSource(imageSource)
+  const imageBlob = dataUrlToBlob(normalizedImageSource)
+  const formData = new FormData()
+  formData.append('image', imageBlob, 'captured-frame.png')
+
+  const response = await axios.post<ApiResponseEnvelope<SegmentFrameApiPayload>>(
+    reportBuilderApiContracts.segmentFrame.url,
+    formData,
+    {
+      timeout: 45000,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  )
+
+  const payload = extractApiData(response)
   return {
-    ...request,
-    reportId: request.reportId ?? 'draft-20260416-001',
-    updatedAt: new Date().toISOString(),
+    maskCoordinates: payload.mask_coordinates,
+    boundingBox: payload.bounding_box,
   }
 }

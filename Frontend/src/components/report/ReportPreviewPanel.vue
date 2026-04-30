@@ -42,14 +42,14 @@ const statusLabel = computed(() => {
 </script>
 
 <template>
-  <article class="surface-card overflow-hidden bg-white shadow-[0_18px_45px_rgba(15,23,42,0.12)] dark:bg-slate-900">
-    <div class="border-b border-slate-200 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-950/80">
+  <article class="surface-card flex h-full min-h-0 flex-col overflow-hidden bg-white shadow-[0_18px_45px_rgba(15,23,42,0.12)] dark:bg-slate-900">
+    <div class="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/80">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
             EIS Report Preview
           </p>
-          <h3 class="mt-2 text-xl font-semibold text-slate-900 dark:text-white">内镜检查报告预览</h3>
+          <h3 class="mt-1.5 text-lg font-semibold text-slate-900 dark:text-white">内镜检查报告预览</h3>
         </div>
         <div class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
           {{ statusLabel }}
@@ -57,21 +57,21 @@ const statusLabel = computed(() => {
       </div>
     </div>
 
-    <div class="mx-auto min-h-[640px] w-full max-w-[794px] bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-8 py-8 text-slate-800 dark:bg-[linear-gradient(180deg,#0f172a_0%,#111827_100%)] dark:text-slate-100">
-      <header class="border-b border-dashed border-slate-300 pb-6 dark:border-slate-700">
+    <div class="mx-auto flex min-h-0 w-full max-w-[794px] flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-4 text-slate-800 dark:bg-[linear-gradient(180deg,#0f172a_0%,#111827_100%)] dark:text-slate-100">
+      <header class="border-b border-dashed border-slate-300 pb-4 dark:border-slate-700">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p class="text-sm uppercase tracking-[0.34em] text-slate-400">Endoscopy Intelligence Suite</p>
-            <h4 class="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">电子内镜检查报告</h4>
+            <p class="text-[11px] uppercase tracking-[0.3em] text-slate-400">Endoscopy Intelligence Suite</p>
+            <h4 class="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">电子内镜检查报告</h4>
           </div>
-          <div class="rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-6 dark:border-slate-700">
+          <div class="rounded-2xl border border-slate-200 px-3 py-2 text-xs leading-5 dark:border-slate-700 md:text-sm md:leading-6">
             <p>保存时间：{{ savedAtLabel }}</p>
             <p>智能标签：{{ annotationCount }} 项</p>
           </div>
         </div>
       </header>
 
-      <section class="mt-6 grid gap-3 rounded-2xl border border-slate-200 p-5 text-sm leading-6 dark:border-slate-700 md:grid-cols-2">
+      <section class="mt-4 grid gap-2 rounded-2xl border border-slate-200 p-3 text-xs leading-5 dark:border-slate-700 md:grid-cols-2 md:text-sm md:leading-6">
         <div>
           <span class="text-slate-500 dark:text-slate-400">患者姓名：</span>
           <span class="font-medium text-slate-900 dark:text-white">{{ patient.patientName }}</span>
@@ -90,30 +90,30 @@ const statusLabel = computed(() => {
         </div>
       </section>
 
-      <section class="mt-8 space-y-6 text-[15px] leading-8">
+      <section class="mt-4 flex min-h-0 flex-1 flex-col gap-4 text-sm leading-6 md:text-[15px] md:leading-7">
         <div>
-          <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Findings</p>
-          <div class="mt-3 rounded-2xl bg-slate-50 px-5 py-4 dark:bg-slate-800/70">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Findings</p>
+          <div class="mt-2 rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-800/70">
             {{ findingsLabel }}
           </div>
         </div>
 
         <div>
-          <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Conclusion</p>
-          <div class="mt-3 rounded-2xl bg-slate-50 px-5 py-4 dark:bg-slate-800/70">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Conclusion</p>
+          <div class="mt-2 rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-800/70">
             {{ conclusionLabel }}
           </div>
         </div>
 
         <div>
-          <p class="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Layout Suggestion</p>
-          <div class="mt-3 rounded-2xl border border-dashed border-slate-300 px-5 py-4 text-slate-600 dark:border-slate-600 dark:text-slate-300">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Layout Suggestion</p>
+          <div class="mt-2 rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-slate-600 dark:border-slate-600 dark:text-slate-300">
             {{ layoutSuggestionLabel }}
           </div>
         </div>
       </section>
 
-      <footer class="mt-8 border-t border-dashed border-slate-300 pt-5 text-xs leading-6 text-slate-500 dark:border-slate-700 dark:text-slate-400">
+      <footer class="mt-4 border-t border-dashed border-slate-300 pt-3 text-[11px] leading-5 text-slate-500 dark:border-slate-700 dark:text-slate-400 md:text-xs md:leading-6">
         本预览用于展示 Agent 草稿和医生编辑结果，最终出具版本可继续接入打印、导出或签名流程。
       </footer>
     </div>

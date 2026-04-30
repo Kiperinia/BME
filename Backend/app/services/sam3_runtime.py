@@ -269,6 +269,15 @@ class SAM3Engine:
         except Exception as exc:
             raise RuntimeError("failed to initialize SAM3 model") from exc
 
+        if self.settings.model_lora_enabled and self.settings.model_lora_path:
+            lora_path = Path(self.settings.model_lora_path)
+            if not lora_path.exists():
+                raise FileNotFoundError(f"SAM3 LoRA checkpoint not found: {lora_path}")
+            if not hasattr(model, "load_custom_checkpoint"):
+                raise RuntimeError("loaded SAM3 model does not support adapter checkpoint injection")
+            model.load_custom_checkpoint(str(lora_path))
+            logger.info("Loaded SAM3 LoRA/adapter weights: %s", lora_path)
+
         model.eval()
         logger.info("SAM3Engine loaded on %s", self.device)
         return model
@@ -315,6 +324,7 @@ class SAM3Engine:
 class SAM3RuntimeSingleton:
     _instance: "SAM3RuntimeSingleton | None" = None
     _lock = threading.Lock()
+    _last_reload_error: str | None = None
 
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -326,7 +336,31 @@ class SAM3RuntimeSingleton:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = cls(settings=settings or get_settings())
+                    cls._last_reload_error = None
         return cls._instance
+
+    @classmethod
+    def peek_instance(cls) -> "SAM3RuntimeSingleton | None":
+        return cls._instance
+
+    @classmethod
+    def get_last_reload_error(cls) -> str | None:
+        return cls._last_reload_error
+
+    @classmethod
+    def reload_instance(cls, settings: Settings | None = None) -> "SAM3RuntimeSingleton":
+        with cls._lock:
+            previous_instance = cls._instance
+            try:
+                next_instance = cls(settings=settings or get_settings())
+            except Exception as exc:
+                cls._last_reload_error = str(exc)
+                cls._instance = previous_instance
+                raise
+
+            cls._instance = next_instance
+            cls._last_reload_error = None
+            return next_instance
 
     def run_inference(self, image_path: str) -> dict[str, Any]:
         result = self.engine.predict_path(image_path=image_path)

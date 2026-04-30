@@ -94,6 +94,8 @@ export interface GenerateReportDraftResponse {
   findings: string
   conclusion: string
   layoutSuggestion: string
+  workflow: AgentWorkflowSummary
+  streamMessages: string[]
 }
 
 export interface SaveReportDraftRequest {
@@ -110,8 +112,49 @@ export interface ReportDraftRecord extends SaveReportDraftRequest {
 }
 
 export interface FetchAnnotationTagsRequest {
-  videoFrameData: VideoFrameData
+  contextData: ReportContextData
   reportSnippet: string
+}
+
+export interface FetchAnnotationTagsResponse {
+  tags: AnnotationTag[]
+  workflow: AgentWorkflowSummary
+}
+
+export interface AgentWorkflowLesion {
+  lesionId: string
+  sourceLabel: string
+  label: string
+  confidence: number
+  bbox: [number, number, number, number]
+  parisType: string
+  invasionRisk: string
+  riskLevel: string
+  totalScore: number
+  disposition: string
+  estimatedSizeMm: number
+  shapeDescription: string
+  usedLlm: boolean
+}
+
+export interface AgentWorkflowSummary {
+  agentName: string
+  description: string
+  pipeline: string
+  llmConfigured: boolean
+  workflowMode: string
+  generatedAt: string
+  lesionCount: number
+  highestRiskLesionId?: string | null
+  modelVersion: string
+  steps: string[]
+  warnings: string[]
+  lesions: AgentWorkflowLesion[]
+}
+
+export interface SegmentFrameResponse {
+  maskCoordinates: MaskPoint[]
+  boundingBox: [number, number, number, number]
 }
 
 export interface ApiContractDefinition {

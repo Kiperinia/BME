@@ -48,34 +48,36 @@ const infoItems = computed(() => [
 </script>
 
 <template>
-  <article class="surface-card p-6">
-    <div class="flex flex-col gap-4 border-b border-gray-100 pb-4 dark:border-slate-700 lg:flex-row lg:items-start lg:justify-between">
+  <article class="surface-card flex h-full min-h-0 flex-col p-3.5">
+    <div class="flex flex-col gap-2.5 border-b border-gray-100 pb-2.5 dark:border-slate-700">
       <div>
-        <p class="text-sm text-gray-500 dark:text-gray-400">EIS 患者概览</p>
-        <div class="mt-2 flex flex-wrap items-center gap-3">
-          <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{{ patientName }}</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400">EIS 患者概览</p>
+        <div class="mt-1.5 flex items-start justify-between gap-2.5">
+          <div>
+            <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ patientName }}</h3>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">病历号 {{ patientId }}</p>
+          </div>
           <span class="surface-badge" :class="statusMeta.className">{{ statusMeta.label }}</span>
         </div>
       </div>
-
-      <button type="button" class="surface-button-secondary px-4 py-2" @click="emit('edit', patientId)">
-        编辑
-      </button>
     </div>
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div class="mt-3 grid flex-1 auto-rows-fr grid-cols-2 gap-2.5">
       <div
         v-for="item in infoItems"
         :key="item.label"
-        class="rounded-xl bg-gray-50 px-4 py-3 dark:bg-slate-900"
+        class="rounded-xl bg-gray-50 px-2.5 py-2 dark:bg-slate-900"
       >
         <p class="text-xs uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">{{ item.label }}</p>
-        <p class="mt-2 text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.value }}</p>
+        <p class="mt-1 text-sm font-medium leading-5 text-gray-800 dark:text-gray-100">{{ item.value }}</p>
       </div>
     </div>
 
-    <div class="mt-6 flex justify-end">
-      <button type="button" class="surface-button-secondary px-4 py-2" @click="emit('view-history')">
+    <div class="mt-3 grid grid-cols-2 gap-2">
+      <button type="button" class="surface-button-secondary px-3 py-1.5 text-sm" @click="emit('edit', patientId)">
+        编辑
+      </button>
+      <button type="button" class="surface-button-secondary px-3 py-1.5 text-sm" @click="emit('view-history')">
         历史记录
       </button>
     </div>

@@ -63,9 +63,9 @@ const toggleMaskVisibility = () => {
 </script>
 
 <template>
-  <section class="surface-card overflow-hidden">
+  <section class="surface-card flex h-full min-h-0 flex-col overflow-hidden">
     <div
-      class="relative aspect-[4/3] cursor-zoom-in overflow-hidden bg-slate-950"
+      class="relative aspect-[16/10] cursor-zoom-in overflow-hidden bg-slate-950"
       @click="emit('expand-view')"
       @mouseenter="isMagnifierVisible = true"
       @mouseleave="isMagnifierVisible = false"
@@ -101,13 +101,13 @@ const toggleMaskVisibility = () => {
         class="pointer-events-none absolute inset-0 h-full w-full object-cover"
       />
 
-      <div class="absolute bottom-4 left-4 rounded-full bg-slate-950/70 px-3 py-1.5 text-xs text-white">
+      <div class="absolute bottom-3 left-3 rounded-full bg-slate-950/70 px-2.5 py-1 text-[11px] text-white">
         点击图像查看放大细节
       </div>
 
       <div
         v-if="isMagnifierVisible"
-        class="pointer-events-none absolute hidden h-40 w-40 overflow-hidden rounded-full border-4 border-white/80 shadow-soft md:block"
+        class="pointer-events-none absolute hidden h-28 w-28 overflow-hidden rounded-full border-4 border-white/80 shadow-soft md:block"
         :style="{
           left: `${pointerPosition.x}px`,
           top: `${pointerPosition.y}px`,
@@ -141,26 +141,26 @@ const toggleMaskVisibility = () => {
       </div>
     </div>
 
-    <div class="p-6">
-      <div class="flex flex-col gap-4 border-b border-gray-100 pb-4 dark:border-slate-700 lg:flex-row lg:items-center lg:justify-between">
+    <div class="flex min-h-0 flex-1 flex-col p-4">
+      <div class="flex flex-col gap-3 border-b border-gray-100 pb-3 dark:border-slate-700 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">肿瘤区域确认</h3>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">用于局部 ROI 级别的病灶边界与形态核查。</p>
+          <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100">肿瘤区域确认</h3>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 md:text-sm">用于局部 ROI 级别的病灶边界与形态核查。</p>
         </div>
 
-        <button type="button" class="surface-button-secondary px-4 py-2" @click.stop="toggleMaskVisibility">
+        <button type="button" class="surface-button-secondary px-3 py-1.5 text-sm" @click.stop="toggleMaskVisibility">
           {{ isMaskVisible ? '隐藏遮罩' : '显示遮罩' }}
         </button>
       </div>
 
-      <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <div
           v-for="item in detailItems"
           :key="item.label"
-          class="rounded-xl bg-gray-50 px-4 py-3 dark:bg-slate-900"
+          class="rounded-xl bg-gray-50 px-3 py-2.5 dark:bg-slate-900"
         >
           <p class="text-xs uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">{{ item.label }}</p>
-          <p class="mt-2 text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.value }}</p>
+          <p class="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.value }}</p>
         </div>
       </div>
     </div>

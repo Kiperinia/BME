@@ -24,6 +24,7 @@ const emit = defineEmits<{
   (event: 'play-state-change', payload: { isPlaying: boolean; source: PlayStateSource }): void
   (event: 'capture-frame', payload: CaptureFramePayload): void
   (event: 'update:showMask', showMask: boolean): void
+  (event: 'video-metadata-change', payload: { aspectRatio: number }): void
 }>()
 
 const videoElement = ref<HTMLVideoElement>()
@@ -34,6 +35,7 @@ const hasMetadata = ref(false)
 const isBuffering = ref(false)
 const isDragging = ref(false)
 const maskVisible = ref(props.showMask)
+const mediaAspectRatio = ref(4 / 3)
 
 let animationFrameId: number | null = null
 
@@ -205,10 +207,25 @@ const handleVideoSelected = async (file?: File) => {
   revokeUploadedVideo()
   uploadedVideoUrl.value = URL.createObjectURL(file)
   hasMetadata.value = false
+  mediaAspectRatio.value = 4 / 3
   emit('play-state-change', { isPlaying: false, source: 'upload' })
+  emit('video-metadata-change', { aspectRatio: mediaAspectRatio.value })
 
   await nextTick()
   drawMask()
+}
+
+const syncVideoMetadata = () => {
+  if (!videoElement.value) {
+    return
+  }
+
+  const nextAspectRatio = videoElement.value.videoWidth && videoElement.value.videoHeight
+    ? videoElement.value.videoWidth / videoElement.value.videoHeight
+    : 4 / 3
+
+  mediaAspectRatio.value = nextAspectRatio
+  emit('video-metadata-change', { aspectRatio: nextAspectRatio })
 }
 
 const handleFileChange = async (event: Event) => {
@@ -296,6 +313,8 @@ watch(
     stopDrawLoop()
     hasMetadata.value = false
     isBuffering.value = false
+    mediaAspectRatio.value = 4 / 3
+    emit('video-metadata-change', { aspectRatio: mediaAspectRatio.value })
 
     await nextTick()
     drawMask()
@@ -329,11 +348,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="surface-card overflow-hidden p-6">
-    <div class="flex flex-col gap-4 border-b border-gray-100 pb-4 dark:border-slate-700 md:flex-row md:items-center md:justify-between">
+  <section class="surface-card flex h-full min-h-0 flex-col overflow-hidden p-4">
+    <div class="flex flex-col gap-3 border-b border-gray-100 pb-3 dark:border-slate-700 md:flex-row md:items-center md:justify-between">
       <div>
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">内镜视频播放器</h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100">内镜视频播放器</h3>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 md:text-sm">
           视频层与 Canvas 遮罩层保持像素对齐，用于承载 SAM3 分割结果。
         </p>
       </div>
@@ -342,10 +361,11 @@ onBeforeUnmount(() => {
       </span>
     </div>
 
-    <div class="mt-6">
+    <div class="mt-4 min-h-0 flex-1">
       <div
         v-if="showUploadState"
-        class="relative flex aspect-video items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 text-center transition dark:border-slate-600 dark:bg-slate-900"
+        class="relative flex aspect-[4/3] w-full items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-5 text-center transition dark:border-slate-600 dark:bg-slate-900 xl:h-full xl:aspect-auto"
+        :style="{ aspectRatio: `${mediaAspectRatio}` }"
         :class="isDragging ? 'border-blue-500 bg-blue-50 dark:border-sky-400 dark:bg-sky-950/40' : ''"
         @click="fileInputElement?.click()"
         @dragenter.prevent="isDragging = true"
@@ -360,22 +380,26 @@ onBeforeUnmount(() => {
           accept="video/*"
           @change="handleFileChange"
         />
-        <div class="space-y-3">
-          <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-sky-300">
-            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <div class="space-y-2">
+          <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-sky-300">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0-4 4m4-4 4 4M4 16.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5" />
             </svg>
           </div>
           <div>
-            <p class="text-base font-medium text-gray-700 dark:text-gray-100">拖拽或点击上传内窥镜视频</p>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-100">拖拽或点击上传内窥镜视频</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 md:text-sm">
               支持本地历史视频回放，上传后即可叠加测试用分割多边形。
             </p>
           </div>
         </div>
       </div>
 
-      <div v-else class="relative aspect-video overflow-hidden rounded-2xl bg-slate-950">
+      <div
+        v-else
+        class="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-950 xl:h-full xl:aspect-auto"
+        :style="{ aspectRatio: `${mediaAspectRatio}` }"
+      >
         <video
           ref="videoElement"
           class="h-full w-full object-cover"
@@ -385,7 +409,7 @@ onBeforeUnmount(() => {
           preload="metadata"
           @canplay="isBuffering = false"
           @ended="pauseVideo('video')"
-          @loadedmetadata="hasMetadata = true; syncCanvasSize(); drawMask()"
+          @loadedmetadata="hasMetadata = true; syncVideoMetadata(); syncCanvasSize(); drawMask()"
           @pause="pauseVideo('video')"
           @play="startDrawLoop(); emit('play-state-change', { isPlaying: true, source: 'video' })"
           @timeupdate="drawMask()"
@@ -406,20 +430,20 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <div class="flex flex-wrap gap-3">
-        <button type="button" class="surface-button-primary px-4 py-2.5" @click="handleTogglePlayback">
+        <button type="button" class="surface-button-primary px-3 py-2 text-sm" @click="handleTogglePlayback">
           {{ props.isPlaying ? '暂停' : '播放' }}
         </button>
-        <button type="button" class="surface-button-secondary px-4 py-2.5" @click="toggleMaskVisibility">
+        <button type="button" class="surface-button-secondary px-3 py-2 text-sm" @click="toggleMaskVisibility">
           {{ maskVisible ? '隐藏遮罩' : '显示遮罩' }}
         </button>
-        <button type="button" class="surface-button-secondary px-4 py-2.5" @click="handleCaptureFrame">
+        <button type="button" class="surface-button-secondary px-3 py-2 text-sm" @click="handleCaptureFrame">
           抓帧
         </button>
       </div>
 
-      <p class="text-sm text-gray-500 dark:text-gray-400">
+      <p class="text-xs text-gray-500 dark:text-gray-400 md:text-sm">
         当前测试遮罩点位：{{ props.maskData.length }} 组
       </p>
     </div>

@@ -1,10 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 import ReportBuilderPage from '@/pages/ReportBuilderPage.vue'
+import ReportGenerationPage from '@/pages/ReportGenerationPage.vue'
 import SystemSettings from '@/pages/SystemSettings.vue'
 
 const router = createRouter({
-	history: createWebHistory(),
+	history: createWebHashHistory(),
 	routes: [
 		{
 			path: '/',
@@ -15,7 +16,15 @@ const router = createRouter({
 			name: 'report-builder',
 			component: ReportBuilderPage,
 			meta: {
-				title: '报告构建工作台',
+				title: '检查工作台',
+			},
+		},
+		{
+			path: '/report-generation',
+			name: 'report-generation',
+			component: ReportGenerationPage,
+			meta: {
+				title: '智能报告生成',
 			},
 		},
 		{

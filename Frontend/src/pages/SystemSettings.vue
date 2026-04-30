@@ -1,522 +1,655 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
-import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
-import { useThemeStore, type ThemeMode } from '@/stores/theme'
+import { getSystemSettings, updateSystemSettings } from '@/api/systemSettings'
+import FeedbackToast from '@/components/common/FeedbackToast.vue'
+import type {
+  LlmProfile,
+  LlmProviderKind,
+  SystemSettingsPayload,
+  SystemSettingsStatus,
+} from '@/types/systemSettings'
 
-type SectionId = 'general' | 'appearance' | 'viewer' | 'notifications' | 'ai' | 'dicom'
+const savedSettings = ref<SystemSettingsPayload | null>(null)
+const form = ref<SystemSettingsPayload | null>(null)
+const runtimeStatus = ref<SystemSettingsStatus | null>(null)
+const isLoading = ref(false)
+const isSaving = ref(false)
+const loadErrorMessage = ref('')
+const toastVisible = ref(false)
+const toastMessage = ref('')
+const toastTone = ref<'info' | 'success' | 'error'>('info')
 
-const themeStore = useThemeStore()
+let toastTimer: number | undefined
 
-const sectionItems: Array<{ id: SectionId; label: string; description: string }> = [
-  { id: 'general', label: '常规设置', description: '语言、自动保存与默认检查类型' },
-  { id: 'appearance', label: '外观主题', description: '主题模式与界面偏好' },
-  { id: 'viewer', label: '影像查看器', description: '布局、显示和测量习惯' },
-  { id: 'notifications', label: '通知', description: '危急值、审核和提示音' },
-  { id: 'ai', label: 'AI 辅助', description: '自动分析与置信度阈值' },
-  { id: 'dicom', label: 'DICOM 连接', description: 'PACS 服务连接参数' },
-]
+const textInputClass = 'mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white'
+const selectInputClass = `${textInputClass} appearance-none pr-10`
 
-const activeSection = ref<SectionId>('general')
-
-const language = ref('zh-CN')
-const autoSaveInterval = ref(30)
-const defaultModality = ref('CT')
-const imageQuality = ref('high')
-const fontSize = ref('medium')
-
-const notifyCritical = ref(true)
-const notifyNewCase = ref(true)
-const notifyReport = ref(true)
-const soundEnabled = ref(false)
-
-const defaultLayout = ref('2x2')
-const showOverlay = ref(true)
-const scrollDirection = ref('natural')
-const crosshair = ref(false)
-const measureUnit = ref('mm')
-
-const aiAutoAnalyze = ref(true)
-const aiConfidenceThreshold = ref(75)
-const aiHighlightFindings = ref(true)
-
-const dicomServerHost = ref('192.168.1.100')
-const dicomServerPort = ref('4242')
-const dicomAeTitle = ref('MEDIMAGEDX')
-const dicomAutoFetch = ref(true)
-
-const saved = ref(false)
-
-const languageOptions = [
-  { value: 'zh-CN', label: '简体中文' },
-  { value: 'en-US', label: 'English' },
-]
-
-const modalityOptions = [
-  { value: 'CT', label: 'CT' },
-  { value: 'MRI', label: 'MRI' },
-  { value: 'X-Ray', label: 'X-Ray' },
-  { value: 'Ultrasound', label: '超声' },
-  { value: 'PET', label: 'PET' },
-]
-
-const fontSizeOptions = [
-  { value: 'small', label: '小 (14px)' },
-  { value: 'medium', label: '中 (16px)' },
-  { value: 'large', label: '大 (18px)' },
-]
-
-const layoutOptions = [
-  { value: '1x1', label: '1×1 单窗格' },
-  { value: '2x2', label: '2×2 四窗格' },
-  { value: '1+2', label: '1+2 混合' },
-]
-
-const imageQualityOptions = [
-  { value: 'low', label: '低质量（快速加载）' },
-  { value: 'medium', label: '中等质量' },
-  { value: 'high', label: '高质量' },
-]
-
-const scrollDirectionOptions = [
-  { value: 'natural', label: '自然方向' },
-  { value: 'reverse', label: '反向' },
-]
-
-const measureUnitOptions = [
-  { value: 'mm', label: '毫米 (mm)' },
-  { value: 'cm', label: '厘米 (cm)' },
-]
-
-const themeOptions: Array<{ value: ThemeMode; label: string; description: string }> = [
-  { value: 'light', label: '浅色模式', description: '适合明亮环境和打印预览' },
-  { value: 'dark', label: '深色模式', description: '降低夜间工作时的视觉刺激' },
-  { value: 'system', label: '跟随系统', description: '自动同步操作系统主题' },
-]
-
-let saveTimer: number | undefined
-
-const quickSummary = computed(() => [
-  `${themeStore.mode === 'system' ? '系统' : '手动'}主题`,
-  `${autoSaveInterval.value} 秒自动保存`,
-  `AI 阈值 ${aiConfidenceThreshold.value}%`,
-])
-
-const setThemeMode = (mode: ThemeMode) => {
-  if (mode === 'system') {
-    themeStore.resetToSystem()
-    return
-  }
-
-  themeStore.setMode(mode)
+const cloneSettings = (value: SystemSettingsPayload): SystemSettingsPayload => {
+  return JSON.parse(JSON.stringify(value)) as SystemSettingsPayload
 }
 
-const handleSave = () => {
-  saved.value = true
+const buildUniqueProfileId = (baseId: string, existingIds: string[]) => {
+  let nextId = baseId
+  let suffix = 2
 
-  if (saveTimer) {
-    window.clearTimeout(saveTimer)
+  while (existingIds.includes(nextId)) {
+    nextId = `${baseId}-${suffix}`
+    suffix += 1
   }
 
-  saveTimer = window.setTimeout(() => {
-    saved.value = false
-  }, 2200)
+  return nextId
 }
 
-const resetDefaults = () => {
-  language.value = 'zh-CN'
-  autoSaveInterval.value = 30
-  defaultModality.value = 'CT'
-  imageQuality.value = 'high'
-  fontSize.value = 'medium'
-  notifyCritical.value = true
-  notifyNewCase.value = true
-  notifyReport.value = true
-  soundEnabled.value = false
-  defaultLayout.value = '2x2'
-  showOverlay.value = true
-  scrollDirection.value = 'natural'
-  crosshair.value = false
-  measureUnit.value = 'mm'
-  aiAutoAnalyze.value = true
-  aiConfidenceThreshold.value = 75
-  aiHighlightFindings.value = true
-  dicomServerHost.value = '192.168.1.100'
-  dicomServerPort.value = '4242'
-  dicomAeTitle.value = 'MEDIMAGEDX'
-  dicomAutoFetch.value = true
-  themeStore.resetToSystem()
-  handleSave()
-}
-
-const updateActiveSection = () => {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  const offset = 180
-
-  for (const item of [...sectionItems].reverse()) {
-    const element = document.getElementById(item.id)
-
-    if (element && element.getBoundingClientRect().top <= offset) {
-      activeSection.value = item.id
-      return
+const createProfileDraft = (providerKind: LlmProviderKind, profileId: string): LlmProfile => {
+  if (providerKind === 'modelscope') {
+    return {
+      profileId,
+      providerKind,
+      defaultProvider: 'modelscope',
+      defaultModel: 'Qwen/Qwen2.5-VL-72B-Instruct',
+      apiKey: '',
+      baseUrl: 'https://api-inference.modelscope.cn/v1/',
+      timeout: 60,
     }
   }
 
-  activeSection.value = 'general'
+  return {
+    profileId,
+    providerKind,
+    defaultProvider: 'openai',
+    defaultModel: 'gpt-4o-mini',
+    apiKey: '',
+    baseUrl: '',
+    timeout: 60,
+  }
 }
 
-onMounted(() => {
-  updateActiveSection()
-  window.addEventListener('scroll', updateActiveSection, { passive: true })
+const showToast = (message: string, tone: 'info' | 'success' | 'error' = 'info') => {
+  toastMessage.value = message
+  toastTone.value = tone
+  toastVisible.value = true
+
+  if (toastTimer) {
+    window.clearTimeout(toastTimer)
+  }
+
+  toastTimer = window.setTimeout(() => {
+    toastVisible.value = false
+  }, 2800)
+}
+
+const isDirty = computed(() => {
+  if (!savedSettings.value || !form.value) {
+    return false
+  }
+
+  return JSON.stringify(savedSettings.value) !== JSON.stringify(form.value)
 })
 
-onBeforeUnmount(() => {
-  window.removeEventListener('scroll', updateActiveSection)
-
-  if (saveTimer) {
-    window.clearTimeout(saveTimer)
+const activeLlmProfile = computed(() => {
+  if (!form.value) {
+    return null
   }
+
+  return form.value.llm.profiles.find((profile) => profile.profileId === form.value?.llm.activeProfile) ?? null
+})
+
+const activeProfileDescription = computed(() => {
+  if (!activeLlmProfile.value) {
+    return ''
+  }
+
+  return activeLlmProfile.value.providerKind === 'openai_compatible'
+    ? '当前 Agent 将优先使用 OpenAI 兼容接口配置。'
+    : '当前 Agent 将优先使用 ModelScope 配置。'
+})
+
+const activeProfileKindLabel = computed(() => {
+  if (!activeLlmProfile.value) {
+    return ''
+  }
+
+  return activeLlmProfile.value.providerKind === 'openai_compatible'
+    ? 'OpenAI Compatible'
+    : 'ModelScope'
+})
+
+const runtimeHeadline = computed(() => {
+  if (!runtimeStatus.value) {
+    return '未加载'
+  }
+
+  if (runtimeStatus.value.sam3RuntimeMode === 'mock') {
+    return 'SAM3 Mock 联调模式'
+  }
+
+  return runtimeStatus.value.sam3Ready ? 'SAM3 实时推理已就绪' : 'SAM3 配置已保存，运行时未就绪'
+})
+
+const loadSettings = async () => {
+  isLoading.value = true
+  loadErrorMessage.value = ''
+
+  try {
+    const response = await getSystemSettings()
+    savedSettings.value = cloneSettings(response.settings)
+    form.value = cloneSettings(response.settings)
+    runtimeStatus.value = response.status
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '系统设置加载失败。'
+    loadErrorMessage.value = message
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleReset = () => {
+  if (!savedSettings.value) {
+    return
+  }
+
+  form.value = cloneSettings(savedSettings.value)
+  showToast('已恢复为当前已保存配置。')
+}
+
+const handleCreateProfile = (providerKind: LlmProviderKind) => {
+  if (!form.value) {
+    return
+  }
+
+  const baseId = providerKind === 'modelscope' ? 'modelscope-profile' : 'openai-profile'
+  const profileId = buildUniqueProfileId(
+    baseId,
+    form.value.llm.profiles.map((profile) => profile.profileId),
+  )
+
+  form.value.llm.profiles.push(createProfileDraft(providerKind, profileId))
+  form.value.llm.activeProfile = profileId
+  showToast(`已创建新的 ${providerKind === 'modelscope' ? 'ModelScope' : 'OpenAI'} Profile。`, 'success')
+}
+
+const handleSetActiveProfile = (profileId: string) => {
+  if (!form.value) {
+    return
+  }
+
+  form.value.llm.activeProfile = profileId
+}
+
+const handleDeleteProfile = (profileId: string) => {
+  if (!form.value) {
+    return
+  }
+
+  if (form.value.llm.profiles.length === 1) {
+    showToast('至少需要保留一个 Profile。', 'error')
+    return
+  }
+
+  const nextProfiles = form.value.llm.profiles.filter((profile) => profile.profileId !== profileId)
+  form.value.llm.profiles = nextProfiles
+
+  if (form.value.llm.activeProfile === profileId) {
+    form.value.llm.activeProfile = nextProfiles[0]?.profileId ?? ''
+  }
+
+  showToast(`已删除 Profile ${profileId}。`, 'info')
+}
+
+const handleRenameActiveProfile = (value: string) => {
+  if (!form.value || !activeLlmProfile.value) {
+    return
+  }
+
+  const nextId = value.trim().replace(/\s+/g, '_')
+  const currentProfile = activeLlmProfile.value
+  if (!nextId || nextId === currentProfile.profileId) {
+    return
+  }
+
+  const hasConflict = form.value.llm.profiles.some((profile) => {
+    return profile.profileId === nextId && profile !== currentProfile
+  })
+
+  if (hasConflict) {
+    showToast(`Profile 标识 ${nextId} 已存在。`, 'error')
+    return
+  }
+
+  const previousId = currentProfile.profileId
+  currentProfile.profileId = nextId
+  if (form.value.llm.activeProfile === previousId) {
+    form.value.llm.activeProfile = nextId
+  }
+}
+
+const handleProviderKindChange = (value: string) => {
+  if (!activeLlmProfile.value) {
+    return
+  }
+
+  const providerKind = value === 'modelscope' ? 'modelscope' : 'openai_compatible'
+  activeLlmProfile.value.providerKind = providerKind
+
+  if (providerKind === 'modelscope') {
+    if (!activeLlmProfile.value.defaultProvider.trim()) {
+      activeLlmProfile.value.defaultProvider = 'modelscope'
+    }
+    if (!activeLlmProfile.value.baseUrl.trim()) {
+      activeLlmProfile.value.baseUrl = 'https://api-inference.modelscope.cn/v1/'
+    }
+    return
+  }
+
+  if (!activeLlmProfile.value.defaultProvider.trim()) {
+    activeLlmProfile.value.defaultProvider = 'openai'
+  }
+}
+
+const handleSave = async () => {
+  if (!form.value) {
+    return
+  }
+
+  isSaving.value = true
+
+  try {
+    const response = await updateSystemSettings(form.value)
+    savedSettings.value = cloneSettings(response.settings)
+    form.value = cloneSettings(response.settings)
+    runtimeStatus.value = response.status
+    showToast('系统设置已保存，并已尝试重载运行时。', 'success')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '系统设置保存失败。'
+    showToast(message, 'error')
+  } finally {
+    isSaving.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadSettings()
 })
 </script>
 
 <template>
-  <main class="mx-auto w-full max-w-[1600px] px-6 py-6 lg:px-8 lg:py-8">
-    <div class="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-      <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
-        <section class="surface-card overflow-hidden">
-          <div class="border-b border-slate-200 bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_58%,#eef2ff_100%)] px-5 py-5 dark:border-slate-700 dark:bg-[linear-gradient(135deg,rgba(14,165,233,0.22)_0%,rgba(15,23,42,0.86)_58%,rgba(30,41,59,0.96)_100%)]">
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700 dark:text-sky-300">System Console</p>
-            <h1 class="mt-3 text-2xl font-semibold text-slate-900 dark:text-white">系统设置</h1>
-            <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-              用项目现有的 Vue 3、Pinia 和 Tailwind 约定重构后的设置页，统一主题行为和表单外观。
+  <main class="mx-auto w-full max-w-[1920px] px-4 py-3 lg:px-6 lg:py-4">
+    <FeedbackToast :visible="toastVisible" :message="toastMessage" :tone="toastTone" />
+
+    <section class="flex flex-col gap-4">
+      <div class="surface-card p-6">
+        <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div class="max-w-4xl">
+            <p class="text-xs uppercase tracking-[0.2em] text-sky-600 dark:text-sky-300">System Settings</p>
+            <h2 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">系统设置</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              这里直接管理 Agent 大模型配置、Medical SAM3 与 LoRA/adapter 加载，以及一些会真实影响运行效果的必要参数：
+              像素标定、上传限制和推理超时。保存后后端会自动刷新可热更新的运行时配置。
             </p>
           </div>
 
-          <div class="space-y-5 px-5 py-5">
-            <ThemeToggleButton :is-dark="themeStore.isDark" :mode="themeStore.mode" @toggle="themeStore.toggleTheme" />
-
-            <div class="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900/70">
-              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">当前摘要</p>
-              <ul class="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                <li v-for="item in quickSummary" :key="item" class="flex items-center gap-2">
-                  <span class="h-1.5 w-1.5 rounded-full bg-sky-500" />
-                  <span>{{ item }}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <nav class="surface-card p-3">
-          <a
-            v-for="item in sectionItems"
-            :key="item.id"
-            :href="`#${item.id}`"
-            class="block rounded-2xl px-4 py-3 transition"
-            :class="activeSection === item.id
-              ? 'bg-sky-50 text-sky-700 shadow-soft dark:bg-sky-500/10 dark:text-sky-200'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'"
-          >
-            <p class="text-sm font-medium">{{ item.label }}</p>
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ item.description }}</p>
-          </a>
-        </nav>
-      </aside>
-
-      <div class="space-y-6">
-        <section class="surface-card overflow-hidden">
-          <div class="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
-            <div class="max-w-3xl">
-              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300">Workspace Preferences</p>
-              <h2 class="mt-3 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">统一配置界面、主题模式与工作站偏好</h2>
-              <p class="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                当前页面改为完全基于 Tailwind 实现的表单布局，主题状态交由 Pinia 管理，避免继续依赖未定义的 CSS 变量和独立主题逻辑。
-              </p>
-            </div>
-
-            <div class="grid gap-3 sm:grid-cols-3">
-              <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
-                <p class="text-xs uppercase tracking-[0.18em] text-slate-400">Theme</p>
-                <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{{ themeStore.mode }}</p>
-              </div>
-              <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
-                <p class="text-xs uppercase tracking-[0.18em] text-slate-400">Viewer</p>
-                <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{{ defaultLayout }}</p>
-              </div>
-              <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
-                <p class="text-xs uppercase tracking-[0.18em] text-slate-400">DICOM</p>
-                <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{{ dicomServerPort }}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="general" class="surface-card p-6">
-          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">常规设置</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">设置默认语言、自动保存频率和新建检查的基础偏好。</p>
-          </div>
-
-          <div class="grid gap-4 md:grid-cols-2">
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">界面语言</span>
-              <select v-model="language" class="surface-input">
-                <option v-for="option in languageOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-              </select>
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">自动保存间隔</span>
-              <select v-model="autoSaveInterval" class="surface-input">
-                <option :value="15">15 秒</option>
-                <option :value="30">30 秒</option>
-                <option :value="60">60 秒</option>
-                <option :value="120">2 分钟</option>
-              </select>
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">默认检查类型</span>
-              <select v-model="defaultModality" class="surface-input">
-                <option v-for="option in modalityOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-              </select>
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">字体大小</span>
-              <select v-model="fontSize" class="surface-input">
-                <option v-for="option in fontSizeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-              </select>
-            </label>
-          </div>
-        </section>
-
-        <section id="appearance" class="surface-card p-6">
-          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">外观主题</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">主题状态完全接入 Pinia store，与全局 dark class 保持一致。</p>
-          </div>
-
-          <div class="grid gap-4 lg:grid-cols-3">
+          <div class="flex flex-wrap gap-2">
             <button
-              v-for="option in themeOptions"
-              :key="option.value"
               type="button"
-              class="rounded-3xl border p-5 text-left transition"
-              :class="themeStore.mode === option.value
-                ? 'border-sky-400 bg-sky-50 shadow-soft dark:border-sky-400 dark:bg-sky-500/10'
-                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-slate-600 dark:hover:bg-slate-900'"
-              @click="setThemeMode(option.value)"
+              class="surface-button-secondary px-4 py-2.5 text-sm"
+              :disabled="!isDirty || isSaving || isLoading"
+              @click="handleReset"
             >
-              <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ option.label }}</p>
-              <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{{ option.description }}</p>
-              <p class="mt-4 text-xs uppercase tracking-[0.2em] text-slate-400">
-                {{ themeStore.mode === option.value ? '当前生效' : '点击切换' }}
-              </p>
+              恢复已保存配置
             </button>
-          </div>
-        </section>
-
-        <section id="viewer" class="surface-card p-6">
-          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">影像查看器</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">为阅片工作流设置默认布局、叠加显示和交互方向。</p>
-          </div>
-
-          <div class="grid gap-4 md:grid-cols-2">
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">默认布局</span>
-              <select v-model="defaultLayout" class="surface-input">
-                <option v-for="option in layoutOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-              </select>
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">影像质量</span>
-              <select v-model="imageQuality" class="surface-input">
-                <option v-for="option in imageQualityOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-              </select>
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">滚动方向</span>
-              <select v-model="scrollDirection" class="surface-input">
-                <option v-for="option in scrollDirectionOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-              </select>
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">测量单位</span>
-              <select v-model="measureUnit" class="surface-input">
-                <option v-for="option in measureUnitOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="mt-6 grid gap-3 sm:grid-cols-3">
-            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
-              <span>
-                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">显示叠加信息</span>
-                <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">患者信息与技术参数</span>
-              </span>
-              <input v-model="showOverlay" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
-            </label>
-
-            <label class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
-              <span>
-                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">显示十字线</span>
-                <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">多平面重建定位</span>
-              </span>
-              <input v-model="crosshair" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
-            </label>
-
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70">
-              <p class="text-sm font-medium text-slate-800 dark:text-slate-100">当前布局建议</p>
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">根据工作站偏好自动预设</p>
-              <p class="mt-4 text-xl font-semibold text-slate-900 dark:text-white">{{ defaultLayout }}</p>
-            </div>
-          </div>
-        </section>
-
-        <section id="notifications" class="surface-card p-6">
-          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">通知设置</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">定义哪些事件需要在工作台里高优先级提示。</p>
-          </div>
-
-          <div class="grid gap-3 md:grid-cols-2">
-            <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-              <span>
-                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">危急值通知</span>
-                <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">检测到危急值时立即发出通知</span>
-              </span>
-              <input v-model="notifyCritical" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
-            </label>
-
-            <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-              <span>
-                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">新病例通知</span>
-                <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">有新分配病例时提醒值班医生</span>
-              </span>
-              <input v-model="notifyNewCase" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
-            </label>
-
-            <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-              <span>
-                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">报告审核通知</span>
-                <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">审核通过或退回时同步更新</span>
-              </span>
-              <input v-model="notifyReport" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
-            </label>
-
-            <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-              <span>
-                <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">提示音</span>
-                <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">通知到达时播放音频提示</span>
-              </span>
-              <input v-model="soundEnabled" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
-            </label>
-          </div>
-        </section>
-
-        <section id="ai" class="surface-card p-6">
-          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">AI 辅助设置</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">配置自动分析策略、阈值和结果高亮方式。</p>
-          </div>
-
-          <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-            <div class="space-y-4">
-              <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-                <span>
-                  <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">自动分析</span>
-                  <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">打开影像时自动触发 AI 推理</span>
-                </span>
-                <input v-model="aiAutoAnalyze" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
-              </label>
-
-              <label class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-                <span>
-                  <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">高亮发现区域</span>
-                  <span class="mt-1 block text-xs leading-6 text-slate-500 dark:text-slate-400">在原图中叠加可疑病灶区域</span>
-                </span>
-                <input v-model="aiHighlightFindings" type="checkbox" class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
-              </label>
-            </div>
-
-            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900/70">
-              <p class="text-sm font-medium text-slate-800 dark:text-slate-100">置信度阈值</p>
-              <p class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">低于此值的 AI 建议将被标记为低置信度。</p>
-              <input v-model="aiConfidenceThreshold" type="range" min="50" max="99" class="mt-6 w-full accent-blue-600 dark:accent-sky-400" />
-              <div class="mt-4 flex items-end justify-between">
-                <span class="text-xs uppercase tracking-[0.2em] text-slate-400">当前值</span>
-                <span class="text-3xl font-semibold text-slate-900 dark:text-white">{{ aiConfidenceThreshold }}%</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="dicom" class="surface-card p-6">
-          <div class="mb-6 flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-700">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">DICOM 服务器连接</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">维护 PACS 服务的地址、端口与 AE Title 等基础连接参数。</p>
-          </div>
-
-          <div class="grid gap-4 md:grid-cols-2">
-            <label class="block space-y-2 md:col-span-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">服务器地址</span>
-              <input v-model="dicomServerHost" type="text" class="surface-input" placeholder="192.168.1.100" />
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">端口</span>
-              <input v-model="dicomServerPort" type="text" class="surface-input" placeholder="4242" />
-            </label>
-
-            <label class="block space-y-2">
-              <span class="text-sm font-medium text-slate-700 dark:text-slate-200">AE Title</span>
-              <input v-model="dicomAeTitle" type="text" class="surface-input" placeholder="MEDIMAGEDX" />
-            </label>
-          </div>
-
-          <div class="mt-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/70 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p class="text-sm font-medium text-slate-800 dark:text-slate-100">自动拉取影像</p>
-              <p class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">新检查到达时自动从 PACS 拉取序列和元数据。</p>
-            </div>
-            <input v-model="dicomAutoFetch" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400" />
-          </div>
-
-          <div class="mt-6 flex justify-end">
-            <button type="button" class="surface-button-secondary px-4 py-2.5">测试连接</button>
-          </div>
-        </section>
-
-        <div class="sticky bottom-4 z-20 rounded-3xl border border-white/70 bg-white/90 p-4 shadow-soft backdrop-blur dark:border-slate-700 dark:bg-slate-950/88">
-          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p class="text-sm font-medium text-slate-900 dark:text-white">设置变更</p>
-              <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {{ saved ? '设置已保存并同步到当前会话。' : '完成调整后可保存为当前工作站默认配置。' }}
-              </p>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3">
-              <span
-                v-if="saved"
-                class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
-              >
-                已保存
-              </span>
-              <button type="button" class="surface-button-secondary px-4 py-2.5" @click="resetDefaults">重置默认</button>
-              <button type="button" class="surface-button-primary px-5 py-2.5" @click="handleSave">保存设置</button>
-            </div>
+            <button
+              type="button"
+              class="surface-button-primary px-4 py-2.5 text-sm"
+              :disabled="!isDirty || isSaving || isLoading || !form"
+              @click="handleSave"
+            >
+              {{ isSaving ? '保存中...' : '保存并重载' }}
+            </button>
           </div>
         </div>
       </div>
-    </div>
+
+      <div v-if="isLoading" class="surface-card p-6">
+        <div class="space-y-4 animate-pulse">
+          <div class="h-6 w-64 rounded bg-gray-100 dark:bg-slate-700" />
+          <div class="grid gap-4 xl:grid-cols-4">
+            <div v-for="index in 4" :key="index" class="h-28 rounded-2xl bg-gray-100 dark:bg-slate-800" />
+          </div>
+          <div class="h-96 rounded-3xl bg-gray-100 dark:bg-slate-800" />
+        </div>
+      </div>
+
+      <section
+        v-else-if="form && runtimeStatus"
+        class="grid gap-4"
+      >
+        <div class="grid gap-4 xl:grid-cols-4">
+          <article class="surface-card p-5">
+            <p class="text-xs uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">LLM</p>
+            <h3 class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+              {{ runtimeStatus.llmReady ? '已就绪' : '待补全配置' }}
+            </h3>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ activeProfileDescription }}</p>
+          </article>
+
+          <article class="surface-card p-5">
+            <p class="text-xs uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">SAM3</p>
+            <h3 class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{{ runtimeHeadline }}</h3>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              当前模式：{{ runtimeStatus.sam3RuntimeMode === 'mock' ? 'Mock' : 'SAM3' }}
+            </p>
+          </article>
+
+          <article class="surface-card p-5">
+            <p class="text-xs uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">LoRA / Adapter</p>
+            <h3 class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+              {{ runtimeStatus.loraLoaded ? '已加载' : '未激活' }}
+            </h3>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              仅在 SAM3 真实模式下生效，适合针对特定内镜场景加载附加权重。
+            </p>
+          </article>
+
+          <article class="surface-card p-5">
+            <p class="text-xs uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">运行边界</p>
+            <h3 class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+              {{ form.runtime.inferenceTimeoutSeconds }}s / {{ form.runtime.maxUploadSizeMb }}MB
+            </h3>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              推理超时和上传上限会直接作用于现有分析接口。
+            </p>
+          </article>
+        </div>
+
+        <div
+          v-if="runtimeStatus.warnings.length"
+          class="surface-card border border-amber-200 bg-amber-50 p-5 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/50 dark:text-amber-100"
+        >
+          <h3 class="text-sm font-semibold">运行提示</h3>
+          <p
+            v-for="warning in runtimeStatus.warnings"
+            :key="warning"
+            class="mt-2 text-sm leading-6"
+          >
+            {{ warning }}
+          </p>
+        </div>
+
+        <div class="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_420px]">
+          <div class="grid gap-4">
+            <section class="surface-card p-6">
+              <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800">
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">大模型 API 配置</h3>
+                <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  这里改成了真正的 Profile 管理面板。可以创建、修改、删除多套 API 配置，并从样式化的卡片列表中切换活动 Profile。
+                </p>
+              </div>
+
+              <div class="mt-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="surface-button-primary px-4 py-2.5 text-sm"
+                  @click="handleCreateProfile('openai_compatible')"
+                >
+                  新建 OpenAI Profile
+                </button>
+                <button
+                  type="button"
+                  class="surface-button-secondary px-4 py-2.5 text-sm"
+                  @click="handleCreateProfile('modelscope')"
+                >
+                  新建 ModelScope Profile
+                </button>
+              </div>
+
+              <div class="mt-5 grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+                <div class="grid content-start gap-3">
+                  <button
+                    v-for="profile in form.llm.profiles"
+                    :key="profile.profileId"
+                    type="button"
+                    class="rounded-3xl border p-4 text-left transition"
+                    :class="profile.profileId === form.llm.activeProfile
+                      ? 'border-sky-400 bg-sky-50 shadow-soft dark:border-sky-500 dark:bg-sky-950/50'
+                      : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700'"
+                    @click="handleSetActiveProfile(profile.profileId)"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ profile.profileId }}</p>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {{ profile.providerKind === 'openai_compatible' ? 'OpenAI Compatible' : 'ModelScope' }}
+                        </p>
+                      </div>
+                      <span
+                        v-if="profile.profileId === form.llm.activeProfile"
+                        class="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-medium text-sky-700 dark:bg-sky-900/70 dark:text-sky-200"
+                      >
+                        活动中
+                      </span>
+                    </div>
+
+                    <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">{{ profile.defaultModel }}</p>
+
+                    <div class="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        class="rounded-full border border-rose-200 px-3 py-1 text-xs text-rose-600 transition hover:border-rose-300 hover:text-rose-700 dark:border-rose-900/70 dark:text-rose-300 dark:hover:border-rose-700"
+                        @click.stop="handleDeleteProfile(profile.profileId)"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  </button>
+                </div>
+
+                <article
+                  v-if="activeLlmProfile"
+                  class="rounded-3xl border border-slate-200 p-5 dark:border-slate-800"
+                >
+                  <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <h4 class="text-base font-semibold text-slate-900 dark:text-white">活动 Profile 详情</h4>
+                      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        {{ activeProfileDescription }}
+                      </p>
+                    </div>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      {{ activeProfileKindLabel }}
+                    </span>
+                  </div>
+
+                  <div class="mt-4 grid gap-3 md:grid-cols-2">
+                    <label>
+                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Profile 标识</span>
+                      <input
+                        :value="activeLlmProfile.profileId"
+                        :class="textInputClass"
+                        @change="handleRenameActiveProfile(($event.target as HTMLInputElement).value)"
+                      >
+                    </label>
+
+                    <label>
+                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Provider 类型</span>
+                      <div class="relative mt-2">
+                        <select
+                          :value="activeLlmProfile.providerKind"
+                          :class="selectInputClass"
+                          @change="handleProviderKindChange(($event.target as HTMLSelectElement).value)"
+                        >
+                          <option value="openai_compatible">OpenAI Compatible</option>
+                          <option value="modelscope">ModelScope</option>
+                        </select>
+                        <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">▾</span>
+                      </div>
+                    </label>
+
+                    <label>
+                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Provider</span>
+                      <input v-model="activeLlmProfile.defaultProvider" :class="textInputClass">
+                    </label>
+
+                    <label>
+                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Model</span>
+                      <input v-model="activeLlmProfile.defaultModel" :class="textInputClass">
+                    </label>
+
+                    <label class="md:col-span-2">
+                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">API Key</span>
+                      <input v-model="activeLlmProfile.apiKey" type="password" :class="textInputClass">
+                    </label>
+
+                    <label class="md:col-span-2">
+                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Base URL</span>
+                      <input v-model="activeLlmProfile.baseUrl" :class="textInputClass">
+                    </label>
+
+                    <label>
+                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Timeout (s)</span>
+                      <input v-model.number="activeLlmProfile.timeout" type="number" min="1" max="600" :class="textInputClass">
+                    </label>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="surface-card p-6">
+              <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800">
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Medical SAM3 与 LoRA</h3>
+                <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  这里控制分割模型的真实/Mock 模式、主 checkpoint、设备和可选的 LoRA/adapter 权重加载。
+                </p>
+              </div>
+
+              <div class="mt-5 grid gap-4 md:grid-cols-2">
+                <label>
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">运行模式</span>
+                  <select
+                    v-model="form.sam3.loadMode"
+                    :class="selectInputClass"
+                  >
+                    <option value="mock">Mock 联调</option>
+                    <option value="sam3">SAM3 真实推理</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">设备</span>
+                  <input v-model="form.sam3.device" :class="textInputClass">
+                </label>
+
+                <label class="md:col-span-2">
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">主 Checkpoint 路径</span>
+                  <input v-model="form.sam3.checkpointPath" :class="textInputClass">
+                </label>
+
+                <label>
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">输入尺寸</span>
+                  <input v-model.number="form.sam3.inputSize" type="number" min="256" max="4096" :class="textInputClass">
+                </label>
+
+                <div class="grid gap-3 md:grid-cols-2 md:col-span-2">
+                  <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                    <input v-model="form.sam3.keepAspectRatio" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                    保持输入长宽比
+                  </label>
+                  <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                    <input v-model="form.sam3.warmupEnabled" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                    启动时预热模型
+                  </label>
+                  <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200 md:col-span-2">
+                    <input v-model="form.sam3.loraEnabled" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                    启用 LoRA / adapter 权重加载
+                  </label>
+                </div>
+
+                <label class="md:col-span-2">
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">LoRA / Adapter 路径</span>
+                  <input v-model="form.sam3.loraPath" :class="textInputClass">
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <div class="grid content-start gap-4">
+            <section class="surface-card p-6">
+              <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800">
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Agent 工作流</h3>
+                <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  这里保留必要但会真实影响结果的策略项，不提供模块级开关。
+                </p>
+              </div>
+
+              <div class="mt-5 grid gap-3">
+                <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                  <input v-model="form.agent.enableLlm" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                  启用 LLM 推理增强
+                </label>
+                <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                  <input v-model="form.agent.enableLlmReport" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                  启用 LLM 报告生成
+                </label>
+                <label>
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">像素尺寸标定 (mm / px)</span>
+                  <input v-model.number="form.agent.pixelSizeMm" type="number" min="0.01" max="10" step="0.01" :class="textInputClass">
+                  <p class="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    这是我补进去的必要设置项之一，会直接影响病灶大小估计与后续风险判断。
+                  </p>
+                </label>
+              </div>
+            </section>
+
+            <section class="surface-card p-6">
+              <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800">
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">运行安全与联调</h3>
+                <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  这些设置不会改变算法本身，但会直接影响系统稳定性、演示体验和接口边界。
+                </p>
+              </div>
+
+              <div class="mt-5 grid gap-3">
+                <label>
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">推理超时 (s)</span>
+                  <input v-model.number="form.runtime.inferenceTimeoutSeconds" type="number" min="1" max="300" :class="textInputClass">
+                </label>
+                <label>
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">上传大小限制 (MB)</span>
+                  <input v-model.number="form.runtime.maxUploadSizeMb" type="number" min="1" max="200" :class="textInputClass">
+                </label>
+                <label>
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Mock 延迟 (ms)</span>
+                  <input v-model.number="form.runtime.mockDelayMs" type="number" min="0" max="10000" :class="textInputClass">
+                </label>
+              </div>
+            </section>
+
+            <section class="surface-card p-6">
+              <h3 class="text-lg font-semibold text-slate-900 dark:text-white">配置文件位置</h3>
+              <div class="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-300">
+                <div class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+                  <p class="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">LLM Config</p>
+                  <p class="mt-2 break-all">{{ runtimeStatus.llmConfigPath }}</p>
+                </div>
+                <div class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+                  <p class="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Runtime Overrides</p>
+                  <p class="mt-2 break-all">{{ runtimeStatus.runtimeSettingsPath }}</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section v-else class="surface-card p-6">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">系统设置加载失败</h3>
+        <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+          {{ loadErrorMessage || '当前无法从后端读取设置，请确认 Backend 服务已启动。' }}
+        </p>
+        <button type="button" class="surface-button-primary mt-4 px-4 py-2.5 text-sm" @click="loadSettings">
+          重新加载
+        </button>
+      </section>
+    </section>
   </main>
 </template>
