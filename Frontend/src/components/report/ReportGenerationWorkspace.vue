@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import FeedbackToast from '@/components/common/FeedbackToast.vue'
 import PatientInfoCard from '@/components/common/PatientInfoCard.vue'
+import ResizablePaneGroup from '@/components/common/ResizablePaneGroup.vue'
 import SmartAnnotationTags from '@/components/common/SmartAnnotationTags.vue'
 import ReportAgentForm from '@/components/report/ReportAgentForm.vue'
 import ReportAgentWorkflowPanel from '@/components/report/ReportAgentWorkflowPanel.vue'
@@ -89,62 +90,115 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <div v-else-if="context" class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[320px_minmax(0,1.1fr)_380px]">
-      <div class="grid min-h-0 content-start gap-4">
-        <PatientInfoCard
-          :patient-name="context.patient.patientName"
-          :gender="context.patient.gender"
-          :age="context.patient.age"
-          :patient-id="context.patient.patientId"
-          :exam-date="context.patient.examDate"
-          :status="context.patient.status"
-          @edit="emit('patient-edit', $event)"
-          @view-history="emit('view-history')"
-        />
+    <ResizablePaneGroup
+      v-else-if="context"
+      storage-key="report-generation:main-layout"
+      class="min-h-0 flex-1"
+      orientation="horizontal"
+      :pane-ids="['left', 'center', 'right']"
+      :default-sizes="[22, 43, 35]"
+      :min-sizes="[16, 24, 20]"
+      :collapse-below="1440"
+    >
+      <template #left>
+        <ResizablePaneGroup
+          storage-key="report-generation:left-column"
+          class="h-full min-h-0"
+          orientation="vertical"
+          :pane-ids="['patient', 'capture']"
+          :default-sizes="[34, 66]"
+          :min-sizes="[20, 20]"
+        >
+          <template #patient>
+            <PatientInfoCard
+              class="h-full min-h-0"
+              :patient-name="context.patient.patientName"
+              :gender="context.patient.gender"
+              :age="context.patient.age"
+              :patient-id="context.patient.patientId"
+              :exam-date="context.patient.examDate"
+              :status="context.patient.status"
+              @edit="emit('patient-edit', $event)"
+              @view-history="emit('view-history')"
+            />
+          </template>
 
-        <ReportCaptureGallery :images="captureImages" />
-      </div>
+          <template #capture>
+            <ReportCaptureGallery class="h-full min-h-0" :images="captureImages" />
+          </template>
+        </ResizablePaneGroup>
+      </template>
 
-      <div class="grid min-h-0 content-start gap-4">
-        <SmartAnnotationTags
-          :context-data="context"
-          :report-snippet="initialOpinion"
-          :tags="annotationTags"
-          :is-loading="tagsLoading"
-          :error-message="tagErrorMessage"
-          @fetch-agent-tags="emit('fetch-agent-tags', $event)"
-          @tag-click="emit('tag-click', $event)"
-        />
+      <template #center>
+        <ResizablePaneGroup
+          storage-key="report-generation:center-column"
+          class="h-full min-h-0"
+          orientation="vertical"
+          :pane-ids="['tags', 'workflow', 'form']"
+          :default-sizes="[18, 30, 52]"
+          :min-sizes="[14, 18, 24]"
+        >
+          <template #tags>
+            <SmartAnnotationTags
+              class="h-full min-h-0"
+              :context-data="context"
+              :report-snippet="initialOpinion"
+              :tags="annotationTags"
+              :is-loading="tagsLoading"
+              :error-message="tagErrorMessage"
+              @fetch-agent-tags="emit('fetch-agent-tags', $event)"
+              @tag-click="emit('tag-click', $event)"
+            />
+          </template>
 
-        <ReportAgentWorkflowPanel :workflow="agentWorkflow" />
+          <template #workflow>
+            <ReportAgentWorkflowPanel class="h-full min-h-0" :workflow="agentWorkflow" />
+          </template>
 
-        <ReportAgentForm
-          :initial-opinion="initialOpinion"
-          :findings="findings"
-          :conclusion="conclusion"
-          :layout-suggestion="layoutSuggestion"
-          :stream-text="streamText"
-          :is-agent-loading="isAgentLoading"
-          @update:initial-opinion="emit('update:initial-opinion', $event)"
-          @update:findings="emit('update:findings', $event)"
-          @update:conclusion="emit('update:conclusion', $event)"
-          @update:layout-suggestion="emit('update:layout-suggestion', $event)"
-        />
-      </div>
+          <template #form>
+            <ReportAgentForm
+              class="h-full min-h-0"
+              :initial-opinion="initialOpinion"
+              :findings="findings"
+              :conclusion="conclusion"
+              :layout-suggestion="layoutSuggestion"
+              :stream-text="streamText"
+              :is-agent-loading="isAgentLoading"
+              @update:initial-opinion="emit('update:initial-opinion', $event)"
+              @update:findings="emit('update:findings', $event)"
+              @update:conclusion="emit('update:conclusion', $event)"
+              @update:layout-suggestion="emit('update:layout-suggestion', $event)"
+            />
+          </template>
+        </ResizablePaneGroup>
+      </template>
 
-      <div class="grid min-h-0 gap-4 xl:grid-rows-[auto_minmax(0,1fr)]">
-        <ReportDraftStatusCard :saved-at-label="formattedSavedAt" :annotation-count="annotationTags.length" />
+      <template #right>
+        <ResizablePaneGroup
+          storage-key="report-generation:right-column"
+          class="h-full min-h-0"
+          orientation="vertical"
+          :pane-ids="['status', 'preview']"
+          :default-sizes="[14, 86]"
+          :min-sizes="[10, 32]"
+        >
+          <template #status>
+            <ReportDraftStatusCard class="h-full" :saved-at-label="formattedSavedAt" :annotation-count="annotationTags.length" />
+          </template>
 
-        <ReportPreviewPanel
-          class="min-h-[720px] h-full"
-          :patient="context.patient"
-          :saved-at-label="formattedSavedAt"
-          :findings="findings"
-          :conclusion="conclusion"
-          :layout-suggestion="layoutSuggestion"
-          :annotation-count="annotationTags.length"
-        />
-      </div>
-    </div>
+          <template #preview>
+            <ReportPreviewPanel
+              class="h-full min-h-0"
+              :patient="context.patient"
+              :saved-at-label="formattedSavedAt"
+              :findings="findings"
+              :conclusion="conclusion"
+              :layout-suggestion="layoutSuggestion"
+              :annotation-count="annotationTags.length"
+            />
+          </template>
+        </ResizablePaneGroup>
+      </template>
+    </ResizablePaneGroup>
   </section>
 </template>

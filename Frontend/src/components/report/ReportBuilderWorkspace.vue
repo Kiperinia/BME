@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 import EndoVideoPlayer from '@/components/common/EndoVideoPlayer.vue'
 import FeedbackToast from '@/components/common/FeedbackToast.vue'
 import PatientInfoCard from '@/components/common/PatientInfoCard.vue'
+import ResizablePaneGroup from '@/components/common/ResizablePaneGroup.vue'
 import ReportCaptureGallery from '@/components/report/ReportCaptureGallery.vue'
+import Sam3PromptPanel from '@/components/report/Sam3PromptPanel.vue'
 import type { CaptureFramePayload, ReportContextData } from '@/types/eis'
 
 const props = defineProps<{
@@ -12,7 +12,7 @@ const props = defineProps<{
   playerIsPlaying: boolean
   showMask: boolean
   captureImages: string[]
-  videoAspectRatio: number
+  sam3PromptText: string
   isHydrating: boolean
   toastVisible: boolean
   toastMessage: string
@@ -25,28 +25,8 @@ const emit = defineEmits<{
   (event: 'view-history'): void
   (event: 'update:player-is-playing', value: boolean): void
   (event: 'update:show-mask', value: boolean): void
-  (event: 'video-aspect-ratio-change', value: number): void
+  (event: 'update:sam3-prompt-text', value: string): void
 }>()
-
-const rightPaneRowStyle = computed(() => {
-  const aspectRatio = props.videoAspectRatio || 4 / 3
-
-  if (aspectRatio >= 1.6) {
-    return {
-      gridTemplateRows: 'minmax(0, 1.4fr) minmax(0, 0.6fr)',
-    }
-  }
-
-  if (aspectRatio >= 1.33) {
-    return {
-      gridTemplateRows: 'minmax(0, 1.25fr) minmax(0, 0.75fr)',
-    }
-  }
-
-  return {
-    gridTemplateRows: 'minmax(0, 1.1fr) minmax(0, 0.9fr)',
-  }
-})
 </script>
 
 <template>
@@ -70,34 +50,77 @@ const rightPaneRowStyle = computed(() => {
       </div>
     </div>
 
-    <div v-else-if="context" class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
-      <PatientInfoCard
-        class="h-full min-h-0 w-full overflow-hidden"
-        :patient-name="context.patient.patientName"
-        :gender="context.patient.gender"
-        :age="context.patient.age"
-        :patient-id="context.patient.patientId"
-        :exam-date="context.patient.examDate"
-        :status="context.patient.status"
-        @edit="emit('patient-edit', $event)"
-        @view-history="emit('view-history')"
-      />
+    <ResizablePaneGroup
+      v-else-if="context"
+      storage-key="report-builder:main-layout"
+      class="min-h-0 flex-1"
+      orientation="horizontal"
+      :pane-ids="['left', 'right']"
+      :default-sizes="[24, 76]"
+      :min-sizes="[16, 38]"
+      :collapse-below="1280"
+    >
+      <template #left>
+        <ResizablePaneGroup
+          storage-key="report-builder:left-column"
+          class="h-full min-h-0"
+          orientation="vertical"
+          :pane-ids="['patient', 'prompt']"
+          :default-sizes="[42, 58]"
+          :min-sizes="[24, 20]"
+        >
+          <template #patient>
+            <PatientInfoCard
+              class="aspect-square h-auto min-h-0 w-full overflow-hidden"
+              :patient-name="context.patient.patientName"
+              :gender="context.patient.gender"
+              :age="context.patient.age"
+              :patient-id="context.patient.patientId"
+              :exam-date="context.patient.examDate"
+              :status="context.patient.status"
+              @edit="emit('patient-edit', $event)"
+              @view-history="emit('view-history')"
+            />
+          </template>
 
-      <div class="grid min-h-0 h-full w-full gap-3" :style="rightPaneRowStyle">
-        <EndoVideoPlayer
-          class="min-h-0 h-full"
-          :video-src="context.videoSrc"
-          :is-playing="playerIsPlaying"
-          :mask-data="context.maskData"
-          :show-mask="showMask"
-          @capture-frame="emit('capture-frame', $event)"
-          @play-state-change="emit('update:player-is-playing', $event.isPlaying)"
-          @update:show-mask="emit('update:show-mask', $event)"
-          @video-metadata-change="emit('video-aspect-ratio-change', $event.aspectRatio)"
-        />
+          <template #prompt>
+            <Sam3PromptPanel
+              class="h-full min-h-0"
+              :polyp-count="context.maskData.length"
+              :prompt-text="sam3PromptText"
+              @update:prompt-text="emit('update:sam3-prompt-text', $event)"
+            />
+          </template>
+        </ResizablePaneGroup>
+      </template>
 
-        <ReportCaptureGallery class="min-h-0 w-full" :images="captureImages" />
-      </div>
-    </div>
+      <template #right>
+        <ResizablePaneGroup
+          storage-key="report-builder:right-column"
+          class="h-full min-h-0"
+          orientation="vertical"
+          :pane-ids="['video', 'capture']"
+          :default-sizes="[62, 38]"
+          :min-sizes="[32, 18]"
+        >
+          <template #video>
+            <EndoVideoPlayer
+              class="h-full min-h-0 w-full"
+              :video-src="context.videoSrc"
+              :is-playing="playerIsPlaying"
+              :mask-data="context.maskData"
+              :show-mask="showMask"
+              @capture-frame="emit('capture-frame', $event)"
+              @play-state-change="emit('update:player-is-playing', $event.isPlaying)"
+              @update:show-mask="emit('update:show-mask', $event)"
+            />
+          </template>
+
+          <template #capture>
+            <ReportCaptureGallery class="h-full min-h-0 w-full" :images="captureImages" />
+          </template>
+        </ResizablePaneGroup>
+      </template>
+    </ResizablePaneGroup>
   </section>
 </template>

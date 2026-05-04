@@ -5,6 +5,9 @@ import type { CaptureFramePayload, PolygonMask } from '@/types/eis'
 
 type PlayStateSource = 'control' | 'video' | 'upload'
 
+const uploadPromptBaseWidth = 520
+const uploadPromptBaseHeight = 420
+
 const props = withDefaults(
   defineProps<{
     videoSrc?: string
@@ -24,23 +27,31 @@ const emit = defineEmits<{
   (event: 'play-state-change', payload: { isPlaying: boolean; source: PlayStateSource }): void
   (event: 'capture-frame', payload: CaptureFramePayload): void
   (event: 'update:showMask', showMask: boolean): void
-  (event: 'video-metadata-change', payload: { aspectRatio: number }): void
 }>()
 
 const videoElement = ref<HTMLVideoElement>()
 const canvasElement = ref<HTMLCanvasElement>()
 const fileInputElement = ref<HTMLInputElement>()
+const uploadViewportElement = ref<HTMLElement>()
 const uploadedVideoUrl = ref('')
 const hasMetadata = ref(false)
 const isBuffering = ref(false)
 const isDragging = ref(false)
 const maskVisible = ref(props.showMask)
-const mediaAspectRatio = ref(4 / 3)
+const mediaAspectRatio = ref(1)
+const uploadPromptScale = ref(1)
 
 let animationFrameId: number | null = null
+let uploadResizeObserver: ResizeObserver | null = null
 
 const currentVideoSrc = computed(() => props.videoSrc || uploadedVideoUrl.value)
 const showUploadState = computed(() => !currentVideoSrc.value)
+const uploadSurfaceStyle = computed(() => {
+  return {
+    width: `${uploadPromptBaseWidth * uploadPromptScale.value}px`,
+    height: `${uploadPromptBaseHeight * uploadPromptScale.value}px`,
+  }
+})
 const playbackLabel = computed(() => {
   if (!currentVideoSrc.value) {
     return '待上传'
@@ -54,6 +65,41 @@ const revokeUploadedVideo = () => {
     URL.revokeObjectURL(uploadedVideoUrl.value)
     uploadedVideoUrl.value = ''
   }
+}
+
+const stopObservingUploadSurface = () => {
+  if (uploadResizeObserver) {
+    uploadResizeObserver.disconnect()
+    uploadResizeObserver = null
+  }
+}
+
+const syncUploadPromptScale = () => {
+  const viewport = uploadViewportElement.value
+  if (!viewport) {
+    uploadPromptScale.value = 1
+    return
+  }
+
+  const { width, height } = viewport.getBoundingClientRect()
+  const nextScale = Math.min(width / uploadPromptBaseWidth, height / uploadPromptBaseHeight)
+  uploadPromptScale.value = Math.max(0.76, Math.min(nextScale, 1.24))
+}
+
+const startObservingUploadSurface = async () => {
+  stopObservingUploadSurface()
+
+  await nextTick()
+  syncUploadPromptScale()
+
+  if (!uploadViewportElement.value || typeof ResizeObserver === 'undefined') {
+    return
+  }
+
+  uploadResizeObserver = new ResizeObserver(() => {
+    syncUploadPromptScale()
+  })
+  uploadResizeObserver.observe(uploadViewportElement.value)
 }
 
 const syncCanvasSize = () => {
@@ -207,25 +253,15 @@ const handleVideoSelected = async (file?: File) => {
   revokeUploadedVideo()
   uploadedVideoUrl.value = URL.createObjectURL(file)
   hasMetadata.value = false
-  mediaAspectRatio.value = 4 / 3
+  mediaAspectRatio.value = 1
   emit('play-state-change', { isPlaying: false, source: 'upload' })
-  emit('video-metadata-change', { aspectRatio: mediaAspectRatio.value })
 
   await nextTick()
   drawMask()
 }
 
 const syncVideoMetadata = () => {
-  if (!videoElement.value) {
-    return
-  }
-
-  const nextAspectRatio = videoElement.value.videoWidth && videoElement.value.videoHeight
-    ? videoElement.value.videoWidth / videoElement.value.videoHeight
-    : 4 / 3
-
-  mediaAspectRatio.value = nextAspectRatio
-  emit('video-metadata-change', { aspectRatio: nextAspectRatio })
+  mediaAspectRatio.value = 1
 }
 
 const handleFileChange = async (event: Event) => {
@@ -313,8 +349,7 @@ watch(
     stopDrawLoop()
     hasMetadata.value = false
     isBuffering.value = false
-    mediaAspectRatio.value = 4 / 3
-    emit('video-metadata-change', { aspectRatio: mediaAspectRatio.value })
+    mediaAspectRatio.value = 1
 
     await nextTick()
     drawMask()
@@ -323,6 +358,19 @@ watch(
       await playVideo('video')
     }
   },
+)
+
+watch(
+  () => showUploadState.value,
+  async (nextValue) => {
+    if (!nextValue) {
+      stopObservingUploadSurface()
+      return
+    }
+
+    await startObservingUploadSurface()
+  },
+  { immediate: true },
 )
 
 watch(
@@ -343,6 +391,7 @@ watch(
 
 onBeforeUnmount(() => {
   stopDrawLoop()
+  stopObservingUploadSurface()
   revokeUploadedVideo()
 })
 </script>
@@ -361,43 +410,47 @@ onBeforeUnmount(() => {
       </span>
     </div>
 
-    <div class="mt-4 min-h-0 flex-1">
-      <div
-        v-if="showUploadState"
-        class="relative flex aspect-[4/3] w-full items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-5 text-center transition dark:border-slate-600 dark:bg-slate-900 xl:h-full xl:aspect-auto"
-        :style="{ aspectRatio: `${mediaAspectRatio}` }"
-        :class="isDragging ? 'border-blue-500 bg-blue-50 dark:border-sky-400 dark:bg-sky-950/40' : ''"
-        @click="fileInputElement?.click()"
-        @dragenter.prevent="isDragging = true"
-        @dragover.prevent="isDragging = true"
-        @dragleave.prevent="isDragging = false"
-        @drop="handleDrop"
-      >
-        <input
-          ref="fileInputElement"
-          class="hidden"
-          type="file"
-          accept="video/*"
-          @change="handleFileChange"
-        />
-        <div class="space-y-2">
-          <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-sky-300">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0-4 4m4-4 4 4M4 16.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5" />
-            </svg>
-          </div>
-          <div>
-            <p class="text-sm font-medium text-gray-700 dark:text-gray-100">拖拽或点击上传内窥镜视频</p>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 md:text-sm">
-              支持本地历史视频回放，上传后即可叠加测试用分割多边形。
-            </p>
+    <div class="mt-4 flex min-h-0 flex-1 items-start justify-center">
+      <div v-if="showUploadState" ref="uploadViewportElement" class="flex h-full w-full items-center justify-center">
+        <div
+          class="relative flex items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-3 text-center transition dark:border-slate-600 dark:bg-slate-900"
+          :style="uploadSurfaceStyle"
+          :class="isDragging ? 'border-blue-500 bg-blue-50 dark:border-sky-400 dark:bg-sky-950/40' : ''"
+          @click="fileInputElement?.click()"
+          @dragenter.prevent="isDragging = true"
+          @dragover.prevent="isDragging = true"
+          @dragleave.prevent="isDragging = false"
+          @drop="handleDrop"
+        >
+          <input
+            ref="fileInputElement"
+            class="hidden"
+            type="file"
+            accept="video/*"
+            @change="handleFileChange"
+          />
+          <div
+            class="space-y-1"
+            :style="{ transform: `scale(${uploadPromptScale})`, transformOrigin: 'center center' }"
+          >
+            <div class="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-sky-300">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0-4 4m4-4 4 4M4 16.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-100">拖拽或点击上传内窥镜视频</p>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                支持本地历史视频回放，上传后即可叠加测试用分割多边形。
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       <div
         v-else
-        class="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-950 xl:h-full xl:aspect-auto"
+        class="relative aspect-square w-full max-w-[760px] overflow-hidden rounded-2xl bg-slate-950"
         :style="{ aspectRatio: `${mediaAspectRatio}` }"
       >
         <video

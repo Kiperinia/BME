@@ -9,20 +9,16 @@ import type {
   GenerateReportDraftRequest,
   GenerateReportDraftResponse,
   PatientRecord,
-  PolygonMask,
-  RawPatientRecord,
   ReportContextData,
   ReportDraftRecord,
   SaveReportDraftRequest,
   SegmentFrameResponse,
-  TumorDetails,
 } from '@/types/eis'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
 const agentApiBaseUrl = import.meta.env.VITE_AGENT_API_BASE_URL ?? `${apiBaseUrl}/agent`
 
 export const httpClient = axios.create({
-  baseURL: apiBaseUrl,
   timeout: 45000,
 })
 
@@ -38,6 +34,18 @@ interface SegmentFrameApiPayload {
 }
 
 export const reportBuilderApiContracts = {
+  fetchPatientPreviews: {
+    url: `${agentApiBaseUrl}/patient-previews`,
+    method: 'GET',
+    requestType: 'void',
+    responseType: 'PatientRecord[]',
+  },
+  fetchReportContext: {
+    url: `${agentApiBaseUrl}/report-context`,
+    method: 'GET',
+    requestType: '{ reportId?: string; patientId?: string }',
+    responseType: 'ReportContextData',
+  },
   generateDraft: {
     url: `${agentApiBaseUrl}/report-drafts/generate`,
     method: 'POST',
@@ -62,7 +70,10 @@ export const reportBuilderApiContracts = {
     requestType: 'multipart/form-data',
     responseType: 'SegmentFrameResponse',
   },
-} satisfies Record<'generateDraft' | 'saveDraft' | 'fetchAnnotationTags' | 'segmentFrame', ApiContractDefinition>
+} satisfies Record<
+  'fetchPatientPreviews' | 'fetchReportContext' | 'generateDraft' | 'saveDraft' | 'fetchAnnotationTags' | 'segmentFrame',
+  ApiContractDefinition
+>
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
 
@@ -89,8 +100,8 @@ const rasterizeImageSource = async (source: string): Promise<string> => {
   }
 
   const image = await loadImage(source)
-  const width = image.naturalWidth || 1280
-  const height = image.naturalHeight || 720
+  const width = image.naturalWidth || 1024
+  const height = image.naturalHeight || 1024
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
 
@@ -164,127 +175,29 @@ const streamAgentMessages = async (
   }
 }
 
-const mapRawPatientRecord = (rawRecord: RawPatientRecord): PatientRecord => ({
-  patientId: rawRecord.patient_id,
-  patientName: rawRecord.patient_name,
-  gender: rawRecord.gender,
-  age: rawRecord.age,
-  examDate: rawRecord.exam_date,
-  status: rawRecord.status,
-})
-
-const mockRawPatients: RawPatientRecord[] = [
-  {
-    patient_id: 'EIS-2026-000128',
-    patient_name: '张明远',
-    gender: '男',
-    age: 58,
-    exam_date: '2026-04-16',
-    status: 1,
-  },
-  {
-    patient_id: 'EIS-2026-000129',
-    patient_name: '李若兰',
-    gender: '女',
-    age: 46,
-    exam_date: '2026-04-15',
-    status: 2,
-  },
-  {
-    patient_id: 'EIS-2026-000130',
-    patient_name: '周航',
-    gender: '男',
-    age: 63,
-    exam_date: '2026-04-16',
-    status: 0,
-  },
-]
-
-const primaryMockPatient: RawPatientRecord = mockRawPatients[0] ?? {
-  patient_id: 'EIS-2026-000000',
-  patient_name: '默认患者',
-  gender: '其他',
-  age: 0,
-  exam_date: '2026-04-16',
-  status: 0,
-}
-
-const mockVideoMaskData: PolygonMask[] = [
-  {
-    id: 'mask-frame-1',
-    frameWidth: 1280,
-    frameHeight: 720,
-    fillColor: 'rgba(37, 99, 235, 0.26)',
-    strokeColor: 'rgba(37, 99, 235, 0.9)',
-    points: [
-      [438, 212],
-      [522, 188],
-      [610, 218],
-      [642, 306],
-      [584, 368],
-      [474, 346],
-      [426, 272],
-    ],
-  },
-]
-
-const mockTumorMaskData: PolygonMask[] = [
-  {
-    id: 'tumor-roi-1',
-    frameWidth: 1200,
-    frameHeight: 900,
-    fillColor: 'rgba(16, 185, 129, 0.28)',
-    strokeColor: 'rgba(5, 150, 105, 0.95)',
-    points: [
-      [364, 266],
-      [520, 216],
-      [704, 274],
-      [748, 436],
-      [640, 584],
-      [438, 612],
-      [320, 480],
-    ],
-  },
-]
-
-const mockTumorDetails: TumorDetails = {
-  estimatedSizeMm: 6.4,
-  classification: '疑似管状腺瘤',
-  location: '乙状结肠距肛缘约 28 cm',
-  surfacePattern: '表面细颗粒样，边缘轻度隆起',
-  confidence: 0.92,
-}
-
 export const getPatientPreviewCards = async (): Promise<PatientRecord[]> => {
-  await wait(180)
-  return mockRawPatients.map(mapRawPatientRecord)
+  const response = await httpClient.get<ApiResponseEnvelope<PatientRecord[]>>(
+    reportBuilderApiContracts.fetchPatientPreviews.url,
+  )
+
+  return extractApiData(response)
 }
 
-export const getReportBuilderMockContext = async (reportId?: string): Promise<ReportContextData> => {
-  await wait(260)
+export const getReportBuilderContext = async (
+  reportId?: string,
+  patientId?: string,
+): Promise<ReportContextData> => {
+  const response = await httpClient.get<ApiResponseEnvelope<ReportContextData>>(
+    reportBuilderApiContracts.fetchReportContext.url,
+    {
+      params: {
+        reportId,
+        patientId,
+      },
+    },
+  )
 
-  return {
-    patient: mapRawPatientRecord(primaryMockPatient),
-    videoSrc: '',
-    maskData: mockVideoMaskData,
-    showMask: true,
-    videoFrameData: {
-      frameId: reportId ? `${reportId}-frame-001` : 'frame-001',
-      sourceId: 'scope-session-20260416-01',
-      timestamp: 12.5,
-      width: 1280,
-      height: 720,
-      suspectedLocation: '乙状结肠',
-    },
-    captureImageSrcs: ['/images/endoscopy-frame-demo.svg', '/images/tumor-roi-demo.svg'],
-    reportSnippet: '乙状结肠见一枚约 6 mm 隆起性病灶，边界尚清，建议结合病理。',
-    initialOpinion: '请基于抓拍图、视频分割结果和病灶部位，生成符合 EIS 规范的内镜报告草稿。',
-    tumorFocus: {
-      tumorImageSrc: '/images/tumor-roi-demo.svg',
-      maskData: mockTumorMaskData,
-      details: mockTumorDetails,
-    },
-  }
+  return extractApiData(response)
 }
 
 export const invokeReportDraftAgent = async (

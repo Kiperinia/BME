@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 
 import {
   fetchSmartAnnotationTags,
-  getReportBuilderMockContext,
+  getReportBuilderContext,
   invokeReportDraftAgent,
   saveReportDraft,
 } from '@/api/reportBuilder'
@@ -78,8 +78,8 @@ const hydrateContext = async () => {
     if (props.contextData) {
       applyContext(props.contextData)
     } else {
-      const mockContext = await getReportBuilderMockContext(props.reportId)
-      applyContext(mockContext)
+      const remoteContext = await getReportBuilderContext(props.reportId)
+      applyContext(remoteContext)
     }
   } catch {
     showToast('报告生成上下文加载失败。', 'error')

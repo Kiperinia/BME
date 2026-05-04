@@ -21,6 +21,14 @@ class Config(HelloAgentsConfig):
     config_profile: Optional[str] = None
     config_path: Optional[str] = None
 
+    # 覆盖 hello_agents 默认的磁盘路径，使所有持久化位于 agent/ 子目录下
+    tool_output_dir: str = "agent/tool-output"
+    trace_dir: str = "agent/memory/traces"
+    skills_dir: str = "agent/skills"
+    session_dir: str = "agent/memory/sessions"
+    todowrite_persistence_dir: str = "agent/memory/todos"
+    devlog_persistence_dir: str = "agent/memory/devlogs"
+
     @classmethod
     def from_env(cls) -> "Config":
         """从配置文件和环境变量创建配置，并保留 hello_agents 的默认字段。"""

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import (
+    Settings,
     WORKSPACE_DIR,
     get_runtime_settings_path,
     get_settings,
@@ -32,10 +33,11 @@ class SystemSettingsService:
         self.runtime_settings_path = get_runtime_settings_path().resolve()
 
     def get_system_settings(self) -> SystemSettingsResponseSchema:
-        settings = get_settings()
-        llm_config = self._load_llm_config()
+        settings, settings_warnings = self._load_settings_with_fallback()
+        llm_config, llm_warnings = self._load_llm_config_with_fallback()
         payload = self._build_payload(settings=settings, llm_config=llm_config)
         status = self._build_status(settings=settings, payload=payload)
+        status.warnings = [*settings_warnings, *llm_warnings, *status.warnings]
         return SystemSettingsResponseSchema(settings=payload, status=status)
 
     def update_system_settings(
@@ -44,8 +46,9 @@ class SystemSettingsService:
     ) -> SystemSettingsResponseSchema:
         self._validate_payload(payload)
 
-        previous_llm_config = self._load_llm_config()
-        previous_overrides = load_settings_overrides()
+        previous_llm_config_snapshot = self._read_optional_text(self.llm_config_path)
+        previous_runtime_snapshot = self._read_optional_text(self.runtime_settings_path)
+        previous_overrides = self._load_runtime_overrides_with_fallback()
         next_llm_config = self._serialize_llm_config(payload.llm)
         next_overrides = self._serialize_runtime_overrides(payload)
         runtime_changed = next_overrides != previous_overrides
@@ -57,22 +60,68 @@ class SystemSettingsService:
             if runtime_changed:
                 SAM3RuntimeSingleton.reload_instance(settings=get_settings())
         except AppException:
-            self._rollback(previous_llm_config=previous_llm_config, previous_overrides=previous_overrides)
+            self._rollback(
+                previous_llm_config_snapshot=previous_llm_config_snapshot,
+                previous_runtime_snapshot=previous_runtime_snapshot,
+            )
             raise
         except Exception as exc:
-            self._rollback(previous_llm_config=previous_llm_config, previous_overrides=previous_overrides)
+            self._rollback(
+                previous_llm_config_snapshot=previous_llm_config_snapshot,
+                previous_runtime_snapshot=previous_runtime_snapshot,
+            )
             raise AppException(500, 50031, f"failed to apply system settings: {exc}") from exc
 
         return self.get_system_settings()
 
-    def _rollback(self, previous_llm_config: dict[str, Any], previous_overrides: dict[str, Any]) -> None:
-        self._write_llm_config(previous_llm_config)
-        save_settings_overrides(previous_overrides)
+    def _rollback(
+        self,
+        previous_llm_config_snapshot: str | None,
+        previous_runtime_snapshot: str | None,
+    ) -> None:
+        self._restore_file_snapshot(self.llm_config_path, previous_llm_config_snapshot)
+        self._restore_file_snapshot(self.runtime_settings_path, previous_runtime_snapshot)
         refresh_settings_cache()
         try:
             SAM3RuntimeSingleton.reload_instance(settings=get_settings())
         except Exception:
             return
+
+    def _load_settings_with_fallback(self) -> tuple[Settings, list[str]]:
+        try:
+            return get_settings(), []
+        except Exception as exc:
+            return Settings(), [f"运行时配置文件读取失败，已回退到默认设置：{exc}"]
+
+    def _load_llm_config_with_fallback(self) -> tuple[dict[str, Any], list[str]]:
+        try:
+            return self._load_llm_config(), []
+        except AppException as exc:
+            return self._default_llm_config(), [f"LLM 配置文件读取失败，已回退到默认配置：{exc.message}"]
+        except Exception as exc:
+            return self._default_llm_config(), [f"LLM 配置文件读取失败，已回退到默认配置：{exc}"]
+
+    def _load_runtime_overrides_with_fallback(self) -> dict[str, Any]:
+        try:
+            return load_settings_overrides()
+        except Exception:
+            return {}
+
+    @staticmethod
+    def _read_optional_text(path: Path) -> str | None:
+        if not path.exists():
+            return None
+        return path.read_text(encoding="utf-8")
+
+    @staticmethod
+    def _restore_file_snapshot(path: Path, content: str | None) -> None:
+        if content is None:
+            if path.exists():
+                path.unlink()
+            return
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
 
     def _validate_payload(self, payload: SystemSettingsPayloadSchema) -> None:
         if payload.sam3.loadMode == "sam3":

@@ -16,13 +16,13 @@ defineProps<{
       </span>
     </div>
 
-    <div v-if="images.length" class="mt-2.5 grid min-h-0 flex-1 auto-rows-fr gap-2 sm:grid-cols-3 xl:grid-cols-3">
+    <div v-if="images.length" class="mt-2.5 grid min-h-0 flex-1 auto-rows-fr gap-2 sm:grid-cols-3 xl:grid-cols-4">
       <div
         v-for="(imageSrc, index) in images"
         :key="`${imageSrc}-${index}`"
         class="overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-900"
       >
-        <img :src="imageSrc" :alt="`抓拍图像 ${index + 1}`" class="aspect-[16/11] h-full w-full object-cover" />
+        <img :src="imageSrc" :alt="`抓拍图像 ${index + 1}`" class="aspect-square h-full w-full object-cover" />
       </div>
     </div>
 

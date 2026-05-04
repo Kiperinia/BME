@@ -6,6 +6,7 @@ import FeedbackToast from '@/components/common/FeedbackToast.vue'
 import type {
   LlmProfile,
   LlmProviderKind,
+  SystemSettingsResponse,
   SystemSettingsPayload,
   SystemSettingsStatus,
 } from '@/types/systemSettings'
@@ -24,6 +25,56 @@ let toastTimer: number | undefined
 
 const textInputClass = 'mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white'
 const selectInputClass = `${textInputClass} appearance-none pr-10`
+
+const createFallbackSettingsResponse = (warningMessage: string): SystemSettingsResponse => {
+  return {
+    settings: {
+      llm: {
+        activeProfile: 'openai-profile',
+        profiles: [
+          {
+            profileId: 'openai-profile',
+            providerKind: 'openai_compatible',
+            defaultProvider: 'openai',
+            defaultModel: 'gpt-4o-mini',
+            apiKey: '',
+            baseUrl: '',
+            timeout: 60,
+          },
+        ],
+      },
+      agent: {
+        enableLlm: true,
+        enableLlmReport: true,
+        pixelSizeMm: 0.12,
+      },
+      sam3: {
+        loadMode: 'mock',
+        device: 'cuda',
+        checkpointPath: 'MedicalSAM3/checkpoint/MedSAM3.pt',
+        inputSize: 1024,
+        keepAspectRatio: true,
+        warmupEnabled: true,
+        loraEnabled: false,
+        loraPath: '',
+      },
+      runtime: {
+        inferenceTimeoutSeconds: 60,
+        maxUploadSizeMb: 80,
+        mockDelayMs: 600,
+      },
+    },
+    status: {
+      llmReady: false,
+      sam3Ready: false,
+      sam3RuntimeMode: 'mock',
+      loraLoaded: false,
+      llmConfigPath: 'agent/config/llm_profiles.json',
+      runtimeSettingsPath: 'Backend/app/config/runtime_settings.json',
+      warnings: [warningMessage, '当前展示的是前端兜底配置，保存前请确认 Backend 配置接口可用。'],
+    },
+  }
+}
 
 const cloneSettings = (value: SystemSettingsPayload): SystemSettingsPayload => {
   return JSON.parse(JSON.stringify(value)) as SystemSettingsPayload
@@ -139,6 +190,10 @@ const loadSettings = async () => {
   } catch (error) {
     const message = error instanceof Error ? error.message : '系统设置加载失败。'
     loadErrorMessage.value = message
+    const fallbackResponse = createFallbackSettingsResponse(message)
+    savedSettings.value = cloneSettings(fallbackResponse.settings)
+    form.value = cloneSettings(fallbackResponse.settings)
+    runtimeStatus.value = fallbackResponse.status
   } finally {
     isLoading.value = false
   }
@@ -376,8 +431,8 @@ onMounted(async () => {
           </p>
         </div>
 
-        <div class="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_420px]">
-          <div class="grid gap-4">
+        <div class="grid gap-4 2xl:grid-cols-[minmax(0,2.2fr)_minmax(360px,1fr)]">
+          <div class="grid min-h-0 gap-4">
             <section class="surface-card p-6">
               <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800">
                 <h3 class="text-lg font-semibold text-slate-900 dark:text-white">大模型 API 配置</h3>
@@ -403,113 +458,113 @@ onMounted(async () => {
                 </button>
               </div>
 
-              <div class="mt-5 grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
-                <div class="grid content-start gap-3">
-                  <button
-                    v-for="profile in form.llm.profiles"
-                    :key="profile.profileId"
-                    type="button"
-                    class="rounded-3xl border p-4 text-left transition"
-                    :class="profile.profileId === form.llm.activeProfile
-                      ? 'border-sky-400 bg-sky-50 shadow-soft dark:border-sky-500 dark:bg-sky-950/50'
-                      : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700'"
-                    @click="handleSetActiveProfile(profile.profileId)"
-                  >
-                    <div class="flex items-start justify-between gap-3">
-                      <div>
-                        <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ profile.profileId }}</p>
-                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          {{ profile.providerKind === 'openai_compatible' ? 'OpenAI Compatible' : 'ModelScope' }}
-                        </p>
+              <div class="mt-5 grid min-h-[560px] gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+                <div class="grid min-h-0 content-start gap-3 overflow-auto pr-1">
+                    <button
+                      v-for="profile in form.llm.profiles"
+                      :key="profile.profileId"
+                      type="button"
+                      class="rounded-3xl border p-4 text-left transition"
+                      :class="profile.profileId === form.llm.activeProfile
+                        ? 'border-sky-400 bg-sky-50 shadow-soft dark:border-sky-500 dark:bg-sky-950/50'
+                        : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700'"
+                      @click="handleSetActiveProfile(profile.profileId)"
+                    >
+                      <div class="flex items-start justify-between gap-3">
+                        <div>
+                          <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ profile.profileId }}</p>
+                          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {{ profile.providerKind === 'openai_compatible' ? 'OpenAI Compatible' : 'ModelScope' }}
+                          </p>
+                        </div>
+                        <span
+                          v-if="profile.profileId === form.llm.activeProfile"
+                          class="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-medium text-sky-700 dark:bg-sky-900/70 dark:text-sky-200"
+                        >
+                          活动中
+                        </span>
                       </div>
-                      <span
-                        v-if="profile.profileId === form.llm.activeProfile"
-                        class="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-medium text-sky-700 dark:bg-sky-900/70 dark:text-sky-200"
-                      >
-                        活动中
-                      </span>
-                    </div>
 
-                    <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">{{ profile.defaultModel }}</p>
+                      <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">{{ profile.defaultModel }}</p>
 
-                    <div class="mt-4 flex gap-2">
-                      <button
-                        type="button"
-                        class="rounded-full border border-rose-200 px-3 py-1 text-xs text-rose-600 transition hover:border-rose-300 hover:text-rose-700 dark:border-rose-900/70 dark:text-rose-300 dark:hover:border-rose-700"
-                        @click.stop="handleDeleteProfile(profile.profileId)"
-                      >
-                        删除
-                      </button>
-                    </div>
-                  </button>
+                      <div class="mt-4 flex gap-2">
+                        <button
+                          type="button"
+                          class="rounded-full border border-rose-200 px-3 py-1 text-xs text-rose-600 transition hover:border-rose-300 hover:text-rose-700 dark:border-rose-900/70 dark:text-rose-300 dark:hover:border-rose-700"
+                          @click.stop="handleDeleteProfile(profile.profileId)"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </button>
                 </div>
 
                 <article
                   v-if="activeLlmProfile"
-                  class="rounded-3xl border border-slate-200 p-5 dark:border-slate-800"
+                  class="h-full min-h-0 overflow-auto rounded-3xl border border-slate-200 p-5 dark:border-slate-800"
                 >
-                  <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800 md:flex-row md:items-end md:justify-between">
-                    <div>
-                      <h4 class="text-base font-semibold text-slate-900 dark:text-white">活动 Profile 详情</h4>
-                      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        {{ activeProfileDescription }}
-                      </p>
-                    </div>
-                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                      {{ activeProfileKindLabel }}
-                    </span>
-                  </div>
-
-                  <div class="mt-4 grid gap-3 md:grid-cols-2">
-                    <label>
-                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Profile 标识</span>
-                      <input
-                        :value="activeLlmProfile.profileId"
-                        :class="textInputClass"
-                        @change="handleRenameActiveProfile(($event.target as HTMLInputElement).value)"
-                      >
-                    </label>
-
-                    <label>
-                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Provider 类型</span>
-                      <div class="relative mt-2">
-                        <select
-                          :value="activeLlmProfile.providerKind"
-                          :class="selectInputClass"
-                          @change="handleProviderKindChange(($event.target as HTMLSelectElement).value)"
-                        >
-                          <option value="openai_compatible">OpenAI Compatible</option>
-                          <option value="modelscope">ModelScope</option>
-                        </select>
-                        <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">▾</span>
+                    <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800 md:flex-row md:items-end md:justify-between">
+                      <div>
+                        <h4 class="text-base font-semibold text-slate-900 dark:text-white">活动 Profile 详情</h4>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                          {{ activeProfileDescription }}
+                        </p>
                       </div>
-                    </label>
+                      <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        {{ activeProfileKindLabel }}
+                      </span>
+                    </div>
 
-                    <label>
-                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Provider</span>
-                      <input v-model="activeLlmProfile.defaultProvider" :class="textInputClass">
-                    </label>
+                    <div class="mt-4 grid gap-3 md:grid-cols-2">
+                      <label>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Profile 标识</span>
+                        <input
+                          :value="activeLlmProfile.profileId"
+                          :class="textInputClass"
+                          @change="handleRenameActiveProfile(($event.target as HTMLInputElement).value)"
+                        >
+                      </label>
 
-                    <label>
-                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Model</span>
-                      <input v-model="activeLlmProfile.defaultModel" :class="textInputClass">
-                    </label>
+                      <label>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Provider 类型</span>
+                        <div class="relative mt-2">
+                          <select
+                            :value="activeLlmProfile.providerKind"
+                            :class="selectInputClass"
+                            @change="handleProviderKindChange(($event.target as HTMLSelectElement).value)"
+                          >
+                            <option value="openai_compatible">OpenAI Compatible</option>
+                            <option value="modelscope">ModelScope</option>
+                          </select>
+                          <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">▾</span>
+                        </div>
+                      </label>
 
-                    <label class="md:col-span-2">
-                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">API Key</span>
-                      <input v-model="activeLlmProfile.apiKey" type="password" :class="textInputClass">
-                    </label>
+                      <label>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Provider</span>
+                        <input v-model="activeLlmProfile.defaultProvider" :class="textInputClass">
+                      </label>
 
-                    <label class="md:col-span-2">
-                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Base URL</span>
-                      <input v-model="activeLlmProfile.baseUrl" :class="textInputClass">
-                    </label>
+                      <label>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Model</span>
+                        <input v-model="activeLlmProfile.defaultModel" :class="textInputClass">
+                      </label>
 
-                    <label>
-                      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Timeout (s)</span>
-                      <input v-model.number="activeLlmProfile.timeout" type="number" min="1" max="600" :class="textInputClass">
-                    </label>
-                  </div>
+                      <label class="md:col-span-2">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">API Key</span>
+                        <input v-model="activeLlmProfile.apiKey" type="password" :class="textInputClass">
+                      </label>
+
+                      <label class="md:col-span-2">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Base URL</span>
+                        <input v-model="activeLlmProfile.baseUrl" :class="textInputClass">
+                      </label>
+
+                      <label>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Timeout (s)</span>
+                        <input v-model.number="activeLlmProfile.timeout" type="number" min="1" max="600" :class="textInputClass">
+                      </label>
+                    </div>
                 </article>
               </div>
             </section>
@@ -572,7 +627,7 @@ onMounted(async () => {
             </section>
           </div>
 
-          <div class="grid content-start gap-4">
+          <div class="grid min-h-0 content-start gap-4">
             <section class="surface-card p-6">
               <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800">
                 <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Agent 工作流</h3>
