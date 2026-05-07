@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import inspect
+import json
 import logging
 from pathlib import Path
 import warnings
-from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import torch
@@ -16,6 +17,9 @@ import torch.nn.functional as F
 logger = logging.getLogger(__name__)
 
 _DEFAULT_LOCAL_CHECKPOINTS = ("sam3.pt", "MedSAM3.pt")
+_DEFAULT_BUILD_REPORT = (
+    Path(__file__).resolve().parents[1] / "outputs" / "medex_sam3" / "preflight" / "model_build_report.json"
+)
 
 
 def _resolve_dtype(dtype: str) -> torch.dtype:
@@ -55,6 +59,85 @@ def _resolve_checkpoint_path(checkpoint_path: Optional[str]) -> Optional[str]:
         return str(repo_relative_candidate)
 
     raise FileNotFoundError(f"SAM3 checkpoint not found: {checkpoint_path}")
+
+
+def _dtype_name(dtype: torch.dtype) -> str:
+    mapping = {
+        torch.float32: "fp32",
+        torch.float16: "fp16",
+        torch.bfloat16: "bf16",
+    }
+    return mapping.get(dtype, str(dtype))
+
+
+def _resolve_runtime_dtype(device: str, dtype: torch.dtype) -> tuple[torch.dtype, Optional[str]]:
+    if str(device).startswith("cpu") and dtype != torch.float32:
+        return torch.float32, "CPU execution falls back to fp32 for stability."
+    return dtype, None
+
+
+def _default_hidden_dim(model: nn.Module) -> Optional[int]:
+    hidden_dim = getattr(model, "hidden_dim", None)
+    if hidden_dim is not None:
+        return int(hidden_dim)
+    embed_dim = getattr(model, "embed_dim", None)
+    if embed_dim is not None:
+        return int(embed_dim)
+    return None
+
+
+def _annotate_model(model: nn.Module, *, used_official_sam3: bool, used_dummy_fallback: bool) -> nn.Module:
+    hidden_dim = _default_hidden_dim(model)
+    model._medex_used_official_sam3 = bool(used_official_sam3)
+    model._medex_used_dummy_fallback = bool(used_dummy_fallback)
+    model._medex_hidden_dim = hidden_dim
+    return model
+
+
+def _build_model_report(
+    *,
+    requested_checkpoint: Optional[str],
+    resolved_checkpoint: Optional[str],
+    device: str,
+    requested_dtype: str,
+    effective_dtype: torch.dtype,
+    model: Optional[nn.Module],
+    used_official_sam3: bool,
+    used_dummy_fallback: bool,
+    error: Optional[str],
+    warning: Optional[str],
+) -> dict[str, Any]:
+    hidden_dim = None if model is None else getattr(model, "hidden_dim", None)
+    embed_dim = None if model is None else getattr(model, "embed_dim", None)
+    report = {
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "requested_checkpoint": requested_checkpoint,
+        "resolved_checkpoint": resolved_checkpoint,
+        "device": device,
+        "dtype": _dtype_name(effective_dtype),
+        "requested_dtype": requested_dtype,
+        "model_class": None if model is None else model.__class__.__name__,
+        "used_official_sam3": bool(used_official_sam3),
+        "used_dummy_fallback": bool(used_dummy_fallback),
+        "has_backbone": bool(model is not None and hasattr(model, "backbone")),
+        "has_encode_prompt": bool(model is not None and hasattr(model, "_encode_prompt")),
+        "has_run_encoder": bool(model is not None and hasattr(model, "_run_encoder")),
+        "has_run_decoder": bool(model is not None and hasattr(model, "_run_decoder")),
+        "has_run_segmentation_heads": bool(model is not None and hasattr(model, "_run_segmentation_heads")),
+        "hidden_dim": None if hidden_dim is None else int(hidden_dim),
+        "embed_dim": None if embed_dim is None else int(embed_dim),
+        "error": error,
+    }
+    if warning is not None:
+        report["warning"] = warning
+    return report
+
+
+def _write_model_report(report: dict[str, Any], report_path: Optional[str]) -> Path:
+    destination = Path(report_path) if report_path is not None else _DEFAULT_BUILD_REPORT
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return destination
 
 
 class DummySelfAttention(nn.Module):
@@ -270,10 +353,9 @@ class DummyOfficialSam3ImageModel(nn.Module):
 
 
 def _move_model(model: nn.Module, device: str, dtype: torch.dtype) -> nn.Module:
-    runtime_dtype = dtype
-    if str(device).startswith("cpu") and dtype != torch.float32:
-        warnings.warn("CPU execution falls back to fp32 for stability.", stacklevel=2)
-        runtime_dtype = torch.float32
+    runtime_dtype, runtime_warning = _resolve_runtime_dtype(device, dtype)
+    if runtime_warning is not None:
+        warnings.warn(runtime_warning, stacklevel=2)
     return model.to(device=device, dtype=runtime_dtype)
 
 
@@ -340,11 +422,18 @@ def build_official_sam3_image_model(
     device: str,
     dtype: str = "fp16",
     compile_model: bool = False,
+    allow_dummy_fallback: bool = False,
+    report_path: Optional[str] = None,
 ) -> nn.Module:
     """Build the official SAM3 image model with a tensor-native fallback for smoke tests."""
 
     target_dtype = _resolve_dtype(dtype)
+    effective_dtype, runtime_warning = _resolve_runtime_dtype(device, target_dtype)
     resolved_checkpoint_path = _resolve_checkpoint_path(checkpoint_path)
+    model: Optional[nn.Module] = None
+    used_official_sam3 = False
+    used_dummy_fallback = False
+    error_message: Optional[str] = None
     if checkpoint_path is None and resolved_checkpoint_path is not None:
         logger.info("Using local SAM3 checkpoint: %s", resolved_checkpoint_path)
 
@@ -352,30 +441,64 @@ def build_official_sam3_image_model(
         model = _build_from_official_builder(
             checkpoint_path=resolved_checkpoint_path,
             device=device,
-            dtype=target_dtype,
+            dtype=effective_dtype,
         )
+        used_official_sam3 = True
         logger.info("Built official SAM3 image model.")
     except Exception as exc:
-        if checkpoint_path is not None:
+        error_message = str(exc)
+        build_report = _build_model_report(
+            requested_checkpoint=checkpoint_path,
+            resolved_checkpoint=resolved_checkpoint_path,
+            device=device,
+            requested_dtype=dtype,
+            effective_dtype=effective_dtype,
+            model=None,
+            used_official_sam3=False,
+            used_dummy_fallback=False,
+            error=error_message,
+            warning=runtime_warning,
+        )
+        if checkpoint_path is not None or not allow_dummy_fallback:
+            _write_model_report(build_report, report_path)
             raise RuntimeError("Failed to build official SAM3 image model.") from exc
-        if resolved_checkpoint_path is not None:
-            warnings.warn(
-                "Failed to build official SAM3 image model from local checkpoint "
-                f"{resolved_checkpoint_path}; falling back to DummyOfficialSam3ImageModel: {exc}",
-                stacklevel=2,
-            )
-        else:
-            warnings.warn(
-                f"Falling back to DummyOfficialSam3ImageModel because official builder failed: {exc}",
-                stacklevel=2,
-            )
-        model = _move_model(DummyOfficialSam3ImageModel(), device=device, dtype=target_dtype)
 
+        warnings.warn(
+            f"Falling back to DummyOfficialSam3ImageModel because official builder failed: {exc}",
+            stacklevel=2,
+        )
+        model = _move_model(DummyOfficialSam3ImageModel(), device=device, dtype=effective_dtype)
+        used_dummy_fallback = True
+
+    model = _annotate_model(
+        model,
+        used_official_sam3=used_official_sam3,
+        used_dummy_fallback=used_dummy_fallback,
+    )
     if compile_model and hasattr(torch, "compile"):
         try:
             model = torch.compile(model)
+            model = _annotate_model(
+                model,
+                used_official_sam3=used_official_sam3,
+                used_dummy_fallback=used_dummy_fallback,
+            )
         except Exception as exc:
             warnings.warn(f"torch.compile skipped: {exc}", stacklevel=2)
+
+    build_report = _build_model_report(
+        requested_checkpoint=checkpoint_path,
+        resolved_checkpoint=resolved_checkpoint_path,
+        device=device,
+        requested_dtype=dtype,
+        effective_dtype=effective_dtype,
+        model=model,
+        used_official_sam3=used_official_sam3,
+        used_dummy_fallback=used_dummy_fallback,
+        error=error_message,
+        warning=runtime_warning,
+    )
+    _write_model_report(build_report, report_path)
     return model
 
 

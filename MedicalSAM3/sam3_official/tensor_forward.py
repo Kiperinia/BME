@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Optional
+import warnings
 
 import torch
 import torch.nn as nn
@@ -19,6 +22,11 @@ try:
     HAS_OFFICIAL_SAM3_RUNTIME = True
 except Exception:
     HAS_OFFICIAL_SAM3_RUNTIME = False
+
+
+DEFAULT_TENSOR_FORWARD_REPORT = (
+    Path(__file__).resolve().parents[1] / "outputs" / "medex_sam3" / "preflight" / "tensor_forward_report.json"
+)
 
 
 def _to_mask_logits(masks: torch.Tensor) -> torch.Tensor:
@@ -121,6 +129,9 @@ class Sam3TensorForwardWrapper(nn.Module):
             compile_model=False,
         )
         self.use_hooks = use_hooks
+        self.is_official_sam3 = _is_official_sam3_model(self.model)
+        self.used_dummy_fallback = bool(getattr(self.model, "_medex_used_dummy_fallback", False))
+        self.hidden_dim = getattr(self.model, "hidden_dim", getattr(self.model, "_medex_hidden_dim", None))
         self.hook_keywords = hook_keywords or [
             "image_encoder",
             "prompt",
@@ -135,7 +146,7 @@ class Sam3TensorForwardWrapper(nn.Module):
         self.hooks: Optional[FeatureHookManager] = None
         self.processor_transform = None
         self.official_resolution = None
-        if _is_official_sam3_model(self.model):
+        if self.is_official_sam3:
             self.official_resolution = _infer_official_resolution(self.model)
             self.processor_transform = Sam3Processor(
                 self.model,
@@ -226,10 +237,11 @@ class Sam3TensorForwardWrapper(nn.Module):
                 exemplar_prompt_tokens = exemplar_prompt_tokens.unsqueeze(1)
             if exemplar_prompt_tokens.dim() != 3 or exemplar_prompt_tokens.shape[0] != batch_size:
                 raise ValueError("exemplar_prompt_tokens must have shape [B, C] or [B, N, C]")
-            hidden_dim = int(getattr(self.model, "hidden_dim", exemplar_prompt_tokens.shape[-1]))
+            hidden_dim = int(getattr(self.model, "hidden_dim", getattr(self.model, "_medex_hidden_dim", exemplar_prompt_tokens.shape[-1])))
             if exemplar_prompt_tokens.shape[-1] != hidden_dim:
                 raise ValueError(
-                    f"Official SAM3 expects exemplar prompt dim {hidden_dim}, got {exemplar_prompt_tokens.shape[-1]}"
+                    "Official SAM3 exemplar prompt dim mismatch: "
+                    f"expected_dim={hidden_dim}, got_dim={exemplar_prompt_tokens.shape[-1]}"
                 )
             visual_prompt_embed = exemplar_prompt_tokens.permute(1, 0, 2)
             visual_prompt_mask = torch.zeros(batch_size, visual_prompt_embed.shape[0], device=model_device, dtype=torch.bool)
@@ -294,14 +306,32 @@ class Sam3TensorForwardWrapper(nn.Module):
         batch_idx = torch.arange(batch_size, device=model_device)
         mask_logits = pred_masks[batch_idx, best_idx].unsqueeze(1)
         selected_scores = scores.squeeze(-1)[batch_idx, best_idx].unsqueeze(1)
-        selected_boxes = pred_boxes[batch_idx, best_idx]
+        selected_boxes = None
+        try:
+            if pred_boxes.dim() == 3 and pred_boxes.shape[-1] == 4:
+                selected_boxes = pred_boxes[batch_idx, best_idx]
+            elif pred_boxes.dim() == 2 and pred_boxes.shape[-1] == 4:
+                selected_boxes = pred_boxes
+            else:
+                warnings.warn(
+                    f"Official SAM3 returned unexpected pred_boxes shape {tuple(pred_boxes.shape)}; emitting boxes=None.",
+                    stacklevel=2,
+                )
+            if selected_boxes is not None:
+                scale = torch.tensor(
+                    [orig_width, orig_height, orig_width, orig_height],
+                    device=model_device,
+                    dtype=selected_boxes.dtype,
+                )
+                selected_boxes = selected_boxes * scale.unsqueeze(0)
+        except Exception as exc:
+            warnings.warn(f"Failed to restore official SAM3 boxes to pixel scale: {exc}", stacklevel=2)
+            selected_boxes = None
 
-        scale = torch.tensor([orig_width, orig_height, orig_width, orig_height], device=model_device, dtype=selected_boxes.dtype)
-        selected_boxes = selected_boxes * scale.unsqueeze(0)
         mask_logits = F.interpolate(mask_logits, size=(orig_height, orig_width), mode="bilinear", align_corners=False)
 
         return {
-            "masks": torch.sigmoid(mask_logits),
+            "masks": torch.sigmoid(mask_logits).clamp(0.0, 1.0),
             "mask_logits": mask_logits,
             "boxes": selected_boxes,
             "scores": selected_scores,
@@ -400,10 +430,36 @@ class Sam3TensorForwardWrapper(nn.Module):
             outputs["mask_logits"] = _to_mask_logits(outputs["masks"])
         if "masks" not in outputs and "mask_logits" in outputs:
             outputs["masks"] = torch.sigmoid(outputs["mask_logits"])
+
+        if "mask_logits" in outputs and isinstance(outputs["mask_logits"], torch.Tensor):
+            if outputs["mask_logits"].dim() == 3:
+                outputs["mask_logits"] = outputs["mask_logits"].unsqueeze(1)
+            if outputs["mask_logits"].dim() != 4 or outputs["mask_logits"].shape[1] != 1:
+                raise ValueError("mask_logits must have shape [B, 1, H, W]")
+
+        if "masks" in outputs and isinstance(outputs["masks"], torch.Tensor):
+            if outputs["masks"].dim() == 3:
+                outputs["masks"] = outputs["masks"].unsqueeze(1)
+            if outputs["masks"].dim() != 4 or outputs["masks"].shape[1] != 1:
+                raise ValueError("masks must have shape [B, 1, H, W]")
+            outputs["masks"] = outputs["masks"].clamp(0.0, 1.0)
+
         if "scores" not in outputs:
             outputs["scores"] = outputs["masks"].flatten(1).mean(dim=1, keepdim=True)
+        elif isinstance(outputs["scores"], torch.Tensor) and outputs["scores"].dim() == 1:
+            outputs["scores"] = outputs["scores"].unsqueeze(1)
+
         if "boxes" not in outputs:
             outputs["boxes"] = boxes
+        elif isinstance(outputs["boxes"], torch.Tensor):
+            if outputs["boxes"].dim() == 3 and outputs["boxes"].shape[1] == 1 and outputs["boxes"].shape[2] == 4:
+                outputs["boxes"] = outputs["boxes"].squeeze(1)
+            elif outputs["boxes"].dim() != 2 or outputs["boxes"].shape[-1] != 4:
+                warnings.warn(
+                    f"Unexpected boxes shape {tuple(outputs['boxes'].shape)}; emitting boxes=None.",
+                    stacklevel=2,
+                )
+                outputs["boxes"] = None
 
         intermediate = {}
         if self.hooks is not None:
@@ -415,4 +471,80 @@ class Sam3TensorForwardWrapper(nn.Module):
         outputs.setdefault("exemplar_embeddings", None)
         outputs.setdefault("detector_queries", _mean_tensor_from_feature_map(intermediate, "detector"))
         outputs["intermediate_features"] = intermediate
+        outputs["used_official_sam3"] = self.is_official_sam3
+        outputs["used_dummy_fallback"] = self.used_dummy_fallback
         return outputs
+
+
+def run_tensor_forward_smoke_test(
+    checkpoint_path: Optional[str],
+    device: str,
+    dtype: str,
+    image_size: int,
+    allow_dummy: bool,
+    report_path: str,
+) -> dict[str, Any]:
+    destination = Path(report_path) if report_path else DEFAULT_TENSOR_FORWARD_REPORT
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    report: dict[str, Any] = {
+        "forward_success": False,
+        "backward_success": None,
+        "backward_skipped_reason": None,
+        "used_official_sam3": False,
+        "used_dummy_fallback": False,
+        "mask_logits_shape": None,
+        "masks_min": None,
+        "masks_max": None,
+        "scores_shape": None,
+        "image_embeddings_shape": None,
+        "prompt_embeddings_shape": None,
+        "detector_queries_shape": None,
+        "error": None,
+    }
+
+    try:
+        model = build_official_sam3_image_model(
+            checkpoint_path=checkpoint_path,
+            device=device,
+            dtype=dtype,
+            compile_model=False,
+            allow_dummy_fallback=allow_dummy,
+        )
+        wrapper = Sam3TensorForwardWrapper(model=model, device=device, dtype=dtype, use_hooks=False)
+        tensor_device = torch.device(device)
+        images = torch.rand(1, 3, image_size, image_size, device=tensor_device)
+        boxes = torch.tensor(
+            [[image_size * 0.2, image_size * 0.2, image_size * 0.8, image_size * 0.8]],
+            device=tensor_device,
+        )
+        outputs = wrapper(images=images, boxes=boxes, text_prompt=["polyp"])
+        report["forward_success"] = True
+        report["used_official_sam3"] = bool(outputs.get("used_official_sam3"))
+        report["used_dummy_fallback"] = bool(outputs.get("used_dummy_fallback"))
+        report["mask_logits_shape"] = list(outputs["mask_logits"].shape)
+        report["masks_min"] = float(outputs["masks"].min().item())
+        report["masks_max"] = float(outputs["masks"].max().item())
+        report["scores_shape"] = list(outputs["scores"].shape)
+        if isinstance(outputs.get("image_embeddings"), torch.Tensor):
+            report["image_embeddings_shape"] = list(outputs["image_embeddings"].shape)
+        if isinstance(outputs.get("prompt_embeddings"), torch.Tensor):
+            report["prompt_embeddings_shape"] = list(outputs["prompt_embeddings"].shape)
+        if isinstance(outputs.get("detector_queries"), torch.Tensor):
+            report["detector_queries_shape"] = list(outputs["detector_queries"].shape)
+
+        trainable_params = [parameter for parameter in wrapper.parameters() if parameter.requires_grad]
+        if not trainable_params:
+            report["backward_success"] = None
+            report["backward_skipped_reason"] = "all parameters frozen"
+        else:
+            loss = outputs["mask_logits"].mean()
+            loss.backward()
+            grad_found = any(parameter.grad is not None for parameter in trainable_params)
+            report["backward_success"] = bool(grad_found)
+            if not grad_found:
+                report["backward_skipped_reason"] = "no gradients found on trainable parameters"
+    except Exception as exc:
+        report["error"] = str(exc)
+
+    destination.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return report

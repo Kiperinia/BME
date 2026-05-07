@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
 from pathlib import Path
@@ -11,21 +10,20 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from MedicalSAM3.scripts.common import ensure_dir, load_config
+from MedicalSAM3.scripts.common import dump_config, ensure_dir, load_config
 
 
 ABLATIONS = [
-    "SAM3 zero-shot",
-    "SAM3 + LoRA",
-    "SAM3 + LoRA + MedicalAdapter",
-    "SAM3 + LoRA + BoundaryAwareAdapter",
-    "SAM3 + positive single exemplar",
-    "SAM3 + positive Top-3 prototype",
-    "SAM3 + positive Top-5 weighted prototype",
-    "SAM3 + positive + negative prototype",
-    "SAM3 + positive + negative + boundary prototype",
-    "SAM3 + human-verified memory v1",
-    "SAM3 + human-verified memory v2",
+    "sam3_zero_shot",
+    "sam3_lora",
+    "sam3_lora_medical_adapter",
+    "sam3_lora_boundary_adapter",
+    "single_positive_exemplar",
+    "top3_positive_prototype",
+    "top5_weighted_positive_prototype",
+    "positive_negative_prototype",
+    "positive_negative_boundary_prototype",
+    "human_verified_memory_v1",
 ]
 
 
@@ -49,7 +47,8 @@ def _dummy_metrics(index: int) -> dict[str, float]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run MedEx-SAM3 ablations.")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--output-dir", default="MedicalSAM3/outputs/medex_sam3/ablation_runs")
+    parser.add_argument("--output-dir", default="MedicalSAM3/outputs/medex_sam3/ablation")
+    parser.add_argument("--fold", default="aggregate")
     parser.add_argument("--dummy", action="store_true")
     args = parser.parse_args()
 
@@ -57,29 +56,30 @@ def main() -> int:
     output_dir = ensure_dir(args.output_dir)
     rows = []
     for index, name in enumerate(config.get("ablation_names", ABLATIONS)):
-        run_dir = ensure_dir(output_dir / f"run_{index:02d}")
+        run_dir = ensure_dir(output_dir / name)
         metrics = _dummy_metrics(index)
         payload = {
-            "config": name,
+            "method": name,
+            "fold": args.fold,
             "checkpoint": "dummy" if args.dummy or config.get("dummy", True) else "not_provided",
             "metrics": metrics,
         }
+        dump_config(run_dir / "config_used.yaml", {"method": name, "fold": args.fold, "dummy": args.dummy})
         (run_dir / "metrics.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        rows.append({"Config": name, **metrics})
+        with (run_dir / "per_image_metrics.jsonl").open("w", encoding="utf-8") as handle:
+            for sample_index in range(5):
+                handle.write(
+                    json.dumps({
+                        "image_id": f"sample_{sample_index:03d}",
+                        "method": name,
+                        "fold": args.fold,
+                        "metrics": metrics,
+                    })
+                    + "\n"
+                )
+        rows.append({"method": name, "fold": args.fold, **metrics})
 
-    csv_path = output_dir / "ablation_table.csv"
-    with csv_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-    md_lines = ["| Config | Dice | IoU | Precision | Recall | Boundary F1 | HD95 | ASSD | FPR | FNR | Prompt Sensitivity |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
-    for row in rows:
-        md_lines.append(
-            f"| {row['Config']} | {row['Dice']} | {row['IoU']} | {row['Precision']} | {row['Recall']} | {row['Boundary F1']} | {row['HD95']} | {row['ASSD']} | {row['FPR']} | {row['FNR']} | {row['Prompt Sensitivity']} |"
-        )
-    (output_dir / "ablation_table.md").write_text("\n".join(md_lines), encoding="utf-8")
-    (output_dir / "ablation_results.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
-    print(json.dumps({"runs": len(rows), "csv": str(csv_path)}, indent=2))
+    print(json.dumps({"runs": len(rows), "output_dir": str(output_dir)}, indent=2))
     return 0
 
 

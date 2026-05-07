@@ -1,138 +1,177 @@
 # MedEx-SAM3
 
-MedEx-SAM3: Human-Verified Multi-Exemplar Prototype Prompting for Polyp Segmentation.
+MedEx-SAM3 当前主路线是：official SAM3 image model + LoRA + medical/boundary adapters + human-verified exemplar memory + prototype fusion。
 
-该实现将 MedEx-SAM3 主路线迁移到官方 SAM3 image model 的 tensor-level pipeline，并在仓库内保留原有 MedicalSAM3 扩展路线。旧脚本 MedicalSAM3/train_ext.py 仍然保留可导入，但不再是推荐主训练入口。
+当前主入口位于 MedicalSAM3/scripts/train_lora_medical.py 和 MedicalSAM3/scripts/train_exemplar_prompt.py。旧的 MedicalSAM3/train_ext.py 仍保留为旧 baseline / wrapper 路线，不是现在这条主训练链。
 
-## Architecture
+## 训练前必须先跑 preflight
 
-MedEx-SAM3 由以下模块串联组成：
+本机只建议执行低负载检查；真实 checkpoint preflight、单 fold 短训、5-fold 和 external evaluation 请在 Linux 服务器上执行。服务器命令已写入 MedicalSAM3/outputs/medex_sam3/server_commands.md。
 
-1. SAM3 official image model
-2. LoRA
-3. Medical Adapter
-4. Exemplar Prompt Adapter
-5. Prototype Builder
-6. Agent-curated Memory Bank
-
-主路径位于以下目录：
-
-- MedicalSAM3/sam3_official
-- MedicalSAM3/adapters
-- MedicalSAM3/exemplar
-- MedicalSAM3/agents
-- MedicalSAM3/scripts
-
-## Data Preparation
-
-训练与交叉验证数据：
-
-- Kvasir-SEG
-- CVC-ClinicDB
-
-外部测试集：
-
-- PolypGen
-
-PolypGen 只允许作为 external test set，禁止参与 training、validation、hyperparameter tuning、prototype building、memory update 和 model selection。
-
-## Repro Commands
-
-准备 5-fold 划分：
+本机低负载预检查：
 
 ```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\prepare_5fold_polyp.py --dummy
+.\.venv\Scripts\python.exe -m compileall MedicalSAM3
 ```
-
-训练 LoRA 与医学适配：
 
 ```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\train_lora_medical.py --config MedicalSAM3\configs\medex_sam3_lora.yaml --fold 0 --dummy --enable-vision-lora --enable-mask-decoder-lora --enable-boundary-adapter --enable-msfa-adapter
+.\.venv\Scripts\python.exe MedicalSAM3\scripts\preflight_medex_sam3.py --fold 0 --image-size 128 --precision fp32 --allow-dummy
 ```
+
+真实 SAM3 preflight：
+
+```bash
+python MedicalSAM3/scripts/preflight_medex_sam3.py \
+	--checkpoint /path/to/sam3.pt \
+	--fold 0 \
+	--image-size 512 \
+	--precision fp16 \
+	--require-official-sam3 \
+	--min-lora-modules 1
+```
+
+## Dummy Smoke
+
+准备 dummy split：
+
+```powershell
+.\.venv\Scripts\python.exe MedicalSAM3\scripts\prepare_5fold_polyp.py --data-root MedicalSAM3/data --output-dir MedicalSAM3/outputs/medex_sam3/splits --dummy
+```
+
+运行 dummy smoke：
+
+```powershell
+.\.venv\Scripts\python.exe MedicalSAM3\scripts\train_lora_medical.py --fold 0 --dummy --allow-dummy --epochs 1 --batch-size 1 --image-size 128 --precision fp32 --max-train-steps 2 --max-val-steps 2
+```
+
+## 单 Fold 短训
+
+真实单 fold 短训只建议在服务器上运行：
+
+```bash
+python MedicalSAM3/scripts/train_lora_medical.py \
+	--fold 0 \
+	--checkpoint /path/to/sam3.pt \
+	--epochs 1 \
+	--batch-size 1 \
+	--image-size 512 \
+	--precision fp16 \
+	--require-official-sam3 \
+	--min-lora-modules 1 \
+	--max-train-steps 10 \
+	--max-val-steps 5
+```
+
+## 完整 5-Fold
+
+只有 MedicalSAM3/outputs/medex_sam3/preflight/readiness_checklist.json 中 ready_for_full_training=true 时，才允许进入完整 5-fold。
+
+```bash
+for FOLD in 0 1 2 3 4; do
+	python MedicalSAM3/scripts/train_lora_medical.py \
+		--fold ${FOLD} \
+		--checkpoint /path/to/sam3.pt \
+		--epochs 1 \
+		--batch-size 1 \
+		--image-size 512 \
+		--precision fp16 \
+		--require-official-sam3 \
+		--min-lora-modules 1 \
+		--max-train-steps 10 \
+		--max-val-steps 5
+done
+```
+
+## Exemplar 流程
 
 构建 exemplar bank：
 
-```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\build_exemplar_bank.py --split-file MedicalSAM3\outputs\medex_sam3\splits\fold_0\train_ids.txt --dummy
+```bash
+python MedicalSAM3/scripts/build_exemplar_bank.py \
+	--split-file MedicalSAM3/outputs/medex_sam3/splits/fold_0/train_ids.txt \
+	--output-dir MedicalSAM3/outputs/medex_sam3/exemplar_bank \
+	--checkpoint /path/to/sam3.pt \
+	--image-size 256
 ```
 
-人工审核并更新 memory：
+人工审核后更新 memory：
 
-```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\update_memory_from_review.py --memory-bank-dir MedicalSAM3\outputs\medex_sam3\exemplar_bank --dummy
+```bash
+python MedicalSAM3/scripts/update_memory_from_review.py \
+	--memory-bank MedicalSAM3/outputs/medex_sam3/exemplar_bank/memory_v0.json \
+	--review-csv MedicalSAM3/outputs/medex_sam3/exemplar_bank/review_queue.csv \
+	--output-dir MedicalSAM3/outputs/medex_sam3/exemplar_bank
 ```
 
-训练 exemplar prompt：
+exemplar prompt preflight：
 
-```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\train_exemplar_prompt.py --memory-bank MedicalSAM3\outputs\medex_sam3\exemplar_bank --dummy --enable-negative-suppression --enable-consistency-loss --enable-contrastive-loss
+```bash
+python MedicalSAM3/scripts/train_exemplar_prompt.py \
+	--memory-bank MedicalSAM3/outputs/medex_sam3/exemplar_bank \
+	--checkpoint /path/to/sam3.pt \
+	--split-file MedicalSAM3/outputs/medex_sam3/splits/fold_0/train_ids.txt \
+	--prototype-mode weighted_mean \
+	--preflight-only
 ```
 
-验证：
+exemplar prompt 训练：
 
-```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\validate_medex_sam3.py --mode fold --dummy --memory-bank MedicalSAM3\outputs\medex_sam3\exemplar_bank --prompt-checkpoint MedicalSAM3\outputs\medex_sam3\exemplar_prompt\prompt_adapter.pt
+```bash
+python MedicalSAM3/scripts/train_exemplar_prompt.py \
+	--memory-bank MedicalSAM3/outputs/medex_sam3/exemplar_bank \
+	--checkpoint /path/to/sam3.pt \
+	--split-file MedicalSAM3/outputs/medex_sam3/splits/fold_0/train_ids.txt \
+	--prototype-mode weighted_mean \
+	--top-k-positive 3 \
+	--enable-negative-suppression
 ```
 
-运行消融：
+## PolypGen External Test
 
-```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\run_ablation.py --config MedicalSAM3\configs\medex_sam3_ablation.yaml --dummy
+PolypGen 只能用于 external final evaluation，不能进入 train/val、early stopping、memory bank 或 prototype building。
+
+```bash
+python MedicalSAM3/scripts/validate_medex_sam3.py \
+	--external-test \
+	--split-file MedicalSAM3/outputs/medex_sam3/splits/external_polypgen_ids.txt \
+	--checkpoint /path/to/sam3.pt \
+	--lora-checkpoint MedicalSAM3/outputs/medex_sam3/fold_0/best_lora.pt \
+	--adapter-checkpoint MedicalSAM3/outputs/medex_sam3/fold_0/best_adapter.pt \
+	--prompt-checkpoint MedicalSAM3/outputs/medex_sam3/exemplar_prompt/prompt_adapter.pt \
+	--memory-bank MedicalSAM3/outputs/medex_sam3/exemplar_bank \
+	--output-dir MedicalSAM3/outputs/medex_sam3/eval
 ```
 
-汇总交叉验证与消融：
+## 常见错误
 
-```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\summarize_cv_results.py
-```
+fallback 到 dummy：
 
-## Leakage Guardrails
+- 正式训练默认不允许 fallback。检查 model_build_report.json 和训练 preflight_report.json 中 used_dummy_fallback。
 
-- PolypGen 不参与任何训练或调参。
-- MedicalSAM3/agents/leakage_checker.py 会检查 source_dataset、external_test_ids、fold 泄漏与重复样本。
-- ExemplarMemoryBank 默认拒绝 PolypGen item。
+LoRA replaced modules = 0：
 
-## Ablation Matrix
+- 查看 MedicalSAM3/sam3_lora_targets.json、MedicalSAM3/outputs/medex_sam3/preflight/lora_injection_report.json，以及官方模块扫描结果 MedicalSAM3/sam3_modules.txt。
 
-run_ablation.py 支持以下配置：
+hidden_dim mismatch：
 
-1. SAM3 zero-shot
-2. SAM3 + LoRA
-3. SAM3 + LoRA + MedicalAdapter
-4. SAM3 + LoRA + BoundaryAwareAdapter
-5. SAM3 + positive single exemplar
-6. SAM3 + positive Top-3 prototype
-7. SAM3 + positive Top-5 weighted prototype
-8. SAM3 + positive + negative prototype
-9. SAM3 + positive + negative + boundary prototype
-10. SAM3 + human-verified memory v1
-11. SAM3 + human-verified memory v2
+- exemplar prompt token 最后一维必须等于 SAM3 hidden_dim；优先看 model_build_report.json 的 hidden_dim 字段。
 
-## FAQ
+split 为空：
 
-找不到 SAM3 checkpoint：
+- 先运行 prepare_5fold_polyp.py，检查 split_summary.json、fold_k/train_ids.txt 和 fold_k/val_ids.txt。
 
-- 使用 dummy 模式做烟雾测试。
-- 真实运行时通过 --checkpoint 指向官方 SAM3 image model checkpoint。
-- 当前环境若无法访问 gated repo，会自动 fallback 到 dummy model，仅用于 smoke test。
+PolypGen leakage：
 
-CUDA OOM：
-
-- 将 batch size 降到 1。
-- 使用 fp16 或 bf16。
-- 先只启用 LoRA，不启用额外 adapter。
-
-module name 不匹配：
-
-- 运行 python -m MedicalSAM3.sam3_official.module_inspector --device cpu --dtype fp32。
-- 查看生成的 sam3_modules.txt 和 sam3_lora_targets.json。
+- PolypGen 只能存在于 external_polypgen_ids.txt 和 external final eval；如果进入 train/val 或 memory_v1.json，直接视为阻塞问题。
 
 memory bank 为空：
 
-- 先运行 build_exemplar_bank.py。
-- 再运行 update_memory_from_review.py 完成 human_verified 更新。
+- train_exemplar_prompt.py 只接受 human_verified=True 且正例数量 >= 1 的 memory bank。
 
-human review CSV 格式错误：
+CUDA OOM：
 
-- 重新导出 review_queue.csv。
-- 必填列至少包括 item_id、type、quality_score、notes、accept。
+- 从 batch-size 1、fp16、stage_a LoRA 开始；必要时只启用 LoRA，不启用额外 adapter。
+
+official SAM3 API 变化：
+
+- 重新运行 MedicalSAM3/scripts/preflight_medex_sam3.py 和 module_inspector，确认 `sam3_modules.txt`、`sam3_lora_targets.json`、`tensor_forward_report.json` 是否仍匹配当前安装的 sam3。

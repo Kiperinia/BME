@@ -17,10 +17,10 @@ from PIL import Image
 import torch
 import torch.nn.functional as F
 
-from MedicalSAM3.agents.human_review_queue import export_review_queue
 from MedicalSAM3.agents.leakage_checker import LeakageChecker
 from MedicalSAM3.exemplar.exemplar_encoder import ExemplarEncoder
 from MedicalSAM3.exemplar.memory_bank import ExemplarItem, ExemplarMemoryBank
+from MedicalSAM3.sam3_official.build_model import build_official_sam3_image_model
 from MedicalSAM3.scripts.common import ensure_dir, load_record_tensors, mask_to_box, read_records
 
 
@@ -47,11 +47,91 @@ def _save_crop(path: Path, tensor: torch.Tensor) -> None:
     image.save(path)
 
 
+def _bank_stats(bank: ExemplarMemoryBank) -> dict[str, object]:
+    return {
+        "version": bank.version,
+        "total_items": len(bank.items),
+        "trainable_items": len(bank.trainable_items),
+        "positive_items": len(bank.get_items(type="positive")),
+        "negative_items": len(bank.get_items(type="negative")),
+        "boundary_items": len(bank.get_items(type="boundary")),
+        "human_verified_positive_items": len(bank.get_items(type="positive", human_verified=True)),
+        "has_polypgen_leakage": not bank.check_no_external_leakage(["PolypGen"]),
+    }
+
+
+def _write_review_queue_csv(bank: ExemplarMemoryBank, path: Path) -> Path:
+    header = [
+        "item_id",
+        "image_id",
+        "crop_path",
+        "mask_path",
+        "type",
+        "source_dataset",
+        "accept",
+        "quality_score",
+        "boundary_score",
+        "notes",
+    ]
+    rows = [
+        {
+            "item_id": item.item_id,
+            "image_id": item.image_id,
+            "crop_path": item.crop_path,
+            "mask_path": item.mask_path or "",
+            "type": item.type,
+            "source_dataset": item.source_dataset,
+            "accept": "",
+            "quality_score": "",
+            "boundary_score": "",
+            "notes": item.notes,
+        }
+        for item in bank.items
+    ]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [",".join(header)]
+    for row in rows:
+        lines.append(
+            ",".join(str(row[column]).replace(",", " ") for column in header)
+        )
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
+
+
+def _infer_embed_dim(checkpoint_path: str | None, allow_dummy: bool) -> int:
+    preflight_report = Path("MedicalSAM3/outputs/medex_sam3/preflight/model_build_report.json")
+    if preflight_report.exists():
+        try:
+            payload = json.loads(preflight_report.read_text(encoding="utf-8"))
+            hidden_dim = payload.get("hidden_dim") or payload.get("embed_dim")
+            if hidden_dim is not None:
+                return int(hidden_dim)
+        except Exception:
+            pass
+
+    if checkpoint_path is None and not allow_dummy:
+        return 128
+
+    try:
+        model = build_official_sam3_image_model(
+            checkpoint_path=checkpoint_path,
+            device="cpu",
+            dtype="fp32",
+            compile_model=False,
+            allow_dummy_fallback=allow_dummy,
+        )
+        return int(getattr(model, "hidden_dim", getattr(model, "_medex_hidden_dim", getattr(model, "embed_dim", 128))))
+    except Exception:
+        return 128
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build MedEx-SAM3 candidate exemplar bank.")
     parser.add_argument("--split-file", default="MedicalSAM3/outputs/medex_sam3/splits/fold_0/train_ids.txt")
     parser.add_argument("--output-dir", default="MedicalSAM3/outputs/medex_sam3/exemplar_bank")
+    parser.add_argument("--checkpoint", default=None)
     parser.add_argument("--image-size", type=int, default=128)
+    parser.add_argument("--max-items", type=int, default=None)
     parser.add_argument("--dummy", action="store_true")
     args = parser.parse_args()
 
@@ -60,15 +140,16 @@ def main() -> int:
         records = [{"image_path": "", "mask_path": "", "dataset_name": "dummy", "image_id": f"dummy_{i}"} for i in range(6)]
     if not records:
         raise FileNotFoundError("No train records found for exemplar bank construction.")
+    if args.max_items is not None:
+        records = records[: max(args.max_items, 0)]
 
     output_dir = ensure_dir(args.output_dir)
     crops_dir = ensure_dir(output_dir / "crops")
-    masks_dir = ensure_dir(output_dir / "crop_masks")
+    masks_dir = ensure_dir(output_dir / "masks")
     embeddings_dir = ensure_dir(output_dir / "embeddings")
-    encoder = ExemplarEncoder(embed_dim=128)
+    encoder = ExemplarEncoder(embed_dim=_infer_embed_dim(args.checkpoint, allow_dummy=args.dummy))
     bank = ExemplarMemoryBank()
     checker = LeakageChecker()
-    review_queue = []
 
     for index, record in enumerate(records):
         if "polypgen" in record.get("dataset_name", "").lower():
@@ -120,13 +201,20 @@ def main() -> int:
                 bank.reject_item(item.item_id, reason or "leakage")
                 continue
             bank.add_item(item)
-            review_queue.append(asdict(item))
 
-    bank_path = bank.save(output_dir)
-    (output_dir / "candidate_bank.json").write_text(json.dumps([asdict(item) for item in bank.items], indent=2), encoding="utf-8")
-    (output_dir / "review_queue.json").write_text(json.dumps(review_queue, indent=2), encoding="utf-8")
-    export_review_queue(bank, output_dir / "review_queue.csv")
-    print(json.dumps({"memory_bank": str(bank_path), "candidate_count": len(bank.items)}, indent=2))
+    bank_path = bank.save(output_dir / "memory_v0.json")
+    review_queue_path = _write_review_queue_csv(bank, output_dir / "review_queue.csv")
+    (output_dir / "bank_stats.json").write_text(json.dumps(_bank_stats(bank), indent=2), encoding="utf-8")
+    print(
+        json.dumps(
+            {
+                "memory_bank": str(bank_path),
+                "review_queue": str(review_queue_path),
+                "candidate_count": len(bank.items),
+            },
+            indent=2,
+        )
+    )
     return 0
 
 

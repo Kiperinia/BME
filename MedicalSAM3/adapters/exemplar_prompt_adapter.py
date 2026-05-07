@@ -16,6 +16,16 @@ def _reduce_proto(proto: torch.Tensor) -> torch.Tensor:
     raise ValueError("Prototype tensor must be [B, C] or [B, K, C]")
 
 
+def _project_tokens(proto: torch.Tensor, projector: "_TokenProjector") -> torch.Tensor:
+    if proto.dim() == 2:
+        return projector(proto)
+    if proto.dim() == 3:
+        batch_size, groups, dim = proto.shape
+        flat_tokens = projector(proto.reshape(batch_size * groups, dim))
+        return flat_tokens.reshape(batch_size, groups * projector.num_tokens, dim)
+    raise ValueError("Prototype tensor must be [B, C] or [B, K, C]")
+
+
 class _TokenProjector(nn.Module):
     def __init__(self, dim: int, num_tokens: int) -> None:
         super().__init__()
@@ -71,9 +81,9 @@ class ExemplarPromptAdapter(nn.Module):
                 torch.cat([query_summary, positive_summary, negative_summary, boundary_summary], dim=-1)
             )
         )
-        positive_tokens = self.positive_proj(positive_summary) * gates[:, 0:1, None]
-        negative_tokens = self.negative_proj(negative_summary) * gates[:, 1:2, None]
-        boundary_tokens = self.boundary_proj(boundary_summary) * gates[:, 2:3, None]
+        positive_tokens = _project_tokens(positive_proto, self.positive_proj) * gates[:, 0:1, None]
+        negative_tokens = _project_tokens(negative_proto, self.negative_proj) * gates[:, 1:2, None] if negative_proto is not None else self.negative_proj(negative_summary) * gates[:, 1:2, None]
+        boundary_tokens = _project_tokens(boundary_proto, self.boundary_proj) * gates[:, 2:3, None] if boundary_proto is not None else self.boundary_proj(boundary_summary) * gates[:, 2:3, None]
         suppression_gate = gates[:, 3:4]
 
         prompt_tokens = torch.cat([positive_tokens, boundary_tokens], dim=1)

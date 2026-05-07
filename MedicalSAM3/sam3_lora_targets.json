@@ -1,0 +1,2506 @@
+[
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.0.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 0,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.0.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 0,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.0.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 0,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.0.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 0,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.1.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 1,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.1.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 1,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.1.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 1,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.1.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 1,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.2.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 2,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.2.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 2,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.2.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 2,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.2.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 2,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.3.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 3,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.3.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 3,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.3.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 3,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.3.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 3,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.4.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 4,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.4.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 4,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.4.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 4,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.4.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 4,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.5.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 5,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.5.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 5,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.5.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 5,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.5.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 5,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.6.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 6,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.6.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 6,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.6.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 6,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.6.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 6,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.7.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 7,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.7.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 7,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.7.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 7,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.7.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 7,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.8.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 8,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.8.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 8,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.8.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 8,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.8.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 8,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.9.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 9,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.9.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 9,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.9.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 9,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.9.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 9,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.10.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 10,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.10.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 10,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.10.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 10,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.10.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 10,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.11.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 11,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.11.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 11,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.11.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 11,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.11.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 11,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.12.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 12,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.12.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 12,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.12.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 12,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.12.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 12,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.13.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 13,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.13.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 13,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.13.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 13,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.13.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 13,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.14.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 14,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.14.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 14,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.14.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 14,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.14.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 14,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.15.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 15,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.15.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 15,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.15.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 15,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.15.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 15,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.16.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 16,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.16.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 16,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.16.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 16,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.16.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 16,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.17.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 17,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.17.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 17,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.17.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 17,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.17.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 17,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.18.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 18,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.18.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 18,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.18.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 18,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.18.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 18,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.19.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 19,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.19.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 19,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.19.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 19,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.19.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 19,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.20.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 20,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.20.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 20,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.20.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 20,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.20.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 20,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.21.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 21,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.21.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 21,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.21.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 21,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.21.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 21,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.22.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 22,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.22.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 22,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.22.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 22,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.22.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 22,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.23.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 23,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.23.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 23,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.23.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 23,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.23.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 23,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.24.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 24,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.24.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 24,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.24.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 24,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.24.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 24,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.25.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 25,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.25.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 25,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.25.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 25,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.25.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 25,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.26.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 26,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.26.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 26,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.26.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 26,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.26.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 26,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.27.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 27,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.27.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 27,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.27.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 27,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.27.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 27,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.28.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 28,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.28.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 28,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.28.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 28,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.28.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 28,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.29.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 29,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.29.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 29,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.29.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 29,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.29.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 29,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.30.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 30,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.30.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 30,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.30.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 30,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.30.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 30,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.31.attn.qkv",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 31,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.31.attn.proj",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 31,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_a"
+    ]
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.31.mlp.fc1",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 31,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.vision_backbone.trunk.blocks.31.mlp.fc2",
+    "scope": "vision_encoder",
+    "scope_guess": "vision_encoder",
+    "block_index": 31,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.0.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 0,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.0.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 0,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.0.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 0,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.1.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 1,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.1.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 1,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.1.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 1,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.2.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 2,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.2.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 2,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.2.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 2,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.3.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 3,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.3.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 3,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.3.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 3,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.4.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 4,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.4.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 4,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.4.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 4,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.5.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 5,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.5.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 5,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.5.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 5,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.6.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 6,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.6.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 6,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.6.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 6,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.7.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 7,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.7.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 7,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.7.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 7,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.8.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 8,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.8.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 8,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.8.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 8,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.9.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 9,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.9.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 9,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.9.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 9,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.10.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 10,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.10.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 10,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.10.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 10,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.11.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 11,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.11.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 11,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.11.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 11,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.12.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 12,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.12.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 12,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.12.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 12,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.13.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 13,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.13.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 13,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.13.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 13,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.14.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 14,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.14.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 14,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.14.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 14,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.15.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 15,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.15.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 15,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.15.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 15,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.16.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 16,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.16.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 16,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.16.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 16,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.17.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 17,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.17.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 17,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.17.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 17,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.18.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 18,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.18.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 18,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.18.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 18,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.19.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 19,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.19.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 19,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.19.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 19,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.20.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 20,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.20.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 20,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.20.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 20,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.21.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 21,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.21.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 21,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.21.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 21,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.22.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 22,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.22.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 22,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.22.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 22,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.23.attn.out_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 23,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.23.mlp.c_fc",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 23,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.encoder.transformer.resblocks.23.mlp.c_proj",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": 23,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "backbone.language_backbone.resizer",
+    "scope": "text_encoder",
+    "scope_guess": "text_encoder",
+    "block_index": null,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "geometry_encoder.points_direct_project",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "prompt_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.points_pool_project",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "prompt_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.points_pos_enc_project",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.boxes_direct_project",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "prompt_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.boxes_pos_enc_project",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.final_proj",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "prompt_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.encode.0.self_attn.out_proj",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.encode.0.cross_attn_image.out_proj",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.encode.0.linear1",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "geometry_encoder.encode.0.linear2",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "geometry_encoder.encode.1.self_attn.out_proj",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.encode.1.cross_attn_image.out_proj",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.encode.1.linear1",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "geometry_encoder.encode.1.linear2",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "geometry_encoder.encode.2.self_attn.out_proj",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.encode.2.cross_attn_image.out_proj",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "geometry_encoder.encode.2.linear1",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "geometry_encoder.encode.2.linear2",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "mlp",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.0.self_attn.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 0,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.0.cross_attn_image.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 0,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.0.linear1",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 0,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.0.linear2",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 0,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.1.self_attn.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 1,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.1.cross_attn_image.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 1,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.1.linear1",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 1,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.1.linear2",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 1,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.2.self_attn.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 2,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.2.cross_attn_image.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 2,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.2.linear1",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 2,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.2.linear2",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 2,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.3.self_attn.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 3,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.3.cross_attn_image.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 3,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.3.linear1",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 3,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.3.linear2",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 3,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.4.self_attn.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 4,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.4.cross_attn_image.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 4,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.4.linear1",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 4,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.4.linear2",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 4,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.5.self_attn.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 5,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.5.cross_attn_image.out_proj",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 5,
+    "candidate_kind": "attention_projection",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.encoder.layers.5.linear1",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 5,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.encoder.layers.5.linear2",
+    "scope": "detector_encoder",
+    "scope_guess": "detector_encoder",
+    "block_index": 5,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.0.cross_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.0.ca_text.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.0.self_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.0.linear1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.0.linear2",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.1.cross_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.1.ca_text.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.1.self_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.1.linear1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.1.linear2",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.2.cross_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 2,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.2.ca_text.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 2,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.2.self_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 2,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.2.linear1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 2,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.2.linear2",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 2,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.3.cross_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 3,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.3.ca_text.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 3,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.3.self_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 3,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.3.linear1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 3,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.3.linear2",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 3,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.4.cross_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 4,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.4.ca_text.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 4,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.4.self_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 4,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.4.linear1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 4,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.4.linear2",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 4,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.5.cross_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 5,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.5.ca_text.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 5,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.5.self_attn.out_proj",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 5,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.5.linear1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 5,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.layers.5.linear2",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 5,
+    "candidate_kind": "mlp",
+    "default_stages": [
+      "stage_c"
+    ]
+  },
+  {
+    "name": "transformer.decoder.bbox_embed.layers.0",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.bbox_embed.layers.1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.bbox_embed.layers.2",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 2,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.boxRPB_embed_x.layers.0",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.boxRPB_embed_x.layers.1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.boxRPB_embed_y.layers.0",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.boxRPB_embed_y.layers.1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.presence_token_head.layers.0",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.presence_token_head.layers.1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.presence_token_head.layers.2",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 2,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.ref_point_head.layers.0",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 0,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "transformer.decoder.ref_point_head.layers.1",
+    "scope": "detector_decoder",
+    "scope_guess": "detector_decoder",
+    "block_index": 1,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "segmentation_head.mask_predictor.mask_embed.layers.0",
+    "scope": "mask_decoder",
+    "scope_guess": "mask_decoder",
+    "block_index": 0,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "segmentation_head.mask_predictor.mask_embed.layers.1",
+    "scope": "mask_decoder",
+    "scope_guess": "mask_decoder",
+    "block_index": 1,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "segmentation_head.mask_predictor.mask_embed.layers.2",
+    "scope": "mask_decoder",
+    "scope_guess": "mask_decoder",
+    "block_index": 2,
+    "candidate_kind": "linear",
+    "default_stages": []
+  },
+  {
+    "name": "segmentation_head.cross_attend_prompt.out_proj",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "attention_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "dot_prod_scoring.prompt_mlp.layers.0",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": 0,
+    "candidate_kind": "prompt_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "dot_prod_scoring.prompt_mlp.layers.1",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": 1,
+    "candidate_kind": "prompt_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "dot_prod_scoring.prompt_proj",
+    "scope": "prompt_encoder",
+    "scope_guess": "prompt_encoder",
+    "block_index": null,
+    "candidate_kind": "prompt_projection",
+    "default_stages": [
+      "stage_b"
+    ]
+  },
+  {
+    "name": "dot_prod_scoring.hs_proj",
+    "scope": "unknown",
+    "scope_guess": "unknown",
+    "block_index": null,
+    "candidate_kind": "linear",
+    "default_stages": []
+  }
+]
