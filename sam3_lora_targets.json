@@ -1,0 +1,370 @@
+[
+  {
+    "name": "image_encoder.blocks.0.self_attn.q_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.0.self_attn.k_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.0.self_attn.v_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.0.self_attn.out_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.0.mlp.fc1",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.0.mlp.fc2",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.1.self_attn.q_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.1.self_attn.k_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.1.self_attn.v_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.1.self_attn.out_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.1.mlp.fc1",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.1.mlp.fc2",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.2.self_attn.q_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.2.self_attn.k_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.2.self_attn.v_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.2.self_attn.out_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.2.mlp.fc1",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.2.mlp.fc2",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.3.self_attn.q_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.3.self_attn.k_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.3.self_attn.v_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.3.self_attn.out_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.3.mlp.fc1",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.3.mlp.fc2",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.4.self_attn.q_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.4.self_attn.k_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.4.self_attn.v_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.4.self_attn.out_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.4.mlp.fc1",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.4.mlp.fc2",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.5.self_attn.q_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.5.self_attn.k_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.5.self_attn.v_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.5.self_attn.out_proj",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.5.mlp.fc1",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "image_encoder.blocks.5.mlp.fc2",
+    "scope": "vision_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.0.self_attn.q_proj",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.0.self_attn.k_proj",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.0.self_attn.v_proj",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.0.self_attn.out_proj",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.0.mlp.fc1",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.0.mlp.fc2",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.1.self_attn.q_proj",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.1.self_attn.k_proj",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.1.self_attn.v_proj",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.1.self_attn.out_proj",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.1.mlp.fc1",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_encoder.blocks.1.mlp.fc2",
+    "scope": "detector_encoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.self_attn.q_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.self_attn.k_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.self_attn.v_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.self_attn.out_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.cross_attn.q_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.cross_attn.k_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.cross_attn.v_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.cross_attn.out_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.mlp.fc1",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.0.mlp.fc2",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.self_attn.q_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.self_attn.k_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.self_attn.v_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.self_attn.out_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.cross_attn.q_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.cross_attn.k_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.cross_attn.v_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.cross_attn.out_proj",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.mlp.fc1",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "detector_decoder.blocks.1.mlp.fc2",
+    "scope": "detector_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.self_attn.q_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.self_attn.k_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.self_attn.v_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.self_attn.out_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.cross_attn.q_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.cross_attn.k_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.cross_attn.v_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.cross_attn.out_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.mlp.fc1",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.0.mlp.fc2",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.self_attn.q_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.self_attn.k_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.self_attn.v_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.self_attn.out_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.cross_attn.q_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.cross_attn.k_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.cross_attn.v_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.cross_attn.out_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.mlp.fc1",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.transformer.blocks.1.mlp.fc2",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.q_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.k_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.v_proj",
+    "scope": "mask_decoder"
+  },
+  {
+    "name": "mask_decoder.out_proj",
+    "scope": "mask_decoder"
+  }
+]

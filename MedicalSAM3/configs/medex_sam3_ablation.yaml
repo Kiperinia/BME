@@ -1,0 +1,13 @@
+ablation_names:
+  - SAM3 zero-shot
+  - SAM3 + LoRA
+  - SAM3 + LoRA + MedicalAdapter
+  - SAM3 + LoRA + BoundaryAwareAdapter
+  - SAM3 + positive single exemplar
+  - SAM3 + positive Top-3 prototype
+  - SAM3 + positive Top-5 weighted prototype
+  - SAM3 + positive + negative prototype
+  - SAM3 + positive + negative + boundary prototype
+  - SAM3 + human-verified memory v1
+  - SAM3 + human-verified memory v2
+dummy: true

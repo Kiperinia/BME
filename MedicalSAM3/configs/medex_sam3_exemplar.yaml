@@ -1,0 +1,14 @@
+seed: 42
+image_size: 128
+batch_size: 1
+epochs: 1
+lr: 0.0001
+weight_decay: 0.0001
+precision: fp32
+prototype_mode: weighted_mean
+top_k_positive: 3
+top_k_negative: 1
+top_k_boundary: 1
+enable_negative_suppression: true
+enable_consistency_loss: true
+enable_contrastive_loss: true

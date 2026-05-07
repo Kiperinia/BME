@@ -1,0 +1,10 @@
+seed: 42
+image_size: 128
+batch_size: 2
+epochs: 1
+lr: 0.0001
+weight_decay: 0.0001
+precision: fp32
+split_dir: MedicalSAM3/outputs/medex_sam3/splits
+output_dir: MedicalSAM3/outputs/medex_sam3
+dummy: true
