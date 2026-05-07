@@ -1,3 +1,8 @@
+"""Adaptive Prompt Generator 扩展模块。
+
+从图像特征中预测候选框和点提示，降低模型对外部 prompt 的依赖。
+"""
+
 from typing import Dict, Optional
 
 import torch
@@ -35,6 +40,8 @@ class AdaptivePromptGenerator(nn.Module):
     def forward(self, features: torch.Tensor,
                 gt_bbox: Optional[torch.Tensor] = None
                 ) -> Dict[str, torch.Tensor]:
+        """从特征图中预测 bbox、关键点和可选监督损失。"""
+
         B, C, H, W = features.shape
         rpn_feat = self.rpn_conv(features)
 

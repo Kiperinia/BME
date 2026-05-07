@@ -1,3 +1,8 @@
+"""Multi-Scale Feature Adapter 扩展模块。
+
+为轻量特征支路提供多尺度上下文聚合和通道重标定能力。
+"""
+
 import torch
 import torch.nn as nn
 
@@ -47,6 +52,8 @@ class MultiScaleFeatureAdapter(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """融合多尺度分支特征，并通过残差形式返回增强结果。"""
+
         residual = x
         branch_outs = [branch(x) for branch in self.branches]
 

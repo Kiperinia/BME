@@ -1,3 +1,8 @@
+"""Boundary Refinement Head 扩展模块。
+
+负责根据粗分割结果、图像上下文和形状先验进行边界细化，并在训练时生成辅助监督。
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -114,6 +119,8 @@ class BoundaryRefinementHead(nn.Module):
         self.boundary_dilation = 5
 
     def _get_boundary_mask(self, coarse_logits: torch.Tensor) -> torch.Tensor:
+        """从粗分割 logits 中提取待精修的边界关注区域。"""
+
         prob = coarse_logits.sigmoid()
         gx = F.conv2d(prob, self.sobel_x, padding=1)
         gy = F.conv2d(prob, self.sobel_y, padding=1)
@@ -143,6 +150,8 @@ class BoundaryRefinementHead(nn.Module):
         gt_mask: torch.Tensor | None = None,
         return_aux: bool = False,
     ) -> torch.Tensor | dict[str, torch.Tensor]:
+        """执行边界精修，并按需返回中间门控与训练目标。"""
+
         coarse_logits = _to_logits(coarse_mask.float())
 
         if image.shape[-2:] != coarse_logits.shape[-2:]:

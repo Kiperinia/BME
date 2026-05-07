@@ -1,3 +1,8 @@
+"""MedicalSAM3 基础模型验证脚本。
+
+用于在 KvasirCVC 或 PolypGen external test 数据集上评估基础 MedSAM3，并生成简要指标汇总。
+"""
+
 import argparse
 import json
 import time
@@ -11,11 +16,13 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from models.medsam3_base import build_medsam3
-from utils.dataset import BUSIDataset, KvasirSEGDataset
+from utils.dataset import create_dataset
 from utils.metrics import compute_all_metrics
 
 
 class ResizeOnlyTransform:
+    """验证阶段使用的最小 resize 变换。"""
+
     def __init__(self, image_size: int):
         self.image_size = image_size
 
@@ -38,16 +45,18 @@ class ResizeOnlyTransform:
 
 def parse_args() -> argparse.Namespace:
     script_dir = Path(__file__).resolve().parent
-    return argparse.ArgumentParser(description="Validate MedSAM3 on Kvasir-SEG or BUSI").parse_args()
+    return argparse.ArgumentParser(description="Validate MedSAM3 on supported segmentation datasets").parse_args()
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """构建基础验证脚本的命令行参数。"""
+
     script_dir = Path(__file__).resolve().parent
-    parser = argparse.ArgumentParser(description="Validate MedSAM3 on Kvasir-SEG or BUSI")
+    parser = argparse.ArgumentParser(description="Validate MedSAM3 on supported segmentation datasets")
     parser.add_argument(
         "--dataset",
-        default="kvasir",
-        choices=["kvasir", "busi"],
+        default="kvasircvc",
+        choices=["kvasircvc", "polypgen"],
         help="Dataset name.",
     )
     parser.add_argument(
@@ -109,6 +118,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def squeeze_mask_dims(mask: torch.Tensor) -> torch.Tensor:
+    """将 mask 统一整理为 (B, 1, H, W) 形状。"""
+
     while mask.dim() > 4:
         mask = mask.squeeze(1)
     if mask.dim() == 3:
@@ -119,14 +130,11 @@ def squeeze_mask_dims(mask: torch.Tensor) -> torch.Tensor:
 
 
 def build_dataset(args: argparse.Namespace):
+    """根据参数构建对应的数据集实例。"""
+
     transform = ResizeOnlyTransform(args.image_size)
-    if args.dataset == "kvasir":
-        return KvasirSEGDataset(
-            args.data_root,
-            transform=transform,
-            image_size=args.image_size,
-        )
-    return BUSIDataset(
+    return create_dataset(
+        args.dataset,
         args.data_root,
         transform=transform,
         image_size=args.image_size,
@@ -134,6 +142,8 @@ def build_dataset(args: argparse.Namespace):
 
 
 def save_prediction(save_dir: Path, image_path: str, pred_mask: torch.Tensor) -> None:
+    """将预测 mask 保存为单通道 PNG。"""
+
     save_dir.mkdir(parents=True, exist_ok=True)
     pred_np = pred_mask.detach().cpu().squeeze().numpy().astype(np.uint8) * 255
     out_name = Path(image_path).stem + ".png"
@@ -141,6 +151,8 @@ def save_prediction(save_dir: Path, image_path: str, pred_mask: torch.Tensor) ->
 
 
 def run_validation(args: argparse.Namespace) -> Dict[str, float]:
+    """执行基础模型验证并返回聚合后的指标摘要。"""
+
     dataset = build_dataset(args)
     if len(dataset) == 0:
         raise RuntimeError(f"Dataset {args.dataset} is empty under {args.data_root}")
@@ -229,6 +241,8 @@ def run_validation(args: argparse.Namespace) -> Dict[str, float]:
 
 
 def main() -> int:
+    """验证入口：运行验证并落盘摘要 JSON。"""
+
     parser = build_parser()
     args = parser.parse_args()
 

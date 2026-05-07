@@ -1,6 +1,7 @@
 """
-数据集加载器
-支持 Kvasir-SEG 和 BUSI 数据集的加载，以及通用医学分割数据集接口。
+数据集加载器。
+
+当前仅保留 KvasirCVC 与 PolypGen external test 的适配，以及通用医学分割数据集接口。
 """
 
 import os
@@ -9,13 +10,18 @@ import numpy as np
 import cv2
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-from typing import Optional, Tuple, List, Dict, Any
+from typing import Optional, Tuple, List, Dict, Any, Union
 
 from utils.transforms import (
     get_train_transforms, get_val_transforms,
     mask_to_bbox, jitter_bbox,
 )
 from models.medsam3_base import DATASET_TEXT_PROMPTS
+
+
+IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".bmp")
+ImageSource = Union[str, Tuple[str, ...]]
+POLYPGEN_EXTERNAL_PREFIXES = ("C1", "C2", "C3", "C4", "C5", "C6")
 
 
 class MedicalSegDataset(Dataset):
@@ -63,7 +69,7 @@ class MedicalSegDataset(Dataset):
             with open(bbox_json, "r") as f:
                 self.bboxes = json.load(f)
 
-    def _collect_samples(self) -> List[Tuple[str, str]]:
+    def _collect_samples(self) -> List[Tuple[ImageSource, str]]:
         """收集匹配的 image-mask 文件对"""
         img_files = sorted(os.listdir(self.image_dir))
         mask_files = set(os.listdir(self.mask_dir))
@@ -94,15 +100,39 @@ class MedicalSegDataset(Dataset):
 
         return samples
 
+    def _load_image(self, img_source: ImageSource) -> np.ndarray:
+        """读取单张图像或多通道拆分图像。"""
+        if isinstance(img_source, (tuple, list)):
+            channels: List[np.ndarray] = []
+            for channel_path in img_source:
+                channel = cv2.imread(channel_path, cv2.IMREAD_GRAYSCALE)
+                if channel is None:
+                    raise FileNotFoundError(f"无法读取图像: {channel_path}")
+                channels.append(channel)
+            return np.stack(channels, axis=-1)
+
+        image = cv2.imread(img_source)
+        if image is None:
+            raise FileNotFoundError(f"无法读取图像: {img_source}")
+        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    def _get_primary_image_path(self, img_source: ImageSource) -> str:
+        if isinstance(img_source, (tuple, list)):
+            return img_source[0]
+        return img_source
+
+    def _get_sample_stem(self, img_source: ImageSource) -> str:
+        primary_path = self._get_primary_image_path(img_source)
+        return os.path.splitext(os.path.basename(primary_path))[0]
+
     def __len__(self) -> int:
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        img_path, mask_path = self.samples[idx]
+        img_source, mask_path = self.samples[idx]
 
         # 读取图像 (BGR -> RGB)
-        image = cv2.imread(img_path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = self._load_image(img_source)
         orig_h, orig_w = image.shape[:2]
 
         # 读取 mask (灰度, 二值化)
@@ -121,7 +151,7 @@ class MedicalSegDataset(Dataset):
         mask = mask.astype(np.float32)
 
         # 生成 prompt (bbox)
-        bbox = self._get_bbox(img_path, mask, orig_h, orig_w)
+        bbox = self._get_bbox(img_source, mask, orig_h, orig_w)
 
         # numpy -> tensor
         if image.ndim == 3 and image.shape[-1] == 3:
@@ -134,14 +164,14 @@ class MedicalSegDataset(Dataset):
             "image": image_tensor,
             "mask": mask_tensor,
             "bbox": bbox_tensor,
-            "image_path": img_path,
+            "image_path": self._get_primary_image_path(img_source),
             "text_prompt": self.text_prompt,
         }
 
-    def _get_bbox(self, img_path: str, mask: np.ndarray,
+    def _get_bbox(self, img_source: ImageSource, mask: np.ndarray,
                   orig_h: int, orig_w: int) -> np.ndarray:
         """获取 bounding box prompt"""
-        stem = os.path.splitext(os.path.basename(img_path))[0]
+        stem = self._get_sample_stem(img_source)
 
         # 优先使用预计算的 bbox
         if stem in self.bboxes:
@@ -170,53 +200,134 @@ class MedicalSegDataset(Dataset):
         return bbox
 
 
-class KvasirSEGDataset(MedicalSegDataset):
-    """息肉分割数据集 Kvasir-SEG"""
+class NnUNetRawRGBDataset(MedicalSegDataset):
+    """适配 nnUNet raw 三通道图像目录。"""
 
-    def __init__(self, data_root: str, transform: Any = None,
-                 image_size: int = 1024, **kwargs):
-        kvasir_dir = os.path.join(data_root, "Kvasir-SEG")
-        bbox_json = os.path.join(kvasir_dir, "kavsir_bboxes.json")
+    def __init__(
+        self,
+        image_dir: str,
+        mask_dir: str,
+        transform: Any = None,
+        image_size: int = 1024,
+        accepted_prefixes: Optional[Tuple[str, ...]] = None,
+        **kwargs,
+    ):
+        self.accepted_prefixes = accepted_prefixes
         super().__init__(
-            image_dir=os.path.join(kvasir_dir, "images"),
-            mask_dir=os.path.join(kvasir_dir, "masks"),
-            transform=transform,
-            image_size=image_size,
-            bbox_json=bbox_json if os.path.exists(bbox_json) else None,
-            text_prompt=DATASET_TEXT_PROMPTS.get("kvasir", "polyp"),
-            **kwargs,
-        )
-
-
-class BUSIDataset(MedicalSegDataset):
-    """BUSI 乳腺超声数据集"""
-
-    def __init__(self, data_root: str, transform: Any = None,
-                 image_size: int = 1024, include_normal: bool = False, **kwargs):
-        busi_dir = os.path.join(data_root, "BUSI")
-        img_dir = os.path.join(busi_dir, "images")
-        mask_dir = os.path.join(busi_dir, "masks")
-
-        # 如果是原始目录结构 (benign/ malignant/ normal/)
-        if not os.path.isdir(img_dir):
-            img_dir = busi_dir
-            mask_dir = busi_dir
-
-        super().__init__(
-            image_dir=img_dir,
+            image_dir=image_dir,
             mask_dir=mask_dir,
             transform=transform,
             image_size=image_size,
-            text_prompt=DATASET_TEXT_PROMPTS.get("busi", "breast lesion"),
             **kwargs,
         )
 
-        # 按需过滤 normal 类别（normal 类没有病灶 mask）
-        if not include_normal:
-            self.samples = [
-                (img, msk) for img, msk in self.samples
-                if "normal" not in os.path.basename(img).lower()
-            ]
+    def _collect_samples(self) -> List[Tuple[ImageSource, str]]:
+        image_files = {
+            name for name in os.listdir(self.image_dir)
+            if os.path.isfile(os.path.join(self.image_dir, name))
+        }
+        mask_files = [
+            name for name in sorted(os.listdir(self.mask_dir))
+            if os.path.isfile(os.path.join(self.mask_dir, name))
+            and os.path.splitext(name)[1].lower() in IMAGE_EXTENSIONS
+        ]
+
+        samples: List[Tuple[ImageSource, str]] = []
+        for mask_name in mask_files:
+            stem, mask_ext = os.path.splitext(mask_name)
+            if self.accepted_prefixes and not stem.startswith(self.accepted_prefixes):
+                continue
+
+            channel_paths: List[str] = []
+            for channel_idx in range(3):
+                channel_path = None
+                candidate_exts = (mask_ext,) + tuple(
+                    ext for ext in IMAGE_EXTENSIONS if ext != mask_ext
+                )
+                for ext in candidate_exts:
+                    img_name = f"{stem}_{channel_idx:04d}{ext}"
+                    if img_name in image_files:
+                        channel_path = os.path.join(self.image_dir, img_name)
+                        break
+                if channel_path is None:
+                    channel_paths = []
+                    break
+                channel_paths.append(channel_path)
+
+            if channel_paths:
+                samples.append((tuple(channel_paths), os.path.join(self.mask_dir, mask_name)))
+
+        return samples
+
+    def _get_sample_stem(self, img_source: ImageSource) -> str:
+        stem = super()._get_sample_stem(img_source)
+        if stem.endswith("_0000"):
+            return stem[:-5]
+        return stem
+
+
+class KvasirCVCDataset(NnUNetRawRGBDataset):
+    """KvasirCVC nnUNet raw 数据集。"""
+
+    def __init__(self, data_root: str, transform: Any = None,
+                 image_size: int = 1024, **kwargs):
+        dataset_dir = os.path.join(
+            data_root, "KvasirCVC-nnunet_raw", "Dataset504_KvasirCVC"
+        )
+        super().__init__(
+            image_dir=os.path.join(dataset_dir, "imagesTr"),
+            mask_dir=os.path.join(dataset_dir, "labelsTr"),
+            transform=transform,
+            image_size=image_size,
+            text_prompt=DATASET_TEXT_PROMPTS.get("kvasircvc", "polyp"),
+            **kwargs,
+        )
+
+
+class PolypGenDataset(NnUNetRawRGBDataset):
+    """PolypGen external test 数据集，保留 C1-C6。"""
+
+    def __init__(self, data_root: str, transform: Any = None,
+                 image_size: int = 1024, **kwargs):
+        dataset_dir = os.path.join(
+            data_root, "PolypGen_external_test", "Dataset502_PolypGen"
+        )
+        super().__init__(
+            image_dir=os.path.join(dataset_dir, "imagesTs"),
+            mask_dir=os.path.join(dataset_dir, "labelsTs"),
+            transform=transform,
+            image_size=image_size,
+            accepted_prefixes=POLYPGEN_EXTERNAL_PREFIXES,
+            text_prompt=DATASET_TEXT_PROMPTS.get("polypgen", "polyp"),
+            **kwargs,
+        )
+
+
+def create_dataset(
+    dataset_name: str,
+    data_root: str,
+    transform: Any = None,
+    image_size: int = 1024,
+    **kwargs,
+):
+    """根据数据集名称创建实例，统一脚本入口与底层适配逻辑。"""
+
+    normalized_name = dataset_name.lower()
+    if normalized_name in {"kvasircvc", "kvasir-cvc", "kvasir_cvc", "dataset504_kvasircvc"}:
+        return KvasirCVCDataset(
+            data_root,
+            transform=transform,
+            image_size=image_size,
+            **kwargs,
+        )
+    if normalized_name in {"polypgen", "polypgen_external_test", "dataset502_polypgen"}:
+        return PolypGenDataset(
+            data_root,
+            transform=transform,
+            image_size=image_size,
+            **kwargs,
+        )
+    raise ValueError(f"不支持的数据集: {dataset_name}")
 
 
 def build_dataloaders(
@@ -235,18 +346,13 @@ def build_dataloaders(
     train_tf = get_train_transforms(image_size)
     val_tf = get_val_transforms(image_size)
 
-    if dataset_name.lower() == "kvasir":
-        full_dataset = KvasirSEGDataset(
-            data_root, transform=None, image_size=image_size,
-            jitter_bbox_ratio=jitter_bbox_ratio,
-        )
-    elif dataset_name.lower() == "busi":
-        full_dataset = BUSIDataset(
-            data_root, transform=None, image_size=image_size,
-            jitter_bbox_ratio=jitter_bbox_ratio,
-        )
-    else:
-        raise ValueError(f"不支持的数据集: {dataset_name}")
+    full_dataset = create_dataset(
+        dataset_name,
+        data_root,
+        transform=None,
+        image_size=image_size,
+        jitter_bbox_ratio=jitter_bbox_ratio,
+    )
 
     # 划分训练/验证集
     n_total = len(full_dataset)

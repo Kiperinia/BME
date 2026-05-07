@@ -1,3 +1,8 @@
+"""PolypGen 零样本评估脚本。
+
+面向选定 PolypGen-SAM3 序列执行 MedicalSAM3 零样本验证，并区分有无 prompt 的样本统计结果。
+"""
+
 import argparse
 import json
 import re
@@ -20,6 +25,8 @@ DEFAULT_SEQUENCES = ["seq8", "seq10", "seq15", "seq16", "seq23"]
 
 
 class PolypGenZeroShotDataset(Dataset):
+    """读取零样本评估所需的图像、mask 与可选 bbox prompt。"""
+
     def __init__(
         self,
         data_dir: str,
@@ -110,6 +117,8 @@ class PolypGenZeroShotDataset(Dataset):
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """构建零样本评估脚本的命令行参数。"""
+
     script_dir = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(
         description="Zero-shot MedicalSAM3 evaluation on selected PolypGen-SAM3 sequences."
@@ -184,6 +193,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def squeeze_mask_dims(mask: torch.Tensor) -> torch.Tensor:
+    """将 mask 统一整理为 (B, 1, H, W) 形状。"""
+
     while mask.dim() > 4:
         mask = mask.squeeze(1)
     if mask.dim() == 3:
@@ -194,12 +205,16 @@ def squeeze_mask_dims(mask: torch.Tensor) -> torch.Tensor:
 
 
 def save_prediction(save_dir: Path, image_path: str, pred_mask: torch.Tensor) -> None:
+    """将预测 mask 保存为 PNG，便于离线检查。"""
+
     save_dir.mkdir(parents=True, exist_ok=True)
     pred_np = pred_mask.detach().cpu().squeeze().numpy().astype(np.uint8) * 255
     cv2.imwrite(str(save_dir / (Path(image_path).stem + ".png")), pred_np)
 
 
 def empty_prediction_like(target: torch.Tensor, device: str) -> Dict[str, torch.Tensor]:
+    """为无 prompt 样本生成与目标形状一致的空预测。"""
+
     pred_mask = torch.zeros_like(target, device=device)
     confidence = torch.zeros((target.shape[0], 1), dtype=torch.float32, device=device)
     return {
@@ -217,6 +232,8 @@ def to_bool_flag(value) -> bool:
 
 
 def update_stats(bucket: Dict[str, float], metrics: Dict[str, float], confidence: float) -> None:
+    """将单样本指标累计到统计桶中。"""
+
     bucket["count"] += 1
     bucket["dice"] += metrics["dice"]
     bucket["iou"] += metrics["iou"]
@@ -226,6 +243,8 @@ def update_stats(bucket: Dict[str, float], metrics: Dict[str, float], confidence
 
 
 def finalize_stats(raw_stats: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str, float]]:
+    """把累计统计转换为最终平均值。"""
+
     final = {}
     for key, values in raw_stats.items():
         count = int(values["count"])
@@ -243,6 +262,8 @@ def finalize_stats(raw_stats: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str
 
 
 def run_evaluation(args: argparse.Namespace) -> Dict[str, object]:
+    """执行 PolypGen 零样本评估并输出整体与分序列摘要。"""
+
     dataset = PolypGenZeroShotDataset(
         data_dir=args.data_dir,
         sequences=args.sequences,
@@ -351,6 +372,8 @@ def run_evaluation(args: argparse.Namespace) -> Dict[str, object]:
 
 
 def main() -> int:
+    """零样本评估入口。"""
+
     args = build_parser().parse_args()
     summary = run_evaluation(args)
 

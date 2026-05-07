@@ -1,3 +1,8 @@
+"""MedicalSAM3 扩展训练脚本。
+
+负责构建数据集、扩展模型与 BRH 监督损失，并在当前高层包装器约束下训练外围扩展模块。
+"""
+
 import argparse
 import json
 import random
@@ -15,7 +20,7 @@ from tqdm import tqdm
 
 from models.medsam3_base import build_medsam3
 from models.medsam3_ext import build_medsam3_extended
-from utils.dataset import BUSIDataset, KvasirSEGDataset
+from utils.dataset import create_dataset
 from utils.losses import BoundaryLoss, DiceLoss
 from utils.metrics import compute_all_metrics
 
@@ -28,6 +33,8 @@ except ImportError:
 
 
 class ResizeOnlyTransform:
+    """在缺少 albumentations 时提供最小化的 resize 变换。"""
+
     def __init__(self, image_size: int):
         self.image_size = image_size
 
@@ -49,6 +56,8 @@ class ResizeOnlyTransform:
 
 
 def build_train_transform(image_size: int):
+    """构建训练阶段增强；不可用时退化为纯 resize。"""
+
     if not HAS_ALBUMENTATIONS:
         return ResizeOnlyTransform(image_size)
 
@@ -84,6 +93,8 @@ def build_train_transform(image_size: int):
 
 
 def squeeze_mask_dims(mask: torch.Tensor) -> torch.Tensor:
+    """将 mask 统一整理为 (B, 1, H, W) 形状。"""
+
     while mask.dim() > 4:
         mask = mask.squeeze(1)
     if mask.dim() == 3:
@@ -94,12 +105,16 @@ def squeeze_mask_dims(mask: torch.Tensor) -> torch.Tensor:
 
 
 def to_probability(mask: torch.Tensor) -> torch.Tensor:
+    """将 logits 或概率图统一转换为概率。"""
+
     if mask.min() < 0 or mask.max() > 1:
         return mask.sigmoid()
     return mask
 
 
 def boundary_band(mask: torch.Tensor) -> torch.Tensor:
+    """通过简单形态学近似构造边界带。"""
+
     kernel = torch.ones(1, 1, 3, 3, device=mask.device, dtype=mask.dtype)
     eroded = (F.conv2d(mask, kernel, padding=1) == 9).float()
     dilated = (F.conv2d(mask, kernel, padding=1) > 0).float()
@@ -107,6 +122,8 @@ def boundary_band(mask: torch.Tensor) -> torch.Tensor:
 
 
 def boundary_f1_per_sample(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    """按样本计算边界 F1，便于训练和验证汇总。"""
+
     pred_b = boundary_band(pred)
     target_b = boundary_band(target)
     tp = (pred_b * target_b).flatten(1).sum(dim=1)
@@ -118,6 +135,8 @@ def boundary_f1_per_sample(pred: torch.Tensor, target: torch.Tensor) -> torch.Te
 
 
 def mask_to_box(mask: torch.Tensor) -> torch.Tensor:
+    """从单个二值 mask 提取 xyxy 边界框；空 mask 返回占位框。"""
+
     if mask.dim() == 3:
         mask = mask.squeeze(0)
     positive = mask > 0.5
@@ -132,11 +151,15 @@ def mask_to_box(mask: torch.Tensor) -> torch.Tensor:
 
 
 def masks_to_boxes(masks: torch.Tensor) -> torch.Tensor:
+    """批量从 mask 张量推导边界框。"""
+
     masks = squeeze_mask_dims(masks)
     return torch.stack([mask_to_box(mask) for mask in masks], dim=0)
 
 
 class TransformSubset(Dataset):
+    """为拆分后的子集补充增强、张量化和 bbox 重算。"""
+
     def __init__(self, subset: Subset, transform):
         self.subset = subset
         self.transform = transform
@@ -182,6 +205,8 @@ class TransformSubset(Dataset):
 
 
 class DummyBBoxBaseModel(nn.Module):
+    """烟雾测试占位骨干，直接把 bbox 区域映射成粗分割结果。"""
+
     def forward(
         self,
         images: torch.Tensor,
@@ -214,6 +239,8 @@ class DummyBBoxBaseModel(nn.Module):
 
 
 class BRHTrainingLoss(nn.Module):
+    """组合分割主损失与 BRH 辅助监督的训练损失。"""
+
     def __init__(
         self,
         seg_bce_weight: float = 1.0,
@@ -298,9 +325,16 @@ class BRHTrainingLoss(nn.Module):
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """定义扩展训练脚本的命令行参数。"""
+
     script_dir = Path(__file__).resolve().parent
-    parser = argparse.ArgumentParser(description="Train MedSAM3Extended with BRH supervision")
-    parser.add_argument("--dataset", default="kvasir", choices=["kvasir", "busi"], help="Dataset name.")
+    parser = argparse.ArgumentParser(description="Train MedSAM3Extended on KvasirCVC or PolypGen external test")
+    parser.add_argument(
+        "--dataset",
+        default="kvasircvc",
+        choices=["kvasircvc", "polypgen"],
+        help="Dataset name.",
+    )
     parser.add_argument("--data-root", default=str(script_dir / "data"), help="Root directory containing dataset folders.")
     parser.add_argument("--checkpoint", default=str(script_dir / "checkpoint" / "MedSAM3.pt"), help="Path to MedSAM3 checkpoint.")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="Torch device.")
@@ -337,6 +371,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def set_seed(seed: int) -> None:
+    """固定 Python、NumPy 和 Torch 的随机种子。"""
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -345,12 +381,19 @@ def set_seed(seed: int) -> None:
 
 
 def build_raw_dataset(args: argparse.Namespace):
-    if args.dataset == "kvasir":
-        return KvasirSEGDataset(args.data_root, transform=None, image_size=args.image_size)
-    return BUSIDataset(args.data_root, transform=None, image_size=args.image_size)
+    """按数据集名称构建未增强的原始数据集实例。"""
+
+    return create_dataset(
+        args.dataset,
+        args.data_root,
+        transform=None,
+        image_size=args.image_size,
+    )
 
 
 def build_dataloaders(args: argparse.Namespace) -> Tuple[DataLoader, DataLoader]:
+    """划分训练/验证集并返回对应 DataLoader。"""
+
     dataset = build_raw_dataset(args)
     if len(dataset) == 0:
         raise RuntimeError(f"Dataset {args.dataset} is empty under {args.data_root}")
@@ -388,6 +431,8 @@ def build_dataloaders(args: argparse.Namespace) -> Tuple[DataLoader, DataLoader]
 
 
 def build_model(args: argparse.Namespace) -> nn.Module:
+    """根据参数构建基础模型和扩展模块封装。"""
+
     if args.base_model == "dummy":
         base_model = DummyBBoxBaseModel().to(args.device)
     else:
@@ -410,6 +455,8 @@ def build_model(args: argparse.Namespace) -> nn.Module:
 
 
 def set_trainable_scope(model: nn.Module, scope: str) -> List[str]:
+    """冻结全模型后，仅打开指定范围内模块的训练开关。"""
+
     for param in model.parameters():
         param.requires_grad = False
 
@@ -470,6 +517,8 @@ def train_one_epoch(
     args: argparse.Namespace,
     epoch: int,
 ) -> Dict[str, float]:
+    """执行单轮训练并返回平均损失日志。"""
+
     activate_training_scope(model, args.train_scope)
 
     log_sums: Dict[str, float] = {}
@@ -515,6 +564,8 @@ def validate(
     criterion: BRHTrainingLoss,
     args: argparse.Namespace,
 ) -> Dict[str, float]:
+    """在验证集上评估扩展模型并汇总损失与指标。"""
+
     model.eval()
 
     total_samples = 0
@@ -631,6 +682,8 @@ def maybe_resume(
 
 
 def main() -> int:
+    """训练入口：解析参数、训练、验证并保存检查点。"""
+
     parser = build_parser()
     args = parser.parse_args()
     if args.disable_brh and args.train_scope == "brh-only":

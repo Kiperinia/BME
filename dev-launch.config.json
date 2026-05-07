@@ -1,0 +1,24 @@
+{
+  "backend": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 8000
+  },
+  "frontend": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 5173,
+    "proxyBackendTarget": "http://127.0.0.1:8000"
+  },
+  "sam3": {
+    "enabled": false,
+    "runImportCheck": false,
+    "device": "cuda",
+    "checkpointPath": "MedicalSAM3/checkpoint/MedSAM3.pt",
+    "loraEnabled": false,
+    "loraPath": "",
+    "warmupEnabled": true,
+    "mockDelayMs": 0,
+    "inferenceTimeoutSeconds": 20
+  }
+}

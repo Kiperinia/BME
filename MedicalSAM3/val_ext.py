@@ -1,3 +1,9 @@
+"""MedicalSAM3 扩展模型验证脚本。
+
+在基础指标之外，还统计 BRH 相关门控信号以及难例分层表现，便于分析扩展模块收益。
+当前仅支持 KvasirCVC 与 PolypGen external test。
+"""
+
 import argparse
 import json
 import time
@@ -13,7 +19,7 @@ from tqdm import tqdm
 
 from models.medsam3_base import build_medsam3
 from models.medsam3_ext import build_medsam3_extended
-from utils.dataset import BUSIDataset, KvasirSEGDataset
+from utils.dataset import create_dataset
 from utils.metrics import (
     compute_all_metrics,
     dice_coefficient,
@@ -24,6 +30,8 @@ from utils.metrics import (
 
 
 class ResizeOnlyTransform:
+    """验证阶段使用的最小 resize 变换。"""
+
     def __init__(self, image_size: int):
         self.image_size = image_size
 
@@ -79,9 +87,16 @@ class DummyBBoxBaseModel(nn.Module):
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """构建扩展验证脚本的命令行参数。"""
+
     script_dir = Path(__file__).resolve().parent
-    parser = argparse.ArgumentParser(description="Validate MedSAM3Extended on Kvasir-SEG or BUSI")
-    parser.add_argument("--dataset", default="kvasir", choices=["kvasir", "busi"], help="Dataset name.")
+    parser = argparse.ArgumentParser(description="Validate MedSAM3Extended on supported segmentation datasets")
+    parser.add_argument(
+        "--dataset",
+        default="kvasircvc",
+        choices=["kvasircvc", "polypgen"],
+        help="Dataset name.",
+    )
     parser.add_argument("--data-root", default=str(script_dir / "data"), help="Root directory containing dataset folders.")
     parser.add_argument("--checkpoint", default=str(script_dir / "checkpoint" / "MedSAM3.pt"), help="Path to MedSAM3 checkpoint.")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="Torch device used for validation.")
@@ -105,6 +120,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def squeeze_mask_dims(mask: torch.Tensor) -> torch.Tensor:
+    """将 mask 统一整理为 (B, 1, H, W) 形状。"""
+
     while mask.dim() > 4:
         mask = mask.squeeze(1)
     if mask.dim() == 3:
@@ -115,12 +132,16 @@ def squeeze_mask_dims(mask: torch.Tensor) -> torch.Tensor:
 
 
 def to_probability(mask: torch.Tensor) -> torch.Tensor:
+    """将 logits 或概率图统一转换为概率。"""
+
     if mask.min() < 0 or mask.max() > 1:
         return mask.sigmoid()
     return mask
 
 
 def boundary_band(mask: torch.Tensor) -> torch.Tensor:
+    """通过形态学近似构造边界带，用于边界 F1 统计。"""
+
     kernel = torch.ones(1, 1, 3, 3, device=mask.device, dtype=mask.dtype)
     eroded = (F.conv2d(mask, kernel, padding=1) == 9).float()
     dilated = (F.conv2d(mask, kernel, padding=1) > 0).float()
@@ -128,6 +149,8 @@ def boundary_band(mask: torch.Tensor) -> torch.Tensor:
 
 
 def boundary_f1_per_sample(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    """按样本计算边界 F1。"""
+
     pred_b = boundary_band(pred)
     target_b = boundary_band(target)
     tp = (pred_b * target_b).flatten(1).sum(dim=1)
@@ -139,6 +162,8 @@ def boundary_f1_per_sample(pred: torch.Tensor, target: torch.Tensor) -> torch.Te
 
 
 def sobel_gradient_magnitude(gray_image: torch.Tensor) -> torch.Tensor:
+    """计算灰度图的 Sobel 梯度幅值。"""
+
     sobel_x = torch.tensor(
         [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
         device=gray_image.device,
@@ -157,6 +182,8 @@ def estimate_sample_tags(
     low_contrast_threshold: float,
     blurry_boundary_threshold: float,
 ) -> Dict[str, bool]:
+    """为单个样本估计低对比、模糊边界和小息肉等标签。"""
+
     area_ratio = target_mask.mean().item()
     small_polyp = area_ratio <= small_polyp_ratio
 
@@ -193,6 +220,8 @@ def estimate_sample_tags(
 
 
 def init_group_totals() -> Dict[str, float]:
+    """初始化分层统计桶。"""
+
     return {
         "dice": 0.0,
         "iou": 0.0,
@@ -204,6 +233,8 @@ def init_group_totals() -> Dict[str, float]:
 
 
 def summarize_group_totals(group_totals: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str, float]]:
+    """将累计值转换为最终的分层平均指标。"""
+
     report: Dict[str, Dict[str, float]] = {}
     for name, totals in group_totals.items():
         count = totals["count"]
@@ -230,13 +261,20 @@ def summarize_group_totals(group_totals: Dict[str, Dict[str, float]]) -> Dict[st
 
 
 def build_dataset(args: argparse.Namespace):
+    """根据参数构建扩展验证数据集。"""
+
     transform = ResizeOnlyTransform(args.image_size)
-    if args.dataset == "kvasir":
-        return KvasirSEGDataset(args.data_root, transform=transform, image_size=args.image_size)
-    return BUSIDataset(args.data_root, transform=transform, image_size=args.image_size)
+    return create_dataset(
+        args.dataset,
+        args.data_root,
+        transform=transform,
+        image_size=args.image_size,
+    )
 
 
 def save_prediction(save_dir: Path, image_path: str, pred_mask: torch.Tensor, threshold: float) -> None:
+    """按阈值二值化后保存预测结果。"""
+
     save_dir.mkdir(parents=True, exist_ok=True)
     pred = pred_mask.detach().cpu()
     if pred.min() < 0 or pred.max() > 1:
@@ -247,6 +285,8 @@ def save_prediction(save_dir: Path, image_path: str, pred_mask: torch.Tensor, th
 
 
 def build_model(args: argparse.Namespace) -> nn.Module:
+    """构建用于评估的扩展模型。"""
+
     if args.base_model == "dummy":
         base_model = DummyBBoxBaseModel().to(args.device)
     else:
@@ -269,6 +309,8 @@ def build_model(args: argparse.Namespace) -> nn.Module:
 
 
 def run_validation(args: argparse.Namespace) -> Dict[str, object]:
+    """执行扩展模型验证并汇总整体与分层指标。"""
+
     dataset = build_dataset(args)
     if len(dataset) == 0:
         raise RuntimeError(f"Dataset {args.dataset} is empty under {args.data_root}")
@@ -421,6 +463,8 @@ def run_validation(args: argparse.Namespace) -> Dict[str, object]:
 
 
 def main() -> int:
+    """验证入口：运行扩展评估并输出摘要文件。"""
+
     parser = build_parser()
     args = parser.parse_args()
 

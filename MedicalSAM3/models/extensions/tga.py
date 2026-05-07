@@ -1,3 +1,8 @@
+"""Text-Guided Attention 扩展模块。
+
+该模块用文本嵌入调制图像特征，在扩展版 MedicalSAM3 中承担轻量跨模态对齐职责。
+"""
+
 import torch
 import torch.nn as nn
 
@@ -38,6 +43,8 @@ class TextGuidedAttention(nn.Module):
 
     def forward(self, image_feat: torch.Tensor,
                 text_embed: torch.Tensor) -> torch.Tensor:
+        """利用文本引导生成通道注意力并回写到图像特征。"""
+
         residual = image_feat
         img_seq = image_feat.flatten(2).transpose(1, 2)
 

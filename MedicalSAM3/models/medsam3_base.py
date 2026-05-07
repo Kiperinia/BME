@@ -32,7 +32,8 @@ from .medsam3_wrapper import MedSAM3Wrapper  # noqa: E402
 
 # ─────────────────── 医学数据集文本提示词映射 ───────────────────
 DATASET_TEXT_PROMPTS = {
-    "kvasir": "polyp",
+    "kvasircvc": "polyp",
+    "polypgen": "polyp",
 
 }
 
