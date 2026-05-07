@@ -154,6 +154,23 @@ def _write_json(path: Path, payload: dict[str, Any]) -> Path:
     return path
 
 
+def _resolve_device(requested_device: str) -> str:
+    normalized = str(requested_device).strip().lower()
+    if normalized == "cpu":
+        return "cpu"
+    if normalized == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError("--device cuda requested but torch.cuda.is_available() is False.")
+        return "cuda"
+    raise ValueError(f"Unsupported --device value: {requested_device}")
+
+
+def _cuda_device_name(device: str) -> str | None:
+    if str(device) != "cuda" or not torch.cuda.is_available():
+        return None
+    return torch.cuda.get_device_name(0)
+
+
 def _run_code_audit(report_dir: Path) -> dict[str, Any]:
     existing_files: list[str] = []
     missing_files: list[str] = []
@@ -291,7 +308,7 @@ def _memory_bank_status(memory_dir: Path, expected_dim: int | None) -> dict[str,
     }
 
 
-def _maybe_run_short_train(args: argparse.Namespace) -> bool:
+def _maybe_run_short_train(args: argparse.Namespace, device: str) -> bool:
     if not args.run_short_train:
         return False
     command = [
@@ -309,6 +326,8 @@ def _maybe_run_short_train(args: argparse.Namespace) -> bool:
         str(args.image_size),
         "--precision",
         args.precision,
+        "--device",
+        device,
         "--require-official-sam3",
         "--min-lora-modules",
         str(args.min_lora_modules),
@@ -327,6 +346,11 @@ def main() -> int:
     parser.add_argument("--fold", type=int, default=0)
     parser.add_argument("--image-size", type=int, default=128)
     parser.add_argument("--precision", default="fp32")
+    parser.add_argument(
+        "--device",
+        default="cuda" if torch.cuda.is_available() else "cpu",
+        help="Device for official SAM3 preflight, e.g. cuda or cpu.",
+    )
     parser.add_argument("--require-official-sam3", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--min-lora-modules", type=int, default=1)
     parser.add_argument("--allow-dummy", action="store_true")
@@ -335,6 +359,7 @@ def main() -> int:
     parser.add_argument("--split-dir", default="MedicalSAM3/outputs/medex_sam3/splits")
     parser.add_argument("--results-dir", default="MedicalSAM3/outputs/medex_sam3")
     args = parser.parse_args()
+    args.device = _resolve_device(args.device)
 
     report_dir = ensure_dir(args.report_dir)
     results_dir = Path(args.results_dir)
@@ -355,7 +380,7 @@ def main() -> int:
     try:
         model = build_official_sam3_image_model(
             checkpoint_path=args.checkpoint,
-            device="cpu",
+            device=args.device,
             dtype=args.precision,
             compile_model=False,
             allow_dummy_fallback=args.allow_dummy,
@@ -370,6 +395,7 @@ def main() -> int:
         lora_targets_non_empty = bool(lora_targets)
         freeze_model(model)
         replaced = apply_lora_to_model(model, LoRAConfig(stage="stage_a", min_replaced_modules=args.min_lora_modules))
+        model = model.to(args.device)
         lora_replaced_module_count = len(replaced)
         trainable_parameter_ratio = count_trainable_parameters(model)[2]
     except Exception as exc:
@@ -377,7 +403,7 @@ def main() -> int:
 
     tensor_report = run_tensor_forward_smoke_test(
         checkpoint_path=args.checkpoint,
-        device="cpu",
+        device=args.device,
         dtype=args.precision,
         image_size=args.image_size,
         allow_dummy=args.allow_dummy,
@@ -398,13 +424,17 @@ def main() -> int:
         blocking_issues.append("loss backward check failed")
 
     if args.run_short_train:
-        _maybe_run_short_train(args)
+        _maybe_run_short_train(args, device=args.device)
     single_fold_short_train_success, short_train_warnings = _short_train_status(results_dir, args.fold)
     warnings_list.extend(short_train_warnings)
 
     memory_status = _memory_bank_status(results_dir / "exemplar_bank", expected_dim=int(model_hidden_dim) if model_hidden_dim is not None else None)
 
     checklist = {
+        "device": args.device,
+        "cuda_available": torch.cuda.is_available(),
+        "cuda_device_name": _cuda_device_name(args.device),
+        "precision": args.precision,
         "official_sam3_build_success": official_sam3_build_success,
         "dummy_fallback_used": dummy_fallback_used,
         "tensor_forward_success": bool(tensor_report.get("forward_success", False)),

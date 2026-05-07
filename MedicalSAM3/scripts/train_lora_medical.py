@@ -39,14 +39,28 @@ from MedicalSAM3.scripts.common import (
 )
 
 
-def _device_from_args(precision: str) -> tuple[str, torch.dtype]:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+def _device_from_args(requested_device: str, precision: str) -> tuple[str, torch.dtype]:
+    normalized_device = str(requested_device).strip().lower()
+    if normalized_device == "auto":
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    elif normalized_device == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError("--device cuda requested but torch.cuda.is_available() is False.")
+        device = "cuda"
+    elif normalized_device == "cpu":
+        device = "cpu"
+    else:
+        raise ValueError(f"Unsupported --device value: {requested_device}")
+
     dtype_map = {
         "fp32": torch.float32,
         "fp16": torch.float16,
         "bf16": torch.bfloat16,
     }
-    return device, dtype_map.get(precision, torch.float32)
+    autocast_dtype = dtype_map.get(precision, torch.float32)
+    if device == "cpu":
+        autocast_dtype = torch.float32
+    return device, autocast_dtype
 
 
 def _autocast_enabled(device: str, precision: str) -> bool:
@@ -184,6 +198,8 @@ def _run_preflight(
 
     report: dict[str, Any] = {
         "fold": args.fold,
+        "device": device,
+        "precision": args.precision,
         "official_sam3_build_success": False,
         "used_dummy_fallback": False,
         "split_exists": split_exists,
@@ -288,6 +304,11 @@ def main() -> int:
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--image-size", type=int, default=128)
     parser.add_argument("--precision", default="fp32")
+    parser.add_argument(
+        "--device",
+        default="auto",
+        help="Runtime device: auto, cuda, or cpu.",
+    )
     parser.add_argument("--resume", default=None)
     parser.add_argument("--enable-vision-lora", action="store_true")
     parser.add_argument("--enable-detector-lora", action="store_true")
@@ -313,7 +334,7 @@ def main() -> int:
     preflight_report_path = report_dir / "preflight_report.json"
     split_dir = Path(config.get("split_dir", args.split_dir))
 
-    device, autocast_dtype = _device_from_args(args.precision)
+    device, autocast_dtype = _device_from_args(args.device, args.precision)
     dump_config(
         output_dir / "config_used.yaml",
         {
@@ -325,6 +346,8 @@ def main() -> int:
             "weight_decay": args.weight_decay,
             "image_size": args.image_size,
             "precision": args.precision,
+            "requested_device": args.device,
+            "device": device,
             "dummy": args.dummy,
             "allow_dummy": args.allow_dummy,
             "require_official_sam3": args.require_official_sam3,
@@ -483,6 +506,7 @@ def main() -> int:
             {
                 "output_dir": str(output_dir),
                 "best_dice": best_dice,
+                "device": device,
                 "trainable_ratio": ratio,
                 "train_file": str(train_file),
                 "val_file": str(val_file),

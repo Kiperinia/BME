@@ -15,8 +15,10 @@ MedEx-SAM3 当前主路线是：official SAM3 image model + LoRA + medical/bound
 ```
 
 ```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\preflight_medex_sam3.py --fold 0 --image-size 128 --precision fp32 --allow-dummy
+.\.venv\Scripts\python.exe MedicalSAM3\scripts\preflight_medex_sam3.py --fold 0 --image-size 128 --precision fp32 --device cpu --allow-dummy
 ```
+
+preflight 默认只做检查；只有显式传入 `--run-short-train` 时，才会调用单 fold 短训。
 
 真实 SAM3 preflight：
 
@@ -26,6 +28,7 @@ python MedicalSAM3/scripts/preflight_medex_sam3.py \
 	--fold 0 \
 	--image-size 512 \
 	--precision fp16 \
+	--device cuda \
 	--require-official-sam3 \
 	--min-lora-modules 1
 ```
@@ -41,7 +44,7 @@ python MedicalSAM3/scripts/preflight_medex_sam3.py \
 运行 dummy smoke：
 
 ```powershell
-.\.venv\Scripts\python.exe MedicalSAM3\scripts\train_lora_medical.py --fold 0 --dummy --allow-dummy --epochs 1 --batch-size 1 --image-size 128 --precision fp32 --max-train-steps 2 --max-val-steps 2
+.\.venv\Scripts\python.exe MedicalSAM3\scripts\train_lora_medical.py --fold 0 --dummy --allow-dummy --epochs 1 --batch-size 1 --image-size 128 --precision fp32 --device cpu --max-train-steps 2 --max-val-steps 2
 ```
 
 ## 单 Fold 短训
@@ -56,6 +59,7 @@ python MedicalSAM3/scripts/train_lora_medical.py \
 	--batch-size 1 \
 	--image-size 512 \
 	--precision fp16 \
+	--device cuda \
 	--require-official-sam3 \
 	--min-lora-modules 1 \
 	--max-train-steps 10 \
@@ -75,6 +79,7 @@ for FOLD in 0 1 2 3 4; do
 		--batch-size 1 \
 		--image-size 512 \
 		--precision fp16 \
+		--device cuda \
 		--require-official-sam3 \
 		--min-lora-modules 1 \
 		--max-train-steps 10 \
