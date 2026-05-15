@@ -8,6 +8,16 @@ MedEx-SAM3 当前主路线是：official SAM3 image model + LoRA + medical/bound
 
 本机只建议执行低负载检查；真实 checkpoint preflight、单 fold 短训、5-fold 和 external evaluation 请在 Linux 服务器上执行。服务器命令已写入 MedicalSAM3/outputs/medex_sam3/server_commands.md。
 
+Linux 服务器如果需要挂到 tmux 里执行安装，可以直接在仓库根目录运行：
+
+```bash
+chmod +x install-python-deps-linux.sh
+RUN_IN_TMUX=1 TMUX_SESSION_NAME=medex-install TORCH_CHANNEL=cu126 ./install-python-deps-linux.sh
+tmux attach -t medex-install
+```
+
+如果已经在 tmux 会话内部，直接执行安装脚本即可，不需要额外设置 RUN_IN_TMUX。
+
 本机低负载预检查：
 
 ```powershell
