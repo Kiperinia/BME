@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import logging
 import sys
 import threading
@@ -116,6 +117,9 @@ class SAM3Engine:
         )
 
     def predict(self, image: np.ndarray) -> dict[str, Any]:
+        return self.predict_with_context(image=image, retrieval_context=None)
+
+    def predict_with_context(self, image: np.ndarray, retrieval_context: dict[str, Any] | None) -> dict[str, Any]:
         preprocess_result = self.preprocess(image=image)
         if self.is_mock_mode:
             return self.mock_predict(
@@ -129,19 +133,41 @@ class SAM3Engine:
         model_input = None
         outputs = None
         mask_tensor = None
+        retrieval_package = None
+        retrieval_response = None
         try:
             model_input = preprocess_result.tensor.to(
                 self.device,
                 non_blocking=self.device.startswith("cuda"),
             )
             prompt_bbox = self._build_prompt_bbox(preprocess_result=preprocess_result).to(model_input.device)
+            retrieval_package, retrieval_response = self._build_retrieval_artifacts(
+                preprocess_result=preprocess_result,
+                retrieval_context=retrieval_context,
+            )
+            exemplar_prompt_tokens = None if retrieval_package is None else retrieval_package.prompt_tokens.to(model_input.device)
+            retrieval_prior = None
+            if retrieval_package is not None:
+                retrieval_prior = {
+                    key: value.to(model_input.device) if hasattr(value, "to") else value
+                    for key, value in retrieval_package.retrieval_prior.items()
+                }
 
             with torch.inference_mode():
-                outputs = self.model(model_input, boxes=prompt_bbox)
+                outputs = self.model(
+                    model_input,
+                    boxes=prompt_bbox,
+                    exemplar_prompt_tokens=exemplar_prompt_tokens,
+                    retrieval_prior=retrieval_prior,
+                )
 
             mask_tensor = outputs["masks"].detach().float().cpu()
             binary_mask = (np.squeeze(mask_tensor[0].numpy()) > self.mask_threshold).astype(np.uint8)
-            return self.postprocess(binary_mask=binary_mask, preprocess_result=preprocess_result)
+            return self.postprocess(
+                binary_mask=binary_mask,
+                preprocess_result=preprocess_result,
+                retrieval_response=retrieval_response,
+            )
         finally:
             del outputs
             del mask_tensor
@@ -149,7 +175,12 @@ class SAM3Engine:
             if torch is not None and self.device.startswith("cuda") and torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-    def postprocess(self, binary_mask: np.ndarray, preprocess_result: PreprocessResult) -> dict[str, Any]:
+    def postprocess(
+        self,
+        binary_mask: np.ndarray,
+        preprocess_result: PreprocessResult,
+        retrieval_response: Any | None = None,
+    ) -> dict[str, Any]:
         mask = (binary_mask > 0).astype(np.uint8)
         if mask.ndim != 2:
             raise ValueError("invalid mask shape")
@@ -159,7 +190,7 @@ class SAM3Engine:
             preprocess_result.pad_left : preprocess_result.pad_left + preprocess_result.resized_width,
         ]
         if mask.size == 0:
-            return self._empty_result()
+            return self._empty_result(retrieval_response=retrieval_response)
 
         if (
             preprocess_result.resized_width != preprocess_result.original_width
@@ -179,7 +210,7 @@ class SAM3Engine:
             contour for contour in contours if cv2.contourArea(contour) >= self.min_contour_area
         ]
         if not valid_contours:
-            return self._empty_result()
+            return self._empty_result(retrieval_response=retrieval_response)
 
         largest_contour = max(valid_contours, key=cv2.contourArea)
         epsilon = max(1.0, self.polygon_epsilon_ratio * cv2.arcLength(largest_contour, True))
@@ -199,12 +230,24 @@ class SAM3Engine:
             int(y + max(height - 1, 0)),
         ]
         mask_coordinates = [[int(px), int(py)] for px, py in points.tolist()]
-        return {
+        result = {
             "mask_data_url": mask_data_url,
             "mask_coordinates": mask_coordinates,
             "bounding_box": bounding_box,
             "mask_area_pixels": mask_area_pixels,
         }
+        if retrieval_response is not None:
+            result.update(
+                {
+                    "retrieval_applied": True,
+                    "retrieval_confidence": retrieval_response.confidence,
+                    "retrieval_uncertainty": retrieval_response.uncertainty,
+                    "retrieval_candidate_count": retrieval_response.candidateCount,
+                    "retrieval_bank_id": retrieval_response.bankId,
+                    "retrieval_prior_keys": retrieval_response.priorKeys,
+                }
+            )
+        return result
 
     def mock_predict(self, image_width: int, image_height: int) -> dict[str, Any]:
         if self.settings.model_mock_delay_ms > 0:
@@ -238,10 +281,22 @@ class SAM3Engine:
             "mask_area_pixels": int(mask.sum()),
         }
 
-    def predict_bytes(self, image_bytes: bytes, filename: str | None = None) -> dict[str, Any]:
-        del filename
+    def predict_bytes(
+        self,
+        image_bytes: bytes,
+        filename: str | None = None,
+        *,
+        content_type: str | None = None,
+        retrieval_context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         image = self._decode_image(image_bytes=image_bytes)
-        return self.predict(image=image)
+        normalized_context = dict(retrieval_context or {})
+        if filename:
+            normalized_context.setdefault("filename", filename)
+        if content_type:
+            normalized_context.setdefault("content_type", content_type)
+        normalized_context.setdefault("image_bytes", image_bytes)
+        return self.predict_with_context(image=image, retrieval_context=normalized_context)
 
     def predict_path(self, image_path: str) -> dict[str, Any]:
         image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
@@ -350,13 +405,25 @@ class SAM3Engine:
         return image
 
     @staticmethod
-    def _empty_result() -> dict[str, Any]:
-        return {
+    def _empty_result(retrieval_response: Any | None = None) -> dict[str, Any]:
+        payload = {
             "mask_data_url": "",
             "mask_coordinates": [],
             "bounding_box": [0, 0, 0, 0],
             "mask_area_pixels": 0,
         }
+        if retrieval_response is not None:
+            payload.update(
+                {
+                    "retrieval_applied": True,
+                    "retrieval_confidence": retrieval_response.confidence,
+                    "retrieval_uncertainty": retrieval_response.uncertainty,
+                    "retrieval_candidate_count": retrieval_response.candidateCount,
+                    "retrieval_bank_id": retrieval_response.bankId,
+                    "retrieval_prior_keys": retrieval_response.priorKeys,
+                }
+            )
+        return payload
 
     @staticmethod
     def _encode_mask_data_url(mask: np.ndarray) -> str:
@@ -408,6 +475,88 @@ class SAM3Engine:
                 matched_keys += 1
 
         return matched_keys
+
+    def _build_retrieval_artifacts(
+        self,
+        *,
+        preprocess_result: PreprocessResult,
+        retrieval_context: dict[str, Any] | None,
+    ) -> tuple[Any | None, Any | None]:
+        if not retrieval_context:
+            return None, None
+
+        bank_id = str(retrieval_context.get("bank_id", "default-bank") or "default-bank")
+        try:
+            image_bytes = retrieval_context.get("image_bytes")
+            if not isinstance(image_bytes, (bytes, bytearray)) or not image_bytes:
+                return None, None
+
+            workspace_dir = str(Path(__file__).resolve().parents[3])
+            if workspace_dir not in sys.path:
+                sys.path.insert(0, workspace_dir)
+
+            from app.schemas.workspace import (
+                ExpertConfigurationSchema,
+                ExemplarRetrievalRequestSchema,
+                ParisDetailSchema,
+                WorkspaceImageSchema,
+                WorkspacePatientSchema,
+                WorkspaceSegmentationSchema,
+            )
+            from app.services.exemplar_bank_service import ExemplarBankService
+
+            patient_payload = self._parse_json_payload(retrieval_context.get("patient_payload"))
+            expert_payload = self._parse_json_payload(retrieval_context.get("expert_config_payload"))
+            content_type = str(retrieval_context.get("content_type", "") or "image/png")
+            filename = str(retrieval_context.get("filename", "") or "segment-frame.png")
+            image_data_url = self._encode_input_image_data_url(bytes(image_bytes), content_type=content_type)
+
+            request = ExemplarRetrievalRequestSchema(
+                patient=WorkspacePatientSchema(**patient_payload) if patient_payload else WorkspacePatientSchema(),
+                image=WorkspaceImageSchema(
+                    filename=filename,
+                    contentType=content_type,
+                    dataUrl=image_data_url,
+                    width=preprocess_result.original_width,
+                    height=preprocess_result.original_height,
+                ),
+                segmentation=WorkspaceSegmentationSchema(
+                    maskDataUrl="",
+                    maskCoordinates=[],
+                    boundingBox=(0, 0, preprocess_result.original_width - 1, preprocess_result.original_height - 1),
+                    maskAreaPixels=preprocess_result.original_width * preprocess_result.original_height,
+                    maskAreaRatio=1.0,
+                    pointCount=4,
+                ),
+                expertConfig=ExpertConfigurationSchema(**expert_payload) if expert_payload else ExpertConfigurationSchema(parisDetail=ParisDetailSchema()),
+                topK=int(retrieval_context.get("top_k", 6) or 6),
+                bankId=bank_id,
+            )
+            service = ExemplarBankService()
+            response, package = service.build_retrieval_artifacts(request)
+            if package is None or response.candidateCount <= 0:
+                return None, None
+            return package, response
+        except Exception as exc:
+            logger.warning("failed to build retrieval prior for SAM3 inference: %s", exc)
+            return None, None
+
+    @staticmethod
+    def _parse_json_payload(payload: Any) -> dict[str, Any]:
+        if payload is None:
+            return {}
+        if isinstance(payload, dict):
+            return payload
+        if isinstance(payload, str) and payload.strip():
+            parsed = json.loads(payload)
+            if isinstance(parsed, dict):
+                return parsed
+        return {}
+
+    @staticmethod
+    def _encode_input_image_data_url(image_bytes: bytes, *, content_type: str) -> str:
+        payload = base64.b64encode(image_bytes).decode("ascii")
+        return f"data:{content_type};base64,{payload}"
 
 
 class SAM3RuntimeSingleton:

@@ -87,6 +87,7 @@ class ExemplarBankRequestSchema(BaseModel):
     image: WorkspaceImageSchema
     segmentation: WorkspaceSegmentationSchema
     expertConfig: ExpertConfigurationSchema = Field(default_factory=ExpertConfigurationSchema)
+    polarityHint: Literal["positive", "negative", "boundary"] = "positive"
     reportMarkdown: str = Field(default="", max_length=12000)
     findings: str = Field(default="", max_length=4000)
     conclusion: str = Field(default="", max_length=4000)
@@ -101,3 +102,52 @@ class ExemplarBankDecisionSchema(BaseModel):
     duplicateOf: str | None = None
     bankSize: int = Field(default=0, ge=0)
     storedAt: datetime | None = None
+    bankId: str = Field(default="default-bank", max_length=128)
+    memoryState: str | None = Field(default=None, max_length=64)
+    qualityBreakdown: dict[str, float] = Field(default_factory=dict)
+
+
+class ExemplarRetrievalRequestSchema(BaseModel):
+    patient: WorkspacePatientSchema = Field(default_factory=WorkspacePatientSchema)
+    image: WorkspaceImageSchema
+    segmentation: WorkspaceSegmentationSchema
+    expertConfig: ExpertConfigurationSchema = Field(default_factory=ExpertConfigurationSchema)
+    topK: int = Field(default=6, ge=1, le=32)
+    bankId: str = Field(default="default-bank", max_length=128)
+
+
+class ExemplarRetrievalCandidateSchema(BaseModel):
+    exemplarId: str = Field(min_length=1, max_length=128)
+    polarity: Literal["positive", "negative", "boundary"]
+    similarity: float
+    rankScore: float
+    uncertaintyPenalty: float
+    tags: list[str] = Field(default_factory=list)
+
+
+class ExemplarRetrievalResponseSchema(BaseModel):
+    bankId: str = Field(default="default-bank", max_length=128)
+    confidence: float = Field(ge=0.0, le=1.0)
+    uncertainty: float = Field(ge=0.0, le=1.0)
+    promptTokenShape: tuple[int, ...] = Field(default_factory=tuple)
+    priorKeys: list[str] = Field(default_factory=list)
+    candidateCount: int = Field(default=0, ge=0)
+    candidates: list[ExemplarRetrievalCandidateSchema] = Field(default_factory=list)
+    diagnostics: dict[str, object] = Field(default_factory=dict)
+
+
+class ExemplarFeedbackRequestSchema(BaseModel):
+    exemplarId: str = Field(min_length=1, max_length=128)
+    bankId: str = Field(default="default-bank", max_length=128)
+    failureMode: Literal["false_positive", "false_negative", "uncertain", "success"] = "success"
+    qualityScore: float | None = Field(default=None, ge=0.0, le=1.0)
+    uncertainty: float | None = Field(default=None, ge=0.0, le=1.0)
+    metadata: dict[str, object] = Field(default_factory=dict)
+
+
+class ExemplarFeedbackResponseSchema(BaseModel):
+    exemplarId: str = Field(min_length=1, max_length=128)
+    bankId: str = Field(default="default-bank", max_length=128)
+    updatedState: str = Field(min_length=1, max_length=64)
+    reasons: list[str] = Field(default_factory=list)
+    qualityBreakdown: dict[str, float] = Field(default_factory=dict)

@@ -10,7 +10,11 @@ from app.core.response import ApiResponse
 from app.schemas.common import AuthenticatedUserSchema
 from app.schemas.workspace import (
     ExemplarBankDecisionSchema,
+    ExemplarFeedbackRequestSchema,
+    ExemplarFeedbackResponseSchema,
     ExemplarBankRequestSchema,
+    ExemplarRetrievalRequestSchema,
+    ExemplarRetrievalResponseSchema,
     WorkspaceReportRequestSchema,
     WorkspaceReportResponseSchema,
 )
@@ -67,4 +71,50 @@ async def evaluate_exemplar_candidate(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             50072,
             "failed to evaluate exemplar-bank candidate",
+        ) from exc
+
+
+@router.post(
+    "/exemplar-bank/retrieve-prior",
+    response_model=ApiResponse[ExemplarRetrievalResponseSchema],
+    status_code=status.HTTP_200_OK,
+)
+async def retrieve_exemplar_prior(
+    payload: ExemplarRetrievalRequestSchema,
+    _: AuthenticatedUserSchema = Depends(get_current_user),
+) -> ApiResponse[ExemplarRetrievalResponseSchema]:
+    service = ExemplarBankService()
+    try:
+        result = await run_in_threadpool(service.retrieve_prior, payload)
+        return ApiResponse(data=result)
+    except AppException as exc:
+        raise build_http_exception(exc.status_code, exc.error_code, exc.message) from exc
+    except Exception as exc:
+        raise build_http_exception(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            50073,
+            "failed to retrieve exemplar prior",
+        ) from exc
+
+
+@router.post(
+    "/exemplar-bank/feedback",
+    response_model=ApiResponse[ExemplarFeedbackResponseSchema],
+    status_code=status.HTTP_200_OK,
+)
+async def update_exemplar_feedback(
+    payload: ExemplarFeedbackRequestSchema,
+    _: AuthenticatedUserSchema = Depends(get_current_user),
+) -> ApiResponse[ExemplarFeedbackResponseSchema]:
+    service = ExemplarBankService()
+    try:
+        result = await run_in_threadpool(service.apply_feedback, payload)
+        return ApiResponse(data=result)
+    except AppException as exc:
+        raise build_http_exception(exc.status_code, exc.error_code, exc.message) from exc
+    except Exception as exc:
+        raise build_http_exception(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            50074,
+            "failed to update exemplar feedback",
         ) from exc

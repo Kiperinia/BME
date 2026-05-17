@@ -131,11 +131,13 @@ class ReportGenerator:
             llm_client: LLM 客户端。
             use_llm: 是否使用 LLM 生成报告（否则用模板）。
             prompt_path: 自定义 prompt 路径。
+            report_tool_registry: 自定义工具注册中心。
         """
         self.llm_client = llm_client
         self.use_llm = use_llm
         self._prompt_template = self._load_prompt(prompt_path)
-        self.report_tool_registry = report_tool_registry or create_default_report_tool_registry()
+        # Pass llm_client to registry for ReAct tools
+        self.report_tool_registry = report_tool_registry or create_default_report_tool_registry(llm_client=llm_client)
 
     # ---- 公共接口 ----
 
@@ -321,15 +323,15 @@ class ReportGenerator:
         risk: RiskAssessmentResult,
     ) -> ReportData:
         """
-        ReAct 范式：对初步报告进行反思、精修、评分。
+        ReAct 范式：对初步报告进行 LLM-驱动的反思、精修、评分。
 
         流程：
-          1. 反思（Thinking）：分析报告问题
-          2. 改进（Acting）：精修发现的问题
-          3. 评分（Scoring）：给出多维度评分
+          1. 反思（Thinking）：LLM 分析报告问题
+          2. 改进（Acting）：LLM 根据分析精修报告
+          3. 评分（Scoring）：LLM 给出多维度评分
         """
         try:
-            # ---- 第一步：ReAct Thinking - 反思与分析 ----
+            # ---- 第一步：ReAct Thinking - LLM 反思与分析 ----
             analysis_result = self.report_tool_registry.call(
                 "analyze_report",
                 findings=report_data.findings,
@@ -338,24 +340,27 @@ class ReportGenerator:
                 risk=risk,
             )
             report_data.react_analysis = analysis_result
+            logger.info(f"ReAct analysis: has_issues={analysis_result.get('has_issues')}, confidence={analysis_result.get('confidence')}")
 
-            # ---- 第二步：ReAct Acting - 根据反思精修报告 ----
+            # ---- 第二步：ReAct Acting - LLM 根据分析精修报告 ----
             if analysis_result.get("has_issues") and analysis_result.get("suggestions"):
                 refinement_findings = self.report_tool_registry.call(
                     "refine_report",
                     original_text=report_data.findings,
-                    suggestions=analysis_result.get("suggestions", []),
-                    refinement_type="findings",
+                    analysis_result=analysis_result,
+                    text_type="findings",
                 )
                 report_data.findings = refinement_findings.get("refined_text", report_data.findings)
+                logger.info(f"Refined findings: {len(refinement_findings.get('changes', []))} changes made")
 
                 refinement_conclusion = self.report_tool_registry.call(
                     "refine_report",
                     original_text=report_data.conclusion,
-                    suggestions=analysis_result.get("suggestions", []),
-                    refinement_type="conclusion",
+                    analysis_result=analysis_result,
+                    text_type="conclusion",
                 )
                 report_data.conclusion = refinement_conclusion.get("refined_text", report_data.conclusion)
+                logger.info(f"Refined conclusion: {len(refinement_conclusion.get('changes', []))} changes made")
 
                 report_data.react_refinement = {
                     "findings_refinement": refinement_findings,
@@ -372,6 +377,7 @@ class ReportGenerator:
                 analysis_result=analysis_result,
             )
             report_data.report_score = score_result
+            logger.info(f"Report score: {score_result.get('overall_score')}/10 ({score_result.get('quality_level')})")
 
             # ---- 更新 tool_calls 来包含所有 ReAct 工具调用 ----
             report_data.tool_calls = self.report_tool_registry.get_call_logs()

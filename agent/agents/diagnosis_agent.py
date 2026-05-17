@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 
@@ -17,6 +18,8 @@ from tools.medical.morphology_classifier import MorphologyClassifier, Morphology
 from tools.medical.paris_typing import ParisTypingEngine, ParisTypingResult
 from tools.medical.report_generator import ReportData, ReportGenerator
 from tools.medical.risk_assessor import RiskAssessmentResult, RiskAssessor, RiskLevel
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -89,6 +92,8 @@ class DiagnosisAgent(HelloAgent):
         use_llm_report: bool = False,
         feature_extractor: FeatureExtractor | None = None,
         tool_registry: ToolRegistry | None = None,
+        enable_report_reflection: bool = True,
+        reflection_max_iterations: int = 3,
     ):
         resolved_config = config or Config.from_env()
         resolved_llm = llm or RuleOnlyLLM(
@@ -105,7 +110,7 @@ class DiagnosisAgent(HelloAgent):
         )
 
         self.description = "基于提示词和医学工具链的最小 HelloAgent 诊断编排器"
-        self.metadata = {"pipeline": "feature -> morphology -> paris -> risk -> report"}
+        self.metadata = {"pipeline": "feature -> morphology -> paris -> risk -> report -> [reflection]"}
         self.pixel_size_mm = pixel_size_mm
         llm_client = None if isinstance(resolved_llm, RuleOnlyLLM) else resolved_llm
         self.feature_extractor = feature_extractor or FeatureExtractor(pixel_size_mm=pixel_size_mm)
@@ -119,6 +124,18 @@ class DiagnosisAgent(HelloAgent):
             llm_client=llm_client,
             use_llm=use_llm_report and llm_client is not None,
         )
+        
+        # Initialize reflection agent if enabled and LLM is available
+        self.enable_report_reflection = enable_report_reflection and llm_client is not None
+        if self.enable_report_reflection:
+            from agents.report_reflection_agent import ReportReflectionAgent
+            self.reflection_agent = ReportReflectionAgent(
+                llm=llm_client,
+                max_iterations=reflection_max_iterations,
+                quality_threshold=8.0,
+            )
+        else:
+            self.reflection_agent = None
 
     @classmethod
     def from_env(cls, use_llm: bool = False, **kwargs: Any) -> "DiagnosisAgent":
@@ -232,6 +249,18 @@ class DiagnosisAgent(HelloAgent):
             risk=risk_assessment,
             features=features,
         )
+        
+        # Apply report reflection (ReAct agent thinking) if enabled
+        if self.enable_report_reflection and self.reflection_agent is not None:
+            logger.info(f"Applying report reflection for lesion {lesion_id}...")
+            reflection_result = self.reflection_agent.reflect(
+                report=report,
+                morphology=morphology,
+                paris=paris_typing,
+                risk=risk_assessment,
+            )
+            report = reflection_result.final_report
+            logger.info(f"Reflection completed: {reflection_result.total_iterations} iterations, quality={reflection_result.final_quality_score}")
 
         return DiagnosisResult(
             lesion_id=lesion_id,

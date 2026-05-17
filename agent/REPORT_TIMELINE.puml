@@ -1,0 +1,65 @@
+@startuml report_generation_timeline
+!define INPUT_COLOR #E1F5FE
+!define PROCESS_COLOR #FFF9C4
+!define OUTPUT_COLOR #C8E6C9
+!define LLM_COLOR #F8BBD0
+
+title 报告生成工作流时间线
+
+== 诊断阶段 (0-1秒) ==
+entity "输入数据" as INPUT #INPUT_COLOR
+entity "FeatureExtractor" as FE #PROCESS_COLOR : 0.1s
+entity "MorphologyClassifier" as MC #PROCESS_COLOR : 0.1s
+entity "ParisTypingEngine" as PT #PROCESS_COLOR : 0.1s
+entity "RiskAssessor" as RA #PROCESS_COLOR : 0.1s
+
+INPUT --> FE
+FE --> MC
+MC --> PT
+PT --> RA
+
+== 报告初期生成 (1-2秒, 模板模式) ==
+entity "compose_findings" as CF #PROCESS_COLOR : 0.05s
+entity "compose_conclusion" as CC #PROCESS_COLOR : 0.05s
+entity "suggest_layout" as SL #PROCESS_COLOR : 0.05s
+entity "suggest_keywords" as SK #PROCESS_COLOR : 0.1s
+
+RA --> CF
+CF --> CC
+CC --> SL
+SL --> SK
+
+== ReAct 精修阶段 (可选, 2-30秒) ==
+entity "analyze_report" as ANALYZE #LLM_COLOR : 10s
+entity "refine_findings" as RF #LLM_COLOR : 5s
+entity "refine_conclusion" as RC #LLM_COLOR : 5s
+entity "score_report" as SCORE #LLM_COLOR : 7s
+
+SK --> ANALYZE
+ANALYZE --> RF
+RF --> RC
+RC --> SCORE
+
+== 独立反思 Agent (可选, 30-60秒) ==
+entity "Reflection Loop ×3" as REFL #LLM_COLOR : 30s
+entity "迭代1 Thinking" as T1 #LLM_COLOR : 8s
+entity "迭代1 Tool" as TL1 #LLM_COLOR : 8s
+entity "迭代2 Thinking" as T2 #LLM_COLOR : 8s
+entity "迭代2 Tool" as TL2 #LLM_COLOR : 8s
+entity "迭代3 Thinking" as T3 #LLM_COLOR : 8s
+entity "迭代3 Tool" as TL3 #LLM_COLOR : 8s
+
+SCORE --> REFL
+REFL --> T1
+T1 --> TL1
+TL1 --> T2
+T2 --> TL2
+TL2 --> T3
+T3 --> TL3
+
+== 最终输出 ==
+entity "改进后的报告" as OUTPUT #OUTPUT_COLOR
+
+TL3 --> OUTPUT
+
+@enduml

@@ -21,6 +21,11 @@ export interface AgentSettings {
   enableLlm: boolean
   enableLlmReport: boolean
   pixelSizeMm: number
+  // Report generation workflow settings
+  useLlmReport: boolean
+  enableReportReflection: boolean
+  reflectionMaxIterations: number
+  reflectionQualityThreshold: number
 }
 
 export interface Sam3Settings {

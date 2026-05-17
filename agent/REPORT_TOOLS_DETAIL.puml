@@ -1,0 +1,84 @@
+@startuml report_tools_detailed
+!define TOOL_COLOR #FFF9C4
+!define LLM_COLOR #F8BBD0
+!define RULE_COLOR #E8F5E9
+
+title 报告生成工具链详解
+
+package "基础报告生成工具 (模板模式)" {
+    [compose_findings] #RULE_COLOR
+    [compose_conclusion] #RULE_COLOR
+    [suggest_layout] #RULE_COLOR
+    [suggest_report_keywords] #RULE_COLOR
+    
+    [compose_findings] : 输入: morphology, paris, features
+    [compose_findings] : 输出: findings (string)
+    [compose_findings] : 时间: ~0.05秒
+    
+    [compose_conclusion] : 输入: paris, risk
+    [compose_conclusion] : 输出: conclusion (string)
+    [compose_conclusion] : 时间: ~0.05秒
+    
+    [suggest_layout] : 输入: morphology, paris, risk
+    [suggest_layout] : 输出: layout_suggestion (string)
+    
+    [suggest_report_keywords] : 输入: findings, conclusion
+    [suggest_report_keywords] : 输出: keywords (list)
+}
+
+package "LLM 报告生成" {
+    [LLM Chat] #LLM_COLOR
+    [LLM Chat] : 输入: Prompt + 诊断信息
+    [LLM Chat] : 输出: findings + conclusion
+    [LLM Chat] : 时间: ~5秒
+}
+
+package "ReAct 工具链 (LLM 驱动)" {
+    [analyze_report] #LLM_COLOR
+    [refine_findings] #LLM_COLOR
+    [refine_conclusion] #LLM_COLOR
+    [score_report] #LLM_COLOR
+    
+    [analyze_report] : ★ ReAct Thinking
+    [analyze_report] : 输入: findings, conclusion, paris, risk
+    [analyze_report] : 输出: has_issues, suggestions, thinking
+    [analyze_report] : 时间: ~8-12秒
+    
+    [refine_findings] : ★ ReAct Acting
+    [refine_findings] : 输入: original_text, analysis_result
+    [refine_findings] : 输出: refined_text, changes
+    [refine_findings] : 时间: ~3-6秒
+    
+    [refine_conclusion] : ★ ReAct Acting
+    [refine_conclusion] : 输入: original_text, analysis_result
+    [refine_conclusion] : 输出: refined_text, changes
+    [refine_conclusion] : 时间: ~3-6秒
+    
+    [score_report] : ★ ReAct Scoring
+    [score_report] : 输入: findings, conclusion, paris, risk
+    [score_report] : 输出: overall_score, quality_level
+    [score_report] : 时间: ~6-8秒
+}
+
+package "ReportReflectionAgent (独立 ReAct 循环)" {
+    [Agent Thinking] #LLM_COLOR
+    [Agent Decision] #RULE_COLOR
+    [Tool Execution] #LLM_COLOR
+    [Result Observation] #RULE_COLOR
+    [Loop Control] #RULE_COLOR
+    
+    [Agent Thinking] : LLM 思考报告质量
+    [Agent Thinking] : 时间: ~8秒
+    
+    [Agent Decision] : 自主选择工具
+    [Agent Decision] : analyze / refine / score / stop
+    
+    [Tool Execution] : 调用analyze/refine/score工具
+    
+    [Result Observation] : 观察工具输出
+    
+    [Loop Control] : 质量 ≥ 8.0 ? STOP
+    [Loop Control] : 迭代数 ≥ 3 ? STOP
+}
+
+@enduml

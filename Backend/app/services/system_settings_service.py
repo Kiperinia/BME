@@ -206,6 +206,10 @@ class SystemSettingsService:
                 enableLlm=settings.agent_use_llm,
                 enableLlmReport=settings.agent_use_llm_report,
                 pixelSizeMm=settings.agent_pixel_size_mm,
+                useLlmReport=settings.report_use_llm,
+                enableReportReflection=settings.report_enable_reflection,
+                reflectionMaxIterations=settings.report_reflection_max_iterations,
+                reflectionQualityThreshold=settings.report_reflection_quality_threshold,
             ),
             sam3=Sam3SettingsSchema(
                 loadMode=settings.model_load_mode,
@@ -357,6 +361,10 @@ class SystemSettingsService:
             "agent_use_llm": payload.agent.enableLlm,
             "agent_use_llm_report": payload.agent.enableLlmReport,
             "agent_pixel_size_mm": payload.agent.pixelSizeMm,
+            "report_use_llm": payload.agent.useLlmReport,
+            "report_enable_reflection": payload.agent.enableReportReflection,
+            "report_reflection_max_iterations": payload.agent.reflectionMaxIterations,
+            "report_reflection_quality_threshold": payload.agent.reflectionQualityThreshold,
         }
 
     @staticmethod

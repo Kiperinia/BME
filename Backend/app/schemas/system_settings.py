@@ -38,6 +38,11 @@ class AgentSettingsSchema(BaseModel):
     enableLlm: bool = True
     enableLlmReport: bool = True
     pixelSizeMm: float = Field(default=0.15, gt=0.0, le=10.0)
+    # Report generation workflow settings
+    useLlmReport: bool = False
+    enableReportReflection: bool = False
+    reflectionMaxIterations: int = Field(default=3, ge=1, le=10)
+    reflectionQualityThreshold: float = Field(default=8.0, ge=0.0, le=10.0)
 
 
 class Sam3SettingsSchema(BaseModel):

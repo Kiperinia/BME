@@ -4,6 +4,8 @@ import { storeToRefs } from 'pinia'
 
 import FeedbackToast from '@/components/common/FeedbackToast.vue'
 import SegmentationViewer from '@/components/segmentation/SegmentationViewer.vue'
+import ExemplarBankPanel from '@/components/workspace/ExemplarBankPanel.vue'
+import ExemplarRetrievalPanel from '@/components/workspace/ExemplarRetrievalPanel.vue'
 import ExpertConfigPanel from '@/components/workspace/ExpertConfigPanel.vue'
 import PatientInfoPanel from '@/components/workspace/PatientInfoPanel.vue'
 import ReportAgentPanel from '@/components/workspace/ReportAgentPanel.vue'
@@ -14,14 +16,21 @@ const workspaceStore = useWorkspaceStore()
 const {
   patient,
   expertConfig,
+  exemplarDecision,
+  exemplarFeedback,
+  exemplarRetrieval,
   isGeneratingReport,
+  isEvaluatingExemplar,
+  isRetrievingExemplars,
   isSegmenting,
+  feedbackSubmittingFor,
   reportResult,
   segmentation,
   showMask,
   toast,
   uploadedImage,
   uploadedMaskFile,
+  canEvaluateExemplar,
   canGenerateReport,
 } = storeToRefs(workspaceStore)
 
@@ -39,14 +48,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="mx-auto flex min-h-[calc(100vh-88px)] w-full max-w-[1920px] flex-col gap-3 px-4 py-3 lg:px-6">
+  <main class="mx-auto flex min-h-[calc(100vh-88px)] w-full max-w-[1920px] flex-col gap-4 px-4 py-4 lg:px-6">
     <FeedbackToast :visible="toast.visible" :message="toast.message" :tone="toast.tone" />
 
     <PatientInfoPanel :model-value="patient" @update:model-value="workspaceStore.updatePatient" />
 
-    <section class="grid items-start gap-4 2xl:grid-cols-[minmax(0,1.35fr)_520px]">
+    <section class="grid items-start gap-4 2xl:grid-cols-[minmax(0,1.3fr)_520px]">
       <div class="grid content-start gap-4">
-        <div class="w-full max-w-[1080px]">
+        <div class="w-full max-w-[1120px]">
           <SegmentationViewer
             :is-segmenting="isSegmenting"
             :has-mask-image="Boolean(uploadedMaskFile)"
@@ -67,15 +76,31 @@ onMounted(() => {
           />
         </div>
 
+        <ExemplarRetrievalPanel
+          :retrieval="exemplarRetrieval"
+          :feedback-map="exemplarFeedback"
+          :is-retrieving="isRetrievingExemplars"
+          :feedback-submitting-for="feedbackSubmittingFor"
+          @refresh="workspaceStore.refreshExemplarRetrieval"
+          @feedback="workspaceStore.submitExemplarFeedback"
+        />
+
         <ReportAgentPanel
           :report-result="reportResult"
           :is-generating="isGeneratingReport"
           :can-generate="canGenerateReport"
           @generate="workspaceStore.generateReport"
         />
+
+        <ExemplarBankPanel
+          :decision="exemplarDecision"
+          :is-evaluating="isEvaluatingExemplar"
+          :can-evaluate="canEvaluateExemplar"
+          @evaluate="workspaceStore.evaluateExemplar"
+        />
       </div>
 
-      <aside class="grid content-start gap-4">
+      <aside class="grid content-start gap-4 2xl:sticky 2xl:top-4">
         <ExpertConfigPanel :model-value="expertConfig" @update:model-value="workspaceStore.updateExpertConfig" />
       </aside>
     </section>

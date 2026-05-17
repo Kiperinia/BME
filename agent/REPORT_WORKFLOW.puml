@@ -1,0 +1,179 @@
+@startuml report_generation_workflow
+!define ENTITY_COLOR #E1F5FE
+!define TOOL_COLOR #FFF9C4
+!define AGENT_COLOR #C8E6C9
+!define LLM_COLOR #F8BBD0
+!define DECISION_COLOR #FFE0B2
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundcornersize 10
+skinparam sequence {
+    ParticipantBackgroundColor #F5F5F5
+    LifeLineBackgroundColor #FFFFFF
+}
+
+' ============================================================================
+' 整体流程图
+' ============================================================================
+
+title 报告生成 Agent 完整工作流
+
+participant "Input" as INPUT #ENTITY_COLOR
+participant "DiagnosisAgent" as DIAG #AGENT_COLOR
+participant "Feature\nExtractor" as FEAT #TOOL_COLOR
+participant "Morphology\nClassifier" as MORPH #TOOL_COLOR
+participant "Paris\nTyping" as PARIS #TOOL_COLOR
+participant "Risk\nAssessor" as RISK #TOOL_COLOR
+participant "ReportGenerator" as RGEN #AGENT_COLOR
+participant "Report\nToolRegistry" as TREG #TOOL_COLOR
+participant "LLM\n(Deepseek)" as LLM #LLM_COLOR
+participant "ReportReflection\nAgent" as RREFL #AGENT_COLOR
+participant "ReportData" as OUTPUT #ENTITY_COLOR
+
+INPUT ->> DIAG: Image + Mask + Context
+activate DIAG
+
+DIAG ->> FEAT: extract(image, mask)
+activate FEAT
+FEAT -->> DIAG: LesionFeatures
+deactivate FEAT
+
+DIAG ->> MORPH: classify(features)
+activate MORPH
+MORPH ->> LLM: (optional) LLM thinking
+MORPH -->> DIAG: MorphologyResult
+deactivate MORPH
+
+DIAG ->> PARIS: infer(morphology, features)
+activate PARIS
+PARIS ->> LLM: (optional) LLM thinking
+PARIS -->> DIAG: ParisTypingResult
+deactivate PARIS
+
+DIAG ->> RISK: assess(morphology, paris, features)
+activate RISK
+RISK ->> LLM: (optional) LLM thinking
+RISK -->> DIAG: RiskAssessmentResult
+deactivate RISK
+
+DIAG ->> RGEN: generate(patient_id, morphology, paris, risk, features)
+activate RGEN
+
+alt use_llm = True
+    RGEN ->> LLM: Generate report (findings + conclusion)
+    LLM -->> RGEN: Report text
+else use_llm = False (Template Mode)
+    RGEN ->> TREG: compose_findings()
+    activate TREG
+    TREG -->> RGEN: findings string
+    deactivate TREG
+    
+    RGEN ->> TREG: compose_conclusion()
+    activate TREG
+    TREG -->> RGEN: conclusion string
+    deactivate TREG
+end
+
+RGEN ->> TREG: suggest_layout()
+activate TREG
+TREG -->> RGEN: layout_suggestion
+deactivate TREG
+
+RGEN ->> TREG: suggest_report_keywords()
+activate TREG
+TREG -->> RGEN: keywords list
+deactivate TREG
+
+note over RGEN: === ReAct Refinement ===
+
+RGEN ->> TREG: analyze_report()
+activate TREG
+TREG ->> LLM: Analyze issues (Thinking)
+LLM -->> TREG: Analysis result
+TREG -->> RGEN: has_issues, suggestions
+deactivate TREG
+
+alt has_issues = True
+    RGEN ->> TREG: refine_report(findings)
+    activate TREG
+    TREG ->> LLM: Refine findings (Acting)
+    LLM -->> TREG: Refined findings
+    TREG -->> RGEN: refined_text, changes
+    deactivate TREG
+    
+    RGEN ->> TREG: refine_report(conclusion)
+    activate TREG
+    TREG ->> LLM: Refine conclusion (Acting)
+    LLM -->> TREG: Refined conclusion
+    TREG -->> RGEN: refined_text, changes
+    deactivate TREG
+end
+
+RGEN ->> TREG: score_report()
+activate TREG
+TREG ->> LLM: Score quality (Scoring)
+LLM -->> TREG: overall_score, quality_level
+TREG -->> RGEN: report_score dict
+deactivate TREG
+
+RGEN -->> DIAG: ReportData (initial)
+deactivate RGEN
+
+alt enable_report_reflection = True
+    DIAG ->> RREFL: reflect(report, morphology, paris, risk)
+    activate RREFL
+    
+    loop max_iterations (default 3)
+        note over RREFL: === ReAct Loop ===
+        RREFL ->> LLM: Thinking (analyze report quality)
+        LLM -->> RREFL: thinking text
+        
+        RREFL ->> RREFL: decide_action(thinking)
+        note over RREFL: Decision: analyze/refine_findings\nrefine_conclusion/score/stop
+        
+        alt action = analyze
+            RREFL ->> TREG: analyze_report()
+            activate TREG
+            TREG ->> LLM: Analyze
+            LLM -->> TREG: Analysis
+            TREG -->> RREFL: Result
+            deactivate TREG
+        else action = refine_findings
+            RREFL ->> TREG: refine_report(findings)
+            activate TREG
+            TREG ->> LLM: Refine
+            LLM -->> TREG: Refined
+            TREG -->> RREFL: Result
+            deactivate TREG
+        else action = refine_conclusion
+            RREFL ->> TREG: refine_report(conclusion)
+            activate TREG
+            TREG ->> LLM: Refine
+            LLM -->> TREG: Refined
+            TREG -->> RREFL: Result
+            deactivate TREG
+        else action = score
+            RREFL ->> TREG: score_report()
+            activate TREG
+            TREG ->> LLM: Score
+            LLM -->> TREG: Score
+            TREG -->> RREFL: Result
+            deactivate TREG
+        else action = stop
+            note over RREFL: Quality satisfied, break loop
+        end
+        
+        RREFL ->> RREFL: observe(result, decide continue)
+    end
+    
+    RREFL -->> DIAG: ReflectionResult
+    deactivate RREFL
+    
+    note over DIAG: Report is now refined
+end
+
+DIAG -->> OUTPUT: DiagnosisResult with refined report
+deactivate DIAG
+
+@enduml

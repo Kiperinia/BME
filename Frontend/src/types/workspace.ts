@@ -21,6 +21,12 @@ export interface WorkspaceSegmentation {
   maskAreaPixels: number
   maskAreaRatio: number
   pointCount: number
+  retrievalApplied?: boolean
+  retrievalConfidence?: number | null
+  retrievalUncertainty?: number | null
+  retrievalCandidateCount?: number
+  retrievalBankId?: string | null
+  retrievalPriorKeys?: string[]
 }
 
 export type ParisMorphologyGroup = 'elevated' | 'flat' | 'depressed'
@@ -117,6 +123,41 @@ export interface ExemplarBankDecision {
   duplicateOf?: string | null
   bankSize: number
   storedAt?: string | null
+  bankId: string
+  memoryState?: string | null
+  qualityBreakdown: Record<string, number>
+}
+
+export type ExemplarPolarityHint = 'positive' | 'negative' | 'boundary'
+
+export interface ExemplarRetrievalCandidate {
+  exemplarId: string
+  polarity: ExemplarPolarityHint
+  similarity: number
+  rankScore: number
+  uncertaintyPenalty: number
+  tags: string[]
+}
+
+export interface ExemplarRetrievalResult {
+  bankId: string
+  confidence: number
+  uncertainty: number
+  promptTokenShape: number[]
+  priorKeys: string[]
+  candidateCount: number
+  candidates: ExemplarRetrievalCandidate[]
+  diagnostics: Record<string, unknown>
+}
+
+export type ExemplarFeedbackMode = 'false_positive' | 'false_negative' | 'uncertain' | 'success'
+
+export interface ExemplarFeedbackResult {
+  exemplarId: string
+  bankId: string
+  updatedState: string
+  reasons: string[]
+  qualityBreakdown: Record<string, number>
 }
 
 export interface WorkspaceReportRequest {
@@ -133,9 +174,24 @@ export interface WorkspaceReportRequest {
 }
 
 export interface ExemplarBankRequest extends WorkspaceReportRequest {
+  polarityHint: ExemplarPolarityHint
   reportMarkdown: string
   findings: string
   conclusion: string
+}
+
+export interface ExemplarRetrievalRequest extends WorkspaceReportRequest {
+  topK: number
+  bankId: string
+}
+
+export interface ExemplarFeedbackRequest {
+  exemplarId: string
+  bankId: string
+  failureMode: ExemplarFeedbackMode
+  qualityScore?: number
+  uncertainty?: number
+  metadata?: Record<string, unknown>
 }
 
 export interface PatientCaseRecord {

@@ -79,6 +79,11 @@ class Settings(BaseSettings):
     agent_use_llm: bool = Field(default=True, alias="AGENT_USE_LLM")
     agent_use_llm_report: bool = Field(default=True, alias="AGENT_USE_LLM_REPORT")
     agent_pixel_size_mm: float = Field(default=0.15, alias="AGENT_PIXEL_SIZE_MM", gt=0.0, le=10.0)
+    # Report generation workflow settings
+    report_use_llm: bool = Field(default=False, alias="REPORT_USE_LLM")
+    report_enable_reflection: bool = Field(default=False, alias="REPORT_ENABLE_REFLECTION")
+    report_reflection_max_iterations: int = Field(default=3, alias="REPORT_REFLECTION_MAX_ITERATIONS", ge=1, le=10)
+    report_reflection_quality_threshold: float = Field(default=8.0, alias="REPORT_REFLECTION_QUALITY_THRESHOLD", ge=0.0, le=10.0)
 
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_DIR / ".env"),

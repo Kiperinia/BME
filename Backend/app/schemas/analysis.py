@@ -76,6 +76,12 @@ class SegmentFrameResponseSchema(BaseModel):
     mask_coordinates: list[tuple[int, int]] = Field(default_factory=list)
     bounding_box: tuple[int, int, int, int] = Field(default_factory=lambda: (0, 0, 0, 0))
     mask_area_pixels: int = Field(default=0, ge=0)
+    retrieval_applied: bool = Field(default=False)
+    retrieval_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    retrieval_uncertainty: float | None = Field(default=None, ge=0.0, le=1.0)
+    retrieval_candidate_count: int = Field(default=0, ge=0)
+    retrieval_bank_id: str | None = Field(default=None)
+    retrieval_prior_keys: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(
         json_schema_extra={

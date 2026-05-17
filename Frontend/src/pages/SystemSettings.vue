@@ -230,7 +230,7 @@ onMounted(async () => {
 
           <label class="flex items-center gap-3 rounded-3xl border border-slate-200 px-4 py-3 dark:border-slate-700">
             <input v-model="form.sam3.loraEnabled" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
-            <span class="text-sm font-medium text-slate-700 dark:text-slate-200">鍚敤 LoRA 鎺ㄧ悊</span>
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-200">启用 LoRA 推理</span>
           </label>
 
           <div v-if="form.sam3.loraEnabled" class="grid gap-4 rounded-3xl border border-slate-200 p-4 dark:border-slate-700">
@@ -341,6 +341,104 @@ onMounted(async () => {
           </label>
         </div>
       </article>
+    </section>
+
+    <section v-if="form && runtimeStatus" class="surface-card p-6">
+      <div class="border-b border-slate-200 pb-4 dark:border-slate-700">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">报告生成工作流配置</h3>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          配置 Agent 报告生成的工作流模式和反思优化参数。
+        </p>
+      </div>
+
+      <div class="mt-5 grid gap-4 lg:grid-cols-2">
+        <div class="rounded-3xl border border-slate-200 p-4 dark:border-slate-700">
+          <h4 class="text-sm font-medium text-slate-900 dark:text-white">报告生成模式</h4>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">选择报告生成的方式</p>
+          
+          <label class="mt-3 flex items-center gap-3">
+            <input 
+              :checked="form.agent.useLlmReport" 
+              @change="form.agent.useLlmReport = !form.agent.useLlmReport"
+              type="checkbox" 
+              class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-200">使用 LLM 生成自然语言报告</span>
+          </label>
+          <p class="mt-1 ml-7 text-xs text-slate-500 dark:text-slate-400">
+            启用则使用 LLM 生成自然语言；禁用则使用规则引擎快速合成（0.3s）
+          </p>
+
+          <label class="mt-4 flex items-center gap-3">
+            <input 
+              :checked="form.agent.enableReportReflection" 
+              @change="form.agent.enableReportReflection = !form.agent.enableReportReflection"
+              type="checkbox" 
+              class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-200">启用 ReAct 反思优化</span>
+          </label>
+          <p class="mt-1 ml-7 text-xs text-slate-500 dark:text-slate-400">
+            启用则进行自动分析、精修和评分优化（增加 25-30s）
+          </p>
+        </div>
+
+        <div v-if="form?.agent?.enableReportReflection" class="rounded-3xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-900/60 dark:bg-sky-950/30">
+          <h4 class="text-sm font-medium text-sky-900 dark:text-sky-100">反思优化参数</h4>
+          
+          <label class="mt-3 block">
+            <span class="text-xs font-medium uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">
+              最大迭代次数
+            </span>
+            <input 
+              v-model.number="form.agent.reflectionMaxIterations" 
+              type="number" 
+              min="1" 
+              max="10"
+              class="surface-input mt-2"
+            >
+            <p class="mt-1 text-xs text-sky-600 dark:text-sky-400">
+              单次诊断最多进行 {{ form.agent.reflectionMaxIterations }} 次智能优化迭代（建议 3）
+            </p>
+          </label>
+
+          <label class="mt-3 block">
+            <span class="text-xs font-medium uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">
+              质量满足度阈值
+            </span>
+            <div class="flex items-center gap-3 mt-2">
+              <input 
+                v-model.number="form.agent.reflectionQualityThreshold" 
+                type="range" 
+                min="0" 
+                max="10"
+                step="0.1"
+                class="flex-1"
+              >
+              <span class="text-sm font-medium text-sky-900 dark:text-sky-100 w-8 text-center">
+                {{ form.agent.reflectionQualityThreshold.toFixed(1) }}
+              </span>
+            </div>
+            <p class="mt-1 text-xs text-sky-600 dark:text-sky-400">
+              当报告质量评分达到 {{ form.agent.reflectionQualityThreshold.toFixed(1) }}/10 时停止优化（建议 8.0）
+            </p>
+          </label>
+        </div>
+
+        <div v-else class="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            启用 ReAct 反思优化后，可在此配置迭代次数和质量阈值。
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-4 rounded-3xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/30">
+        <p class="text-xs font-medium uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">工作流耗时预估</p>
+        <p class="mt-2 text-sm text-amber-800 dark:text-amber-200">
+          {{ form.agent.useLlmReport ? 'LLM ' : '模板 ' }}
+          + {{ form.agent.enableReportReflection ? 'ReAct 反思' : '无反思' }}
+          = 
+          {{ form.agent.useLlmReport && form.agent.enableReportReflection ? '~35s' : form.agent.useLlmReport ? '~5s' : form.agent.enableReportReflection ? '~25s' : '~0.3s' }}
+        </p>
+      </div>
     </section>
 
     <section v-else class="surface-card p-6">

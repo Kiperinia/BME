@@ -3,6 +3,12 @@ import axios from 'axios'
 import type {
   ExemplarBankDecision,
   ExemplarBankRequest,
+  ExemplarFeedbackRequest,
+  ExemplarFeedbackResult,
+  ExemplarRetrievalRequest,
+  ExemplarRetrievalResult,
+  ExpertConfiguration,
+  WorkspacePatient,
   WorkspaceReportRequest,
   WorkspaceReportResult,
   WorkspaceSegmentation,
@@ -21,6 +27,12 @@ interface SegmentFrameApiPayload {
   mask_coordinates: [number, number][]
   bounding_box: [number, number, number, number]
   mask_area_pixels: number
+  retrieval_applied?: boolean
+  retrieval_confidence?: number | null
+  retrieval_uncertainty?: number | null
+  retrieval_candidate_count?: number
+  retrieval_bank_id?: string | null
+  retrieval_prior_keys?: string[]
 }
 
 const workspaceClient = axios.create({
@@ -54,9 +66,21 @@ const calculatePolygonArea = (points: [number, number][]) => {
 export const segmentWorkspaceImage = async (
   file: File,
   dimensions: { width: number; height: number },
+  context?: {
+    patient: WorkspacePatient
+    expertConfig: ExpertConfiguration
+    bankId?: string
+    topK?: number
+  },
 ): Promise<WorkspaceSegmentation> => {
   const formData = new FormData()
   formData.append('image', file, file.name)
+  if (context) {
+    formData.append('patient_payload', JSON.stringify(context.patient))
+    formData.append('expert_config_payload', JSON.stringify(context.expertConfig))
+    formData.append('bank_id', context.bankId ?? 'default-bank')
+    formData.append('retrieval_top_k', String(context.topK ?? 6))
+  }
 
   const response = await workspaceClient.post<ApiResponseEnvelope<SegmentFrameApiPayload>>(
     '/analysis/segment-frame',
@@ -74,6 +98,12 @@ export const segmentWorkspaceImage = async (
     maskAreaPixels,
     maskAreaRatio: maskAreaPixels / imageArea,
     pointCount: payload.mask_coordinates.length,
+    retrievalApplied: payload.retrieval_applied ?? false,
+    retrievalConfidence: payload.retrieval_confidence ?? null,
+    retrievalUncertainty: payload.retrieval_uncertainty ?? null,
+    retrievalCandidateCount: payload.retrieval_candidate_count ?? 0,
+    retrievalBankId: payload.retrieval_bank_id ?? null,
+    retrievalPriorKeys: payload.retrieval_prior_keys ?? [],
   }
 }
 
@@ -93,6 +123,28 @@ export const evaluateExemplarCandidate = async (
 ): Promise<ExemplarBankDecision> => {
   const response = await workspaceClient.post<ApiResponseEnvelope<ExemplarBankDecision>>(
     '/agent/workspace/exemplar-bank',
+    payload,
+  )
+
+  return extractApiData(response)
+}
+
+export const retrieveExemplarPrior = async (
+  payload: ExemplarRetrievalRequest,
+): Promise<ExemplarRetrievalResult> => {
+  const response = await workspaceClient.post<ApiResponseEnvelope<ExemplarRetrievalResult>>(
+    '/agent/workspace/exemplar-bank/retrieve-prior',
+    payload,
+  )
+
+  return extractApiData(response)
+}
+
+export const sendExemplarFeedback = async (
+  payload: ExemplarFeedbackRequest,
+): Promise<ExemplarFeedbackResult> => {
+  const response = await workspaceClient.post<ApiResponseEnvelope<ExemplarFeedbackResult>>(
+    '/agent/workspace/exemplar-bank/feedback',
     payload,
   )
 

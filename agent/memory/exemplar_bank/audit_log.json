@@ -1,0 +1,17 @@
+[
+  {
+    "bank_id": "default-bank",
+    "event": "ingest",
+    "exemplar_id": "sample-20260517050512-e743c5dd",
+    "state": "indexed",
+    "quality": 0.5705
+  },
+  {
+    "bank_id": "default-bank",
+    "event": "feedback",
+    "exemplar_id": "sample-20260517050512-e743c5dd",
+    "failure_mode": "false_negative",
+    "next_state": "indexed",
+    "quality": 0.5785
+  }
+]

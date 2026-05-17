@@ -16,7 +16,10 @@ defineEmits<{
   <section class="surface-card p-5">
     <div class="flex flex-col gap-4 border-b border-slate-200 pb-4 dark:border-slate-700 xl:flex-row xl:items-end xl:justify-between">
       <div>
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Exemplar Bank Agent</h3>
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">样本库评估 Agent</h3>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          根据分割质量、标注完整度和报告信息评估当前病例是否值得进入 exemplar bank。
+        </p>
       </div>
 
       <button
@@ -25,7 +28,7 @@ defineEmits<{
         :disabled="!canEvaluate || isEvaluating"
         @click="$emit('evaluate')"
       >
-        {{ isEvaluating ? '评估中...' : '评估并入库' }}
+        {{ isEvaluating ? '评估中...' : '评估并写入样本库' }}
       </button>
     </div>
 
@@ -43,22 +46,38 @@ defineEmits<{
               ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200'
               : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200'"
           >
-            {{ decision.accepted ? '已纳入样本库' : '未纳入样本库' }}
+            {{ decision.accepted ? '已纳入样本库' : '暂未纳入样本库' }}
           </span>
           <span class="text-sm text-slate-600 dark:text-slate-300">
-            分数 {{ decision.score.toFixed(2) }} / 阈值 {{ decision.threshold.toFixed(2) }}
+            得分 {{ decision.score.toFixed(2) }} / 阈值 {{ decision.threshold.toFixed(2) }}
           </span>
           <span class="text-sm text-slate-600 dark:text-slate-300">
-            当前样本库 {{ decision.bankSize }} 条
+            当前样本数 {{ decision.bankSize }}
           </span>
         </div>
 
-        <p v-if="decision.sampleId" class="mt-3 text-sm text-slate-700 dark:text-slate-200">
-          Sample ID: {{ decision.sampleId }}
-        </p>
-        <p v-if="decision.duplicateOf" class="mt-2 text-sm text-slate-700 dark:text-slate-200">
-          Duplicate of: {{ decision.duplicateOf }}
-        </p>
+        <div class="mt-3 grid gap-2 text-sm text-slate-700 dark:text-slate-200">
+          <p v-if="decision.sampleId">样本编号：{{ decision.sampleId }}</p>
+          <p v-if="decision.duplicateOf">重复样本：{{ decision.duplicateOf }}</p>
+          <p>目标样本库：{{ decision.bankId }}</p>
+          <p v-if="decision.memoryState">内存状态：{{ decision.memoryState }}</p>
+        </div>
+      </article>
+
+      <article
+        v-if="Object.keys(decision.qualityBreakdown).length"
+        class="rounded-3xl border border-slate-200 p-4 dark:border-slate-700"
+      >
+        <p class="text-sm font-semibold text-slate-900 dark:text-white">质量分解</p>
+        <div class="mt-3 grid gap-2 md:grid-cols-2">
+          <div
+            v-for="(value, key) in decision.qualityBreakdown"
+            :key="key"
+            class="rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          >
+            {{ key }}：{{ Number(value).toFixed(2) }}
+          </div>
+        </div>
       </article>
 
       <div class="grid gap-2">
@@ -75,6 +94,8 @@ defineEmits<{
     <div
       v-else
       class="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400"
-    />
+    >
+      生成报告后即可评估当前病例是否进入 exemplar bank。
+    </div>
   </section>
 </template>

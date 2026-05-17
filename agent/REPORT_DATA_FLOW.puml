@@ -1,0 +1,125 @@
+@startuml report_data_flow
+!define INPUT_COLOR #E1F5FE
+!define PROCESS_COLOR #FFF9C4
+!define OUTPUT_COLOR #C8E6C9
+!define LLM_COLOR #F8BBD0
+!define DATA_COLOR #FCE4EC
+
+title 报告生成完整数据流
+
+== 输入数据 ==
+entity "患者信息\n(patient_id, study_id, exam_date)" as PATIENT #INPUT_COLOR
+entity "内镜图像\n(Image 数组)" as IMAGE #INPUT_COLOR
+entity "病灶掩码\n(Mask 数组)" as MASK #INPUT_COLOR
+
+== 特征提取 ==
+cloud "FeatureExtractor" as FEAT_EXTRACT #PROCESS_COLOR
+entity "LesionFeatures\n{geometric, color, texture, vessel}" as LESION_FEATURES #DATA_COLOR
+
+PATIENT --> FEAT_EXTRACT
+IMAGE --> FEAT_EXTRACT
+MASK --> FEAT_EXTRACT
+FEAT_EXTRACT --> LESION_FEATURES
+
+== 诊断流程 ==
+cloud "MorphologyClassifier" as MORPH_CLASS #PROCESS_COLOR
+entity "MorphologyResult\n{pedicle, size, surface, color}" as MORPH_RESULT #DATA_COLOR
+
+LESION_FEATURES --> MORPH_CLASS
+MORPH_CLASS --> MORPH_RESULT
+
+cloud "ParisTypingEngine" as PARIS_ENGINE #PROCESS_COLOR
+entity "ParisTypingResult\n{paris_type, invasion_risk}" as PARIS_RESULT #DATA_COLOR
+
+LESION_FEATURES --> PARIS_ENGINE
+MORPH_RESULT --> PARIS_ENGINE
+PARIS_ENGINE --> PARIS_RESULT
+
+cloud "RiskAssessor" as RISK_ASSESS #PROCESS_COLOR
+entity "RiskAssessmentResult\n{risk_level, score, disposition}" as RISK_RESULT #DATA_COLOR
+
+MORPH_RESULT --> RISK_ASSESS
+PARIS_RESULT --> RISK_ASSESS
+LESION_FEATURES --> RISK_ASSESS
+RISK_ASSESS --> RISK_RESULT
+
+== 报告生成 ==
+cloud "ReportGenerator" as REPORT_GEN #PROCESS_COLOR
+
+MORPH_RESULT --> REPORT_GEN
+PARIS_RESULT --> REPORT_GEN
+RISK_RESULT --> REPORT_GEN
+LESION_FEATURES --> REPORT_GEN
+
+== 工具链执行 ==
+
+cloud "compose_findings" as CF #PROCESS_COLOR
+cloud "compose_conclusion" as CC #PROCESS_COLOR
+cloud "suggest_layout" as SL #PROCESS_COLOR
+cloud "suggest_keywords" as SK #PROCESS_COLOR
+
+REPORT_GEN --> CF
+CF --> CC
+CC --> SL
+SL --> SK
+
+entity "初步报告数据\nfindings: str\nconclusion: str\nlayout: str\nkeywords: list" as INITIAL_REPORT #DATA_COLOR
+
+SK --> INITIAL_REPORT
+
+== ReAct 精修（可选）==
+
+cloud "analyze_report\n(LLM)" as ANALYZE #LLM_COLOR
+entity "分析结果\n{has_issues, issues[], suggestions[]}" as ANALYSIS_RESULT #DATA_COLOR
+
+INITIAL_REPORT --> ANALYZE
+MORPH_RESULT --> ANALYZE
+PARIS_RESULT --> ANALYZE
+RISK_RESULT --> ANALYZE
+ANALYZE --> ANALYSIS_RESULT
+
+cloud "refine_report\n(LLM)" as REFINE #LLM_COLOR
+entity "精修后的报告\nfindings: str (精修)\nconclusion: str (精修)" as REFINED_REPORT #DATA_COLOR
+
+ANALYSIS_RESULT --> REFINE
+INITIAL_REPORT --> REFINE
+REFINE --> REFINED_REPORT
+
+cloud "score_report\n(LLM)" as SCORE #LLM_COLOR
+entity "评分结果\n{overall_score, quality_level, dimensions}" as SCORE_RESULT #DATA_COLOR
+
+REFINED_REPORT --> SCORE
+ANALYSIS_RESULT --> SCORE
+MORPH_RESULT --> SCORE
+PARIS_RESULT --> SCORE
+RISK_RESULT --> SCORE
+SCORE --> SCORE_RESULT
+
+== ReAct 反思 Agent（可选）==
+
+cloud "ReportReflectionAgent" as REFL_AGENT #LLM_COLOR
+
+REFINED_REPORT --> REFL_AGENT
+MORPH_RESULT --> REFL_AGENT
+PARIS_RESULT --> REFL_AGENT
+RISK_RESULT --> REFL_AGENT
+
+entity "反思循环 ×3\n{thinking, decision, action, observation}" as REFLECTION_LOOP #DATA_COLOR
+
+REFL_AGENT --> REFLECTION_LOOP
+
+entity "最终改进报告\nfindings: str (精修+反思)\nconclusion: str (精修+反思)" as FINAL_REPORT #OUTPUT_COLOR
+
+REFLECTION_LOOP --> FINAL_REPORT
+
+== 最终输出 ==
+
+entity "DiagnosisResult\n{\n  lesion_id, label, confidence,\n  features, morphology, paris, risk,\n  report (ReportData)\n}" as FINAL_RESULT #OUTPUT_COLOR
+
+MORPH_RESULT --> FINAL_RESULT
+PARIS_RESULT --> FINAL_RESULT
+RISK_RESULT --> FINAL_RESULT
+LESION_FEATURES --> FINAL_RESULT
+FINAL_REPORT --> FINAL_RESULT
+
+@enduml

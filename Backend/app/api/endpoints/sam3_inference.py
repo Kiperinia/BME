@@ -2,7 +2,7 @@ import asyncio
 import logging
 from pathlib import Path as FilePath
 
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
 from app.core.config import Settings, get_settings
 from app.core.dependencies import get_current_user, get_sam3_engine
@@ -76,6 +76,10 @@ def _validate_segment_upload(image: UploadFile, settings: Settings) -> None:
 )
 async def segment_frame(
     image: UploadFile = File(...),
+    patient_payload: str | None = Form(default=None),
+    expert_config_payload: str | None = Form(default=None),
+    bank_id: str | None = Form(default=None),
+    retrieval_top_k: int = Form(default=6),
     engine: SAM3Engine = Depends(get_sam3_engine),
     settings: Settings = Depends(get_settings),
     _: AuthenticatedUserSchema = Depends(get_current_user),
@@ -104,7 +108,18 @@ async def segment_frame(
 
     try:
         data = await asyncio.wait_for(
-            asyncio.to_thread(engine.predict_bytes, image_bytes, image.filename),
+            asyncio.to_thread(
+                engine.predict_bytes,
+                image_bytes,
+                image.filename,
+                content_type=image.content_type,
+                retrieval_context={
+                    "patient_payload": patient_payload,
+                    "expert_config_payload": expert_config_payload,
+                    "bank_id": bank_id,
+                    "top_k": retrieval_top_k,
+                },
+            ),
             timeout=settings.model_inference_timeout_seconds,
         )
         return ApiResponse(data=SegmentFrameResponseSchema(**data))

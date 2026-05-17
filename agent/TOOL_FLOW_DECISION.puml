@@ -1,0 +1,110 @@
+@startuml tool_flow_decision_tree
+!define INPUT_COLOR #E1F5FE
+!define DECISION_COLOR #FFE0B2
+!define TOOL_COLOR #FFF9C4
+!define LLM_COLOR #F8BBD0
+!define OUTPUT_COLOR #C8E6C9
+
+title 工具调用决策树
+
+start
+
+:输入诊断信息;
+: - morphology
+- paris
+- risk
+- features;
+
+:初始化 ReportGenerator;
+
+if (use_llm = True?) then (是)
+    :LLM Chat 生成初步报告;
+    note right: 耗时: ~5秒
+else (否)
+    :调用 compose_findings;
+    note right: 模板规则 (0.05秒)
+    :调用 compose_conclusion;
+    note right: 模板规则 (0.05秒)
+endif
+
+:调用 suggest_layout;
+note right: 排版建议 (0.05秒)
+
+:调用 suggest_report_keywords;
+note right: 关键词建议 (0.1秒)
+
+:获得初步报告 (ReportData);
+note right
+    - findings
+    - conclusion
+    - layout
+    - keywords
+end note
+
+if (LLM可用?) then (是)
+    :调用 analyze_report;
+    note right: ReAct Thinking (~10秒)
+    
+    if (has_issues?) then (true)
+        :调用 refine_report(findings);
+        note right: ReAct Acting (~5秒)
+        
+        :调用 refine_report(conclusion);
+        note right: ReAct Acting (~5秒)
+        
+        :更新 report.findings & conclusion;
+    else (false)
+        :无需精修;
+    endif
+    
+    :调用 score_report;
+    note right: ReAct Scoring (~7秒)
+    
+    :更新 report.report_score;
+else (否)
+    :跳过 ReAct 精修;
+endif
+
+:填充 ReportData;
+
+if (enable_report_reflection = True 且 LLM可用?) then (是)
+    note right: ReportReflectionAgent
+    
+    repeat
+        :Agent Thinking;
+        note right: LLM 思考报告质量 (~8秒)
+        
+        :解析思考文本 → 决定行动;
+        
+        if (decision) then (analyze)
+            :调用 analyze_report;
+        else (refine_findings)
+            :调用 refine_report(findings);
+        else (refine_conclusion)
+            :调用 refine_report(conclusion);
+        else (score)
+            :调用 score_report;
+        else (stop)
+            :停止循环;
+            note right: 质量满足
+        endif
+        
+        :观察结果;
+        
+        if (质量 ≥ 8.0 或 迭代 ≥ 3?) then (是)
+            :退出循环;
+        else (否)
+            :继续下一迭代;
+        endif
+    repeat while (需要继续?)
+    
+    :更新最终报告;
+else (否)
+    :使用当前报告;
+endif
+
+:返回 DiagnosisResult;
+
+stop
+
+@enduml

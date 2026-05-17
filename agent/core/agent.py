@@ -7,6 +7,7 @@ from typing import Any
 from hello_agents.core.agent import Agent
 
 from agents.diagnosis_agent import DiagnosisAgent
+from agents.exemplar_bank_agent import ExemplarBankAgent
 
 
 def build_minimal_agent(
@@ -24,4 +25,17 @@ def build_minimal_agent(
     )
 
 
-__all__ = ["Agent", "DiagnosisAgent", "build_minimal_agent"]
+def build_exemplar_bank_agent(
+    *,
+    memory_root: str = "agent/memory/exemplar_bank",
+    hidden_dim: int = 256,
+    **kwargs: Any,
+) -> ExemplarBankAgent:
+    return ExemplarBankAgent(
+        memory_root=memory_root,
+        hidden_dim=hidden_dim,
+        **kwargs,
+    )
+
+
+__all__ = ["Agent", "DiagnosisAgent", "ExemplarBankAgent", "build_minimal_agent", "build_exemplar_bank_agent"]

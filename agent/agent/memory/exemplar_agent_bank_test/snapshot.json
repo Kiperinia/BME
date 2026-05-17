@@ -1,0 +1,91 @@
+{
+  "bank_id": "default-bank",
+  "version": "v0",
+  "generated_at": "2026-05-17T04:52:20.141092+00:00",
+  "positive_items": [
+    {
+      "exemplar_id": "positive-1",
+      "image_path": "images/positive-1.png",
+      "mask_path": "masks/positive-1.png",
+      "boundary_mask_path": "boundaries/positive-1.png",
+      "domain_source": "kvasir",
+      "polarity": "positive",
+      "morphology_tags": [
+        "0-IIb",
+        "flat"
+      ],
+      "pathology_tags": [
+        "adenoma"
+      ],
+      "semantic_tags": [
+        "polyp",
+        "endoscopy"
+      ],
+      "difficulty_score": 0.35,
+      "boundary_complexity": 0.62,
+      "quality_score": 0.83,
+      "uncertainty_score": 0.21,
+      "usage_frequency": 0,
+      "retrieval_statistics": {
+        "retrieval_count": 0,
+        "positive_hits": 0,
+        "negative_hits": 0,
+        "boundary_hits": 0,
+        "cumulative_similarity": 0.0,
+        "cumulative_gain": 0.0,
+        "last_retrieved_at": "",
+        "failure_count": 0,
+        "false_positive_count": 0,
+        "false_negative_count": 1
+      },
+      "centroid": {
+        "semantic_centroid": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1
+        ],
+        "spatial_centroid_path": "",
+        "boundary_centroid": [
+          0.2,
+          0.2,
+          0.2,
+          0.2,
+          0.2,
+          0.2,
+          0.2,
+          0.2
+        ],
+        "momentum": 0.95
+      },
+      "embeddings": {
+        "sam_embedding_path": "",
+        "medical_semantic_embedding_path": "",
+        "spatial_embedding_path": "",
+        "boundary_embedding_path": "",
+        "embedding_dim": 256,
+        "feature_shape": []
+      },
+      "state": "aged",
+      "cluster_id": "",
+      "dedup_hash": "positive-1.png|positive-1.png|kvasir|positive|0-iib,flat",
+      "created_at": "2026-05-17T04:52:20.141092+00:00",
+      "updated_at": "2026-05-17T04:52:51.823438+00:00",
+      "lineage_parent_ids": [],
+      "metadata": {}
+    }
+  ],
+  "negative_items": [],
+  "boundary_items": [],
+  "clusters": [],
+  "stats": {
+    "positive": 1,
+    "negative": 0,
+    "boundary": 0,
+    "active": 0
+  }
+}

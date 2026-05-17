@@ -1,0 +1,110 @@
+@startuml tool_call_matrix
+!define RULE_COLOR #E8F5E9
+!define LLM_COLOR #F8BBD0
+!define OPTIONAL_COLOR #FFF9C4
+
+title 工具调用矩阵
+
+== 报告生成工具 (7个) ==
+
+package "Report Composition (4个) - 必需" {
+    card "compose_findings" as CF #RULE_COLOR
+    CF : 组成类型: 规则引擎
+    CF : 使用场景: 模板模式
+    CF : 输入参数: morphology, paris, features
+    CF : 输出格式: str (病变描述)
+    CF : 执行时间: ~0.05秒
+    
+    card "compose_conclusion" as CC #RULE_COLOR
+    CC : 组成类型: 规则引擎
+    CC : 使用场景: 模板模式
+    CC : 输入参数: paris, risk
+    CC : 输出格式: str (诊断结论)
+    CC : 执行时间: ~0.05秒
+    
+    card "suggest_layout" as SL #RULE_COLOR
+    SL : 组成类型: 规则引擎
+    SL : 使用场景: 模板+LLM
+    SL : 输入参数: morphology, paris, risk
+    SL : 输出格式: str (排版建议)
+    SL : 执行时间: ~0.05秒
+    
+    card "suggest_report_keywords" as SK #RULE_COLOR
+    SK : 组成类型: 规则引擎
+    SK : 使用场景: 模板+LLM
+    SK : 输入参数: findings, conclusion, max_keywords=6
+    SK : 输出格式: list[str] (关键词)
+    SK : 执行时间: ~0.1秒
+}
+
+CF -down-> CC
+CC -down-> SL
+SL -down-> SK
+
+package "ReAct 工具 (3个) - 可选" {
+    card "analyze_report" as ANALYZE #LLM_COLOR
+    ANALYZE : 工具类型: ReAct-Thinking
+    ANALYZE : LLM调用: 是
+    ANALYZE : 使用场景: 精修阶段
+    ANALYZE : 输入参数: findings, conclusion, paris, risk
+    ANALYZE : 输出格式: {has_issues, issues[], suggestions[], thinking}
+    ANALYZE : 执行时间: ~8-12秒
+    ANALYZE : 调用频率: 可多次 (反思循环)
+    
+    card "refine_report" as REFINE #LLM_COLOR
+    REFINE : 工具类型: ReAct-Acting
+    REFINE : LLM调用: 是
+    REFINE : 使用场景: 精修阶段
+    REFINE : 输入参数: original_text, analysis_result, text_type
+    REFINE : 输出格式: {refined_text, changes[]}
+    REFINE : 执行时间: ~3-6秒
+    REFINE : 调用频率: 最多2次 (findings + conclusion)
+    
+    card "score_report" as SCORE #LLM_COLOR
+    SCORE : 工具类型: ReAct-Scoring
+    SCORE : LLM调用: 是
+    SCORE : 使用场景: 精修阶段
+    SCORE : 输入参数: findings, conclusion, paris, risk, analysis_result
+    SCORE : 输出格式: {overall_score, quality_level, dimensions{}}
+    SCORE : 执行时间: ~6-8秒
+    SCORE : 调用频率: 可多次 (反思循环中)
+}
+
+SK -down-> ANALYZE
+ANALYZE -down-> REFINE
+REFINE -down-> SCORE
+
+== 工具调用流程图 ==
+
+card "模板模式" as TEMPLATE_FLOW #OPTIONAL_COLOR
+TEMPLATE_FLOW : compose_findings()
+TEMPLATE_FLOW : ↓
+TEMPLATE_FLOW : compose_conclusion()
+TEMPLATE_FLOW : ↓
+TEMPLATE_FLOW : suggest_layout()
+TEMPLATE_FLOW : ↓
+TEMPLATE_FLOW : suggest_report_keywords()
+TEMPLATE_FLOW : ↓↓ (可选)
+TEMPLATE_FLOW : analyze_report()
+TEMPLATE_FLOW : ↓ (条件)
+TEMPLATE_FLOW : refine_report (findings + conclusion)
+TEMPLATE_FLOW : ↓
+TEMPLATE_FLOW : score_report()
+
+card "LLM模式" as LLM_FLOW #LLM_COLOR
+LLM_FLOW : LLM Chat()
+LLM_FLOW : ↓
+LLM_FLOW : suggest_layout()
+LLM_FLOW : ↓
+LLM_FLOW : suggest_report_keywords()
+LLM_FLOW : ↓↓ (可选)
+LLM_FLOW : analyze_report()
+LLM_FLOW : ↓ (条件)
+LLM_FLOW : refine_report (findings + conclusion)
+LLM_FLOW : ↓
+LLM_FLOW : score_report()
+
+SCORE -down-> TEMPLATE_FLOW
+SCORE -down-> LLM_FLOW
+
+@enduml

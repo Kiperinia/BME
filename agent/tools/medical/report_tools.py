@@ -290,14 +290,14 @@ class ReportKeywordSuggestionTool:
         return keywords[:max(1, max_keywords)]
 
 
-def create_default_report_tool_registry() -> ReportToolRegistry:
+def create_default_report_tool_registry(llm_client: Any = None) -> ReportToolRegistry:
     findings_tool = FindingsComposerTool()
     conclusion_tool = ConclusionComposerTool()
     layout_tool = LayoutSuggestionTool()
     keyword_tool = ReportKeywordSuggestionTool()
-    analysis_tool = ReportAnalysisTool()
-    refinement_tool = ReportRefinementTool()
-    scoring_tool = ReportScoringTool()
+    analysis_tool = ReportAnalysisTool(llm_client=llm_client)
+    refinement_tool = ReportRefinementTool(llm_client=llm_client)
+    scoring_tool = ReportScoringTool(llm_client=llm_client)
 
     registry = ReportToolRegistry()
     registry.register(
@@ -350,7 +350,7 @@ def create_default_report_tool_registry() -> ReportToolRegistry:
     registry.register(
         ReportToolSpec(
             name="analyze_report",
-            description="ReAct thinking: Analyze report for issues and improvement suggestions.",
+            description="ReAct thinking: Use LLM to analyze report and identify issues.",
             input_schema=(
                 ToolParameterSchema("findings", str, True, "Findings text"),
                 ToolParameterSchema("conclusion", str, True, "Conclusion text"),
@@ -363,11 +363,11 @@ def create_default_report_tool_registry() -> ReportToolRegistry:
     registry.register(
         ReportToolSpec(
             name="refine_report",
-            description="ReAct acting: Apply refinements based on analysis suggestions.",
+            description="ReAct acting: Use LLM to refine text based on analysis.",
             input_schema=(
                 ToolParameterSchema("original_text", str, True, "Original text to refine"),
-                ToolParameterSchema("suggestions", list, True, "Refinement suggestions"),
-                ToolParameterSchema("refinement_type", str, True, "Type: 'findings' or 'conclusion'"),
+                ToolParameterSchema("analysis_result", dict, True, "Result from analysis tool"),
+                ToolParameterSchema("text_type", str, True, "Type: 'findings' or 'conclusion'"),
             ),
         ),
         refinement_tool.refine,
@@ -375,7 +375,7 @@ def create_default_report_tool_registry() -> ReportToolRegistry:
     registry.register(
         ReportToolSpec(
             name="score_report",
-            description="Generate multidimensional report quality scores.",
+            description="Score report with LLM-guided multidimensional evaluation.",
             input_schema=(
                 ToolParameterSchema("findings", str, True, "Findings text"),
                 ToolParameterSchema("conclusion", str, True, "Conclusion text"),
@@ -452,7 +452,9 @@ def _contrast_cn(contrast: float) -> str:
 
 @dataclass(slots=True)
 class ReportAnalysisTool:
-    """Analyze generated report and identify potential issues or improvements via ReAct reasoning."""
+    """Analyze generated report via LLM thinking to identify real issues."""
+
+    llm_client: Any = None
 
     def analyze(
         self,
@@ -463,89 +465,157 @@ class ReportAnalysisTool:
         risk: RiskAssessmentResult,
     ) -> dict[str, Any]:
         """
-        ReAct Thinking step: Analyze report for accuracy, completeness, clarity.
-        Returns issues and improvement suggestions.
+        ReAct Thinking: Use LLM to genuinely analyze report and identify issues.
+        Returns analysis with thinking trace.
         """
-        issues: list[str] = []
-        suggestions: list[str] = []
+        if not self.llm_client:
+            return {
+                "has_issues": False,
+                "issues": [],
+                "suggestions": [],
+                "thinking": "LLM client not available; skipping LLM analysis",
+                "confidence": 0.0,
+            }
 
-        # Check for missing key risk factors
-        if risk.risk_level == RiskLevel.HIGH and "紧急" not in conclusion:
-            issues.append("高风险病灶未突出紧急程度")
-            suggestions.append("在结论中强调 '紧急处理' 关键词")
+        # Build analysis prompt for LLM
+        analysis_prompt = f"""你是一名医学诊断报告质量分析专家。请分析以下报告，识别潜在的问题并提出改进建议。
 
-        # Check for incomplete Paris typing description
-        if paris.paris_type and paris.paris_type.value not in findings:
-            issues.append("病灶 Paris 分型在病灶描述中未明确提及")
-            suggestions.append(f"补充 Paris {paris.paris_type.value} 型的特征描述")
+病灶Paris分型：{paris.paris_type.value if paris.paris_type else "未明确"}
+侵润风险：{paris.invasion_risk.value if paris.invasion_risk else "未明确"}
+风险等级：{risk.risk_level.value if risk.risk_level else "未明确"}
+风险评分：{risk.total_score:.1f}/10
 
-        # Check for missing disposition details
-        if "建议" not in conclusion:
-            issues.append("诊断建议信息缺失")
-            suggestions.append("补充明确的诊疗建议（随访/切除/活检等）")
+当前检查所见：
+{findings}
 
-        # Check report length reasonableness
-        if len(findings) < 50:
-            issues.append("病灶描述过于简洁，可能信息不足")
-            suggestions.append("补充更多病灶特征描述")
+当前诊断结论：
+{conclusion}
 
-        if len(findings) > 500:
-            issues.append("病灶描述过长，不够精炼")
-            suggestions.append("精简表述，突出核心信息")
+请分析：
+1. 报告中是否存在信息缺失或不一致？
+2. 是否正确反映了风险等级？
+3. 是否明确给出了诊疗建议？
+4. 表述是否清晰准确？
 
-        return {
-            "has_issues": len(issues) > 0,
-            "issues": issues,
-            "suggestions": suggestions,
-            "confidence": 0.85,
-        }
+请以JSON格式返回分析结果，包含：
+- has_issues: 是否存在问题
+- issues: 具体问题列表
+- suggestions: 改进建议列表
+- thinking: 你的分析思路"""
+
+        try:
+            llm_response = self.llm_client.chat(
+                messages=[{"role": "user", "content": analysis_prompt}],
+                temperature=0.5,
+                max_tokens=1024,
+            )
+
+            # Try to extract JSON from LLM response
+            import json
+            import re
+            json_match = re.search(r"\{.*\}", llm_response, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                result["thinking"] = llm_response
+                result["confidence"] = 0.85
+                return result
+            else:
+                # Fallback: parse response text
+                return {
+                    "has_issues": "问题" in llm_response or "缺失" in llm_response,
+                    "issues": [line for line in llm_response.split("\n") if "问题" in line or "缺失" in line][:3],
+                    "suggestions": [line for line in llm_response.split("\n") if "建议" in line or "改进" in line][:3],
+                    "thinking": llm_response,
+                    "confidence": 0.7,
+                }
+        except Exception as exc:
+            return {
+                "has_issues": False,
+                "issues": [],
+                "suggestions": [],
+                "thinking": f"LLM analysis failed: {str(exc)}",
+                "confidence": 0.0,
+            }
 
 
 @dataclass(slots=True)
 class ReportRefinementTool:
-    """Refine findings or conclusion based on analysis suggestions."""
+    """Refine report based on LLM-guided analysis."""
+
+    llm_client: Any = None
 
     def refine(
         self,
         *,
         original_text: str,
-        suggestions: list[str],
-        refinement_type: str,  # "findings" or "conclusion"
+        analysis_result: dict[str, Any],
+        text_type: str,  # "findings" or "conclusion"
     ) -> dict[str, str]:
         """
-        ReAct Acting step: Apply refinements to the identified issues.
-        Returns refined text and change log.
+        ReAct Acting: Use LLM to refine text based on specific issues.
+        Returns refined text with change trace.
         """
-        refined = original_text
-        changes: list[str] = []
+        if not self.llm_client or not analysis_result.get("suggestions"):
+            return {
+                "refined_text": original_text,
+                "changes": [],
+                "thinking": "No refinement suggestions or LLM unavailable",
+            }
 
-        for suggestion in suggestions[:3]:  # Limit to top 3 suggestions
-            # Simple keyword injection based on suggestion
-            if "紧急" in suggestion and refinement_type == "conclusion":
-                if "紧急" not in refined:
-                    refined = refined.replace("建议：", "建议（紧急处理）：", 1)
-                    changes.append("添加紧急处理标记")
+        suggestions_text = "\n".join(analysis_result.get("suggestions", [])[:3])
+        issues_text = "\n".join(analysis_result.get("issues", [])[:3])
 
-            if "Paris" in suggestion and refinement_type == "findings":
-                if "Paris" not in refined:
-                    refined = f"{refined}。按 Paris 分型标准评估。"
-                    changes.append("补充 Paris 分型评估")
+        refinement_prompt = f"""你是一名医学诊断报告编写专家。请根据以下反馈改进诊断报告的{text_type}部分。
 
-            if "诊疗建议" in suggestion or "建议" in suggestion:
-                if refinement_type == "conclusion" and "建议" not in refined:
-                    refined = f"{refined}。诊疗建议：进一步评估。"
-                    changes.append("补充诊疗建议")
+识别到的问题：
+{issues_text}
 
-        return {
-            "refined_text": refined,
-            "changes": changes,
-            "refinement_count": len(changes),
-        }
+改进建议：
+{suggestions_text}
+
+原文本：
+{original_text}
+
+请改进上述文本，使其：
+1. 解决识别到的问题
+2. 遵循改进建议
+3. 保持专业的医学表述
+4. 信息完整且表达清晰
+
+请只返回改进后的文本，不需要其他说明。"""
+
+        try:
+            llm_response = self.llm_client.chat(
+                messages=[{"role": "user", "content": refinement_prompt}],
+                temperature=0.4,
+                max_tokens=512,
+            )
+
+            refined_text = llm_response.strip()
+            changes = []
+            if refined_text != original_text:
+                # Track that changes were made
+                changes.append(f"基于{len(analysis_result.get('suggestions', []))}项建议进行了精修")
+                changes.append(f"文本长度从{len(original_text)}改为{len(refined_text)}")
+
+            return {
+                "refined_text": refined_text,
+                "changes": changes,
+                "thinking": f"Applied LLM refinement with {len(analysis_result.get('suggestions', []))} suggestions",
+            }
+        except Exception as exc:
+            return {
+                "refined_text": original_text,
+                "changes": [],
+                "thinking": f"Refinement failed: {str(exc)}",
+            }
 
 
 @dataclass(slots=True)
 class ReportScoringTool:
-    """Score the report across multiple dimensions."""
+    """Score report using LLM-guided evaluation."""
+
+    llm_client: Any = None
 
     def score(
         self,
@@ -557,10 +627,76 @@ class ReportScoringTool:
         analysis_result: dict[str, Any],
     ) -> dict[str, Any]:
         """
-        Generate multidimensional report scores and confidence.
-        Returns overall score and breakdown by dimension.
+        Score report with LLM evaluation guidance.
+        Returns multidimensional scores and assessment.
         """
-        # Dimension scoring (0-10 scale)
+        if not self.llm_client:
+            # Fallback to rule-based scoring
+            return self._rule_based_score(findings, conclusion, paris, risk, analysis_result)
+
+        scoring_prompt = f"""你是一名医学诊断报告质量评估专家。请对以下报告进行多维度评分。
+
+Paris分型：{paris.paris_type.value if paris.paris_type else "未明确"}
+风险等级：{risk.risk_level.value if risk.risk_level else "未明确"}
+风险评分：{risk.total_score:.1f}/10
+
+检查所见：
+{findings[:200]}...
+
+诊断结论：
+{conclusion[:200]}...
+
+分析结果中存在的问题数：{len(analysis_result.get("issues", []))}
+
+请以JSON格式对以下维度评分（0-10）：
+- 准确性（accuracy）：是否准确反映诊断
+- 完整性（completeness）：信息是否完整
+- 清晰度（clarity）：表述是否清晰
+- 风险识别（risk_recognition）：是否正确识别风险
+
+并给出综合质量评估。
+
+返回JSON格式，包含dimensions和overall_score."""
+
+        try:
+            llm_response = self.llm_client.chat(
+                messages=[{"role": "user", "content": scoring_prompt}],
+                temperature=0.3,
+                max_tokens=512,
+            )
+
+            # Try to extract scores from LLM response
+            import json
+            import re
+            json_match = re.search(r"\{.*\}", llm_response, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                if "overall_score" in result:
+                    overall = result["overall_score"]
+                    result["quality_level"] = (
+                        "excellent" if overall >= 8.5
+                        else "good" if overall >= 7.5
+                        else "fair" if overall >= 6.5
+                        else "poor"
+                    )
+                    result["confidence"] = 0.85
+                    result["thinking"] = llm_response
+                    return result
+        except Exception as exc:
+            pass
+
+        # Fallback to rule-based
+        return self._rule_based_score(findings, conclusion, paris, risk, analysis_result)
+
+    @staticmethod
+    def _rule_based_score(
+        findings: str,
+        conclusion: str,
+        paris: ParisTypingResult,
+        risk: RiskAssessmentResult,
+        analysis_result: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Fallback rule-based scoring when LLM is unavailable."""
         accuracy_score = 8.5 if not analysis_result.get("has_issues") else 7.0
         completeness_score = 9.0 if len(findings) > 80 and len(conclusion) > 50 else 7.5
         clarity_score = 8.0 if "。" in findings and "。" in conclusion else 6.5
@@ -569,10 +705,10 @@ class ReportScoringTool:
         ) else 7.5
 
         dimensions = {
-            "accuracy": round(accuracy_score, 1),  # 准确性
-            "completeness": round(completeness_score, 1),  # 完整性
-            "clarity": round(clarity_score, 1),  # 清晰度
-            "risk_recognition": round(risk_recognition_score, 1),  # 风险识别度
+            "accuracy": round(accuracy_score, 1),
+            "completeness": round(completeness_score, 1),
+            "clarity": round(clarity_score, 1),
+            "risk_recognition": round(risk_recognition_score, 1),
         }
 
         overall_score = round(sum(dimensions.values()) / len(dimensions), 1)
@@ -587,6 +723,6 @@ class ReportScoringTool:
             "overall_score": overall_score,
             "quality_level": quality_level,
             "dimensions": dimensions,
-            "confidence": 0.8,
-            "timestamp": None,  # Set by caller
+            "confidence": 0.6,
+            "thinking": "Rule-based fallback scoring (LLM unavailable)",
         }

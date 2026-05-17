@@ -5,6 +5,8 @@ import axios from 'axios'
 import {
   evaluateExemplarCandidate,
   generateWorkspaceReport,
+  retrieveExemplarPrior,
+  sendExemplarFeedback,
   segmentWorkspaceImage,
 } from '@/api/workspace'
 import { usePatientRecordsStore } from '@/stores/patientRecords'
@@ -14,6 +16,9 @@ import {
   createDefaultPatient,
   formatParisClassification,
   type ExemplarBankDecision,
+  type ExemplarFeedbackMode,
+  type ExemplarFeedbackResult,
+  type ExemplarRetrievalResult,
   type ExpertConfiguration,
   type ToastState,
   type UploadedWorkspaceImage,
@@ -78,10 +83,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const segmentation = ref<WorkspaceSegmentation | null>(null)
   const reportResult = ref<WorkspaceReportResult | null>(null)
   const exemplarDecision = ref<ExemplarBankDecision | null>(null)
+  const exemplarRetrieval = ref<ExemplarRetrievalResult | null>(null)
+  const exemplarFeedback = ref<Record<string, ExemplarFeedbackResult>>({})
   const showMask = ref(true)
   const isSegmenting = ref(false)
   const isGeneratingReport = ref(false)
   const isEvaluatingExemplar = ref(false)
+  const isRetrievingExemplars = ref(false)
+  const feedbackSubmittingFor = ref<string | null>(null)
   const toast = ref<ToastState>({
     visible: false,
     message: '',
@@ -114,6 +123,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     segmentation.value = null
     reportResult.value = null
     exemplarDecision.value = null
+    exemplarRetrieval.value = null
+    exemplarFeedback.value = {}
     showMask.value = true
   }
 
@@ -339,6 +350,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       showMask.value = true
       reportResult.value = null
       exemplarDecision.value = null
+      await refreshExemplarRetrieval()
       pushToast('已应用上传掩码，可直接生成报告。', 'success')
     } catch (error) {
       const message = resolveRequestErrorMessage(error, '掩码图解析失败，请更换文件后重试。')
@@ -357,11 +369,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const result = await segmentWorkspaceImage(uploadedFile.value, {
         width: uploadedImage.value.width,
         height: uploadedImage.value.height,
+      }, {
+        patient: patient.value,
+        expertConfig: {
+          ...expertConfig.value,
+          parisClassification: formatParisClassification(expertConfig.value.parisDetail),
+        },
+        bankId: 'default-bank',
+        topK: 6,
       })
       segmentation.value = result
       showMask.value = true
       reportResult.value = null
       exemplarDecision.value = null
+      await refreshExemplarRetrieval()
       pushToast('MedicalSAM3 分割完成。', 'success')
     } catch (error) {
       const message = resolveRequestErrorMessage(error, '分割失败，请检查后端服务。')
@@ -399,6 +420,29 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         ...expertConfig.value,
         parisClassification: formatParisClassification(expertConfig.value.parisDetail),
       },
+    }
+  }
+
+  const refreshExemplarRetrieval = async () => {
+    const payload = buildReportRequest()
+    if (!payload) {
+      exemplarRetrieval.value = null
+      return
+    }
+
+    isRetrievingExemplars.value = true
+    try {
+      exemplarRetrieval.value = await retrieveExemplarPrior({
+        ...payload,
+        topK: 6,
+        bankId: segmentation.value?.retrievalBankId ?? 'default-bank',
+      })
+    } catch (error) {
+      exemplarRetrieval.value = null
+      const message = resolveRequestErrorMessage(error, 'Exemplar retrieval failed.')
+      pushToast(message, 'error')
+    } finally {
+      isRetrievingExemplars.value = false
     }
   }
 
@@ -447,6 +491,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     try {
       exemplarDecision.value = await evaluateExemplarCandidate({
         ...payload,
+        polarityHint: 'positive',
         reportMarkdown: reportResult.value?.reportMarkdown ?? '',
         findings: reportResult.value?.findings ?? '',
         conclusion: reportResult.value?.conclusion ?? '',
@@ -462,6 +507,34 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       pushToast(message, 'error')
     } finally {
       isEvaluatingExemplar.value = false
+    }
+  }
+
+  const submitExemplarFeedback = async (exemplarId: string, failureMode: ExemplarFeedbackMode) => {
+    const bankId = exemplarRetrieval.value?.bankId ?? segmentation.value?.retrievalBankId ?? exemplarDecision.value?.bankId ?? 'default-bank'
+    feedbackSubmittingFor.value = exemplarId
+    try {
+      const result = await sendExemplarFeedback({
+        exemplarId,
+        bankId,
+        failureMode,
+        qualityScore: reportResult.value ? 0.85 : undefined,
+        uncertainty: segmentation.value?.retrievalUncertainty ?? undefined,
+        metadata: {
+          imageFilename: uploadedImage.value?.filename ?? '',
+          patientId: patient.value.patientId,
+        },
+      })
+      exemplarFeedback.value = {
+        ...exemplarFeedback.value,
+        [exemplarId]: result,
+      }
+      pushToast(`Exemplar feedback saved: ${failureMode}`, 'success')
+    } catch (error) {
+      const message = resolveRequestErrorMessage(error, 'Exemplar feedback failed.')
+      pushToast(message, 'error')
+    } finally {
+      feedbackSubmittingFor.value = null
     }
   }
 
@@ -481,10 +554,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     segmentation,
     reportResult,
     exemplarDecision,
+    exemplarRetrieval,
+    exemplarFeedback,
     showMask,
     isSegmenting,
     isGeneratingReport,
     isEvaluatingExemplar,
+    isRetrievingExemplars,
+    feedbackSubmittingFor,
     toast,
     canSegment,
     canGenerateReport,
@@ -497,6 +574,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     updateExpertConfig,
     generateReport,
     evaluateExemplar,
+    refreshExemplarRetrieval,
+    submitExemplarFeedback,
     toggleMask,
     dispose,
   }
