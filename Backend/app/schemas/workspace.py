@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -22,6 +23,7 @@ class WorkspaceImageSchema(BaseModel):
 
 
 class WorkspaceSegmentationSchema(BaseModel):
+    maskDataUrl: str = Field(default="")
     maskCoordinates: list[tuple[int, int]] = Field(default_factory=list)
     boundingBox: tuple[int, int, int, int] = Field(default_factory=lambda: (0, 0, 0, 0))
     maskAreaPixels: float = Field(default=0.0, ge=0.0)
@@ -29,12 +31,38 @@ class WorkspaceSegmentationSchema(BaseModel):
     pointCount: int = Field(default=0, ge=0)
 
 
+class ParisDetailSchema(BaseModel):
+    morphologyGroup: Literal["elevated", "flat", "depressed"] = "flat"
+    selectedSubtypeIndex: int = Field(default=0, ge=0, le=12)
+    subtypeCode: str = Field(default="0-IIb", max_length=32)
+    displayLabel: str = Field(default="", max_length=64)
+    featureSummary: str = Field(default="", max_length=256)
+    featureReference: str = Field(default="", max_length=512)
+
+
 class ExpertConfigurationSchema(BaseModel):
-    parisClassification: str = Field(default="", max_length=64)
+    parisClassification: str = Field(default="", max_length=128)
+    parisDetail: ParisDetailSchema = Field(default_factory=ParisDetailSchema)
     lesionType: str = Field(default="", max_length=128)
     pathologyClassification: str = Field(default="", max_length=128)
     surfacePattern: str = Field(default="", max_length=256)
     expertNotes: str = Field(default="", max_length=4000)
+
+
+class WorkspaceFeatureTagSchema(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    label: str = Field(min_length=1, max_length=64)
+    category: str = Field(min_length=1, max_length=64)
+    tone: Literal["sky", "emerald", "amber", "rose", "violet"] = "sky"
+
+
+class AgentTraceStepSchema(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    kind: Literal["thought", "tool_call", "tool_result", "final"] = "thought"
+    title: str = Field(min_length=1, max_length=128)
+    detail: str = Field(default="", max_length=4000)
+    toolName: str | None = Field(default=None, max_length=128)
+    status: str | None = Field(default=None, max_length=64)
 
 
 class WorkspaceReportRequestSchema(BaseModel):
@@ -49,6 +77,8 @@ class WorkspaceReportResponseSchema(BaseModel):
     conclusion: str
     recommendation: str
     reportMarkdown: str
+    featureTags: list[WorkspaceFeatureTagSchema] = Field(default_factory=list)
+    agentTrace: list[AgentTraceStepSchema] = Field(default_factory=list)
     workflow: AgentWorkflowSchema
 
 

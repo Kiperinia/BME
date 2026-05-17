@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import logging
 import sys
 import threading
@@ -20,6 +21,7 @@ except Exception:
 
 
 logger = logging.getLogger(__name__)
+MODEL_RUNTIME_PRECISION = "fp32"
 
 
 @dataclass(slots=True)
@@ -135,7 +137,7 @@ class SAM3Engine:
             prompt_bbox = self._build_prompt_bbox(preprocess_result=preprocess_result).to(model_input.device)
 
             with torch.inference_mode():
-                outputs = self.model(model_input, bboxes=prompt_bbox)
+                outputs = self.model(model_input, boxes=prompt_bbox)
 
             mask_tensor = outputs["masks"].detach().float().cpu()
             binary_mask = (np.squeeze(mask_tensor[0].numpy()) > self.mask_threshold).astype(np.uint8)
@@ -169,6 +171,9 @@ class SAM3Engine:
                 interpolation=cv2.INTER_NEAREST,
             )
 
+        mask_area_pixels = int(mask.sum())
+        mask_data_url = self._encode_mask_data_url(mask)
+
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         valid_contours = [
             contour for contour in contours if cv2.contourArea(contour) >= self.min_contour_area
@@ -195,8 +200,10 @@ class SAM3Engine:
         ]
         mask_coordinates = [[int(px), int(py)] for px, py in points.tolist()]
         return {
+            "mask_data_url": mask_data_url,
             "mask_coordinates": mask_coordinates,
             "bounding_box": bounding_box,
+            "mask_area_pixels": mask_area_pixels,
         }
 
     def mock_predict(self, image_width: int, image_height: int) -> dict[str, Any]:
@@ -222,9 +229,13 @@ class SAM3Engine:
         y_min = int(polygon[:, 1].min())
         x_max = int(polygon[:, 0].max())
         y_max = int(polygon[:, 1].max())
+        mask = np.zeros((max(image_height, 1), max(image_width, 1)), dtype=np.uint8)
+        cv2.fillPoly(mask, [polygon.reshape(-1, 1, 2)], 1)
         return {
+            "mask_data_url": self._encode_mask_data_url(mask),
             "mask_coordinates": [[int(x), int(y)] for x, y in polygon.tolist()],
             "bounding_box": [x_min, y_min, x_max, y_max],
+            "mask_area_pixels": int(mask.sum()),
         }
 
     def predict_bytes(self, image_bytes: bytes, filename: str | None = None) -> dict[str, Any]:
@@ -255,16 +266,19 @@ class SAM3Engine:
             sys.path.insert(0, workspace_dir)
 
         try:
-            from MedicalSAM3.models.medsam3_base import build_medsam3
+            from MedicalSAM3.adapters.lora import LoRAConfig, apply_lora_to_model, load_lora_weights
+            from MedicalSAM3.sam3_official.build_model import build_official_sam3_image_model
+            from MedicalSAM3.sam3_official.tensor_forward import Sam3TensorForwardWrapper
         except Exception as exc:
             raise RuntimeError("failed to import MedicalSAM3 backend") from exc
 
         try:
-            model = build_medsam3(
+            base_model = build_official_sam3_image_model(
                 checkpoint_path=str(checkpoint_path),
-                image_size=self.input_size,
                 device=self.device,
-                load_from_hf=False,
+                dtype=MODEL_RUNTIME_PRECISION,
+                compile_model=False,
+                allow_dummy_fallback=False,
             )
         except Exception as exc:
             raise RuntimeError("failed to initialize SAM3 model") from exc
@@ -273,11 +287,33 @@ class SAM3Engine:
             lora_path = Path(self.settings.model_lora_path)
             if not lora_path.exists():
                 raise FileNotFoundError(f"SAM3 LoRA checkpoint not found: {lora_path}")
-            if not hasattr(model, "load_custom_checkpoint"):
-                raise RuntimeError("loaded SAM3 model does not support adapter checkpoint injection")
-            model.load_custom_checkpoint(str(lora_path))
-            logger.info("Loaded SAM3 LoRA/adapter weights: %s", lora_path)
+            lora_config = LoRAConfig(stage=self.settings.model_lora_stage, min_replaced_modules=1)
+            replaced_modules = apply_lora_to_model(base_model, lora_config)
+            missing_keys, unexpected_keys = load_lora_weights(base_model, lora_path, strict=False)
+            matched_lora_keys = self._count_loaded_lora_keys(base_model=base_model, lora_path=lora_path)
+            if matched_lora_keys <= 0:
+                raise RuntimeError(f"LoRA checkpoint did not match any injected modules: {lora_path}")
+            if unexpected_keys:
+                logger.warning(
+                    "Loaded SAM3 LoRA checkpoint with %s unexpected keys: %s",
+                    len(unexpected_keys),
+                    unexpected_keys[:8],
+                )
+            logger.info(
+                "Loaded SAM3 LoRA weights from %s with stage=%s replaced_modules=%s matched_lora_keys=%s missing_keys=%s",
+                lora_path,
+                self.settings.model_lora_stage,
+                len(replaced_modules),
+                matched_lora_keys,
+                len(missing_keys),
+            )
 
+        model = Sam3TensorForwardWrapper(
+            model=base_model,
+            device=self.device,
+            dtype=MODEL_RUNTIME_PRECISION,
+            use_hooks=False,
+        )
         model.eval()
         logger.info("SAM3Engine loaded on %s", self.device)
         return model
@@ -316,15 +352,70 @@ class SAM3Engine:
     @staticmethod
     def _empty_result() -> dict[str, Any]:
         return {
+            "mask_data_url": "",
             "mask_coordinates": [],
             "bounding_box": [0, 0, 0, 0],
+            "mask_area_pixels": 0,
         }
+
+    @staticmethod
+    def _encode_mask_data_url(mask: np.ndarray) -> str:
+        if mask.ndim != 2:
+            raise ValueError("mask image must be 2D")
+
+        rgba = np.zeros((mask.shape[0], mask.shape[1], 4), dtype=np.uint8)
+        foreground = mask.astype(bool)
+        rgba[foreground] = np.array([16, 185, 129, 160], dtype=np.uint8)
+        success, encoded = cv2.imencode(".png", rgba)
+        if not success:
+            raise RuntimeError("failed to encode mask png")
+        payload = base64.b64encode(encoded.tobytes()).decode("ascii")
+        return f"data:image/png;base64,{payload}"
+
+    @staticmethod
+    def _count_loaded_lora_keys(base_model: Any, lora_path: Path) -> int:
+        if torch is None:
+            return 0
+
+        payload = torch.load(lora_path, map_location="cpu", weights_only=False)
+        if not isinstance(payload, dict):
+            return 0
+
+        model_keys = set(base_model.state_dict().keys())
+        prefixes = ("wrapper.model.", "model.", "module.")
+        matched_keys = 0
+
+        for key, value in payload.items():
+            if not isinstance(key, str) or not hasattr(value, "shape"):
+                continue
+
+            candidates = [key]
+            pending = [key]
+            seen = {key}
+            while pending:
+                current = pending.pop()
+                for prefix in prefixes:
+                    if not current.startswith(prefix):
+                        continue
+                    stripped = current[len(prefix) :]
+                    if stripped in seen:
+                        continue
+                    seen.add(stripped)
+                    candidates.append(stripped)
+                    pending.append(stripped)
+
+            if any(candidate in model_keys for candidate in candidates):
+                matched_keys += 1
+
+        return matched_keys
 
 
 class SAM3RuntimeSingleton:
     _instance: "SAM3RuntimeSingleton | None" = None
     _lock = threading.Lock()
     _last_reload_error: str | None = None
+    _preload_thread: threading.Thread | None = None
+    _preload_error: str | None = None
 
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -338,6 +429,56 @@ class SAM3RuntimeSingleton:
                     cls._instance = cls(settings=settings or get_settings())
                     cls._last_reload_error = None
         return cls._instance
+
+    @classmethod
+    def ensure_preload_started(cls, settings: Settings | None = None) -> dict[str, Any]:
+        instance = cls.peek_instance()
+        if instance is not None:
+            return cls.get_preload_status()
+
+        with cls._lock:
+            if cls._instance is not None:
+                return cls.get_preload_status()
+
+            if cls._preload_thread is not None and cls._preload_thread.is_alive():
+                return cls.get_preload_status()
+
+            runtime_settings = settings or get_settings()
+            cls._preload_error = None
+            thread = threading.Thread(
+                target=cls._preload_worker,
+                args=(runtime_settings,),
+                name="sam3-preload",
+                daemon=True,
+            )
+            cls._preload_thread = thread
+            thread.start()
+
+        return cls.get_preload_status()
+
+    @classmethod
+    def _preload_worker(cls, settings: Settings) -> None:
+        try:
+            cls.get_instance(settings=settings)
+        except Exception as exc:  # pragma: no cover - runtime dependent
+            cls._preload_error = str(exc)
+            logger.exception("SAM3 preload failed: %s", exc)
+
+    @classmethod
+    def get_preload_status(cls) -> dict[str, Any]:
+        instance = cls._instance
+        preload_thread = cls._preload_thread
+        in_progress = preload_thread is not None and preload_thread.is_alive()
+
+        return {
+            "started": instance is not None or preload_thread is not None,
+            "ready": instance is not None,
+            "in_progress": in_progress,
+            "load_mode": instance.engine.settings.model_load_mode if instance is not None else "",
+            "device": instance.engine.device if instance is not None else "",
+            "warmup_enabled": instance.engine.settings.model_warmup_enabled if instance is not None else False,
+            "last_error": cls._preload_error or "",
+        }
 
     @classmethod
     def peek_instance(cls) -> "SAM3RuntimeSingleton | None":

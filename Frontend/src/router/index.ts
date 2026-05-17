@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
+import PatientRecordsPage from '@/pages/PatientRecordsPage.vue'
 import SystemSettings from '@/pages/SystemSettings.vue'
 import WorkspacePage from '@/pages/WorkspacePage.vue'
 
@@ -16,6 +17,14 @@ const router = createRouter({
       component: WorkspacePage,
       meta: {
         title: 'Workspace',
+      },
+    },
+    {
+      path: '/patients',
+      name: 'patients',
+      component: PatientRecordsPage,
+      meta: {
+        title: 'Patient Records',
       },
     },
     {

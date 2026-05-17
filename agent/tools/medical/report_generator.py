@@ -20,6 +20,7 @@ from typing import Any, Protocol
 from .feature_extractor import LesionFeatures
 from .morphology_classifier import MorphologyResult
 from .paris_typing import ParisTypingResult
+from .report_tools import ReportToolRegistry, create_default_report_tool_registry
 from .risk_assessor import (
     Disposition,
     RiskAssessmentResult,
@@ -46,8 +47,13 @@ class ReportData:
     layout_suggestion: str = ""      # 排版建议
     lesion_summary: dict[str, Any] = field(default_factory=dict)
     risk_summary: dict[str, Any] = field(default_factory=dict)
+    tool_calls: list[dict[str, Any]] = field(default_factory=list)
     generated_at: str = ""
     model_version: str = "medical-pipeline-v1"
+    # ReAct 相关字段
+    react_analysis: dict[str, Any] = field(default_factory=dict)     # 反思结果
+    react_refinement: dict[str, Any] = field(default_factory=dict)   # 精修结果
+    report_score: dict[str, Any] = field(default_factory=dict)       # 报告评分
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -59,8 +65,12 @@ class ReportData:
             "layoutSuggestion": self.layout_suggestion,
             "lesion_summary": self.lesion_summary,
             "risk_summary": self.risk_summary,
+            "tool_calls": self.tool_calls,
             "generated_at": self.generated_at,
             "model_version": self.model_version,
+            "react_analysis": self.react_analysis,
+            "react_refinement": self.react_refinement,
+            "report_score": self.report_score,
         }
 
     def to_api_response(self) -> dict[str, str]:
@@ -114,6 +124,7 @@ class ReportGenerator:
         llm_client: LLMClient | None = None,
         use_llm: bool = False,
         prompt_path: Path | None = None,
+        report_tool_registry: ReportToolRegistry | None = None,
     ):
         """
         Args:
@@ -124,6 +135,7 @@ class ReportGenerator:
         self.llm_client = llm_client
         self.use_llm = use_llm
         self._prompt_template = self._load_prompt(prompt_path)
+        self.report_tool_registry = report_tool_registry or create_default_report_tool_registry()
 
     # ---- 公共接口 ----
 
@@ -173,90 +185,36 @@ class ReportGenerator:
         study_id: str,
         exam_date: str,
     ) -> ReportData:
-        """基于模板生成结构化报告"""
+        """基于工具链生成结构化报告"""
 
-        # ---- 检查所见 (findings) ----
-        findings_parts: list[str] = []
-
-        # 基本描述
-        findings_parts.append(
-            f"内镜检查发现病变 {morphology.size_grade.value} 型，"
-            f"等效直径约 {morphology.estimated_size_mm:.1f} mm"
+        self.report_tool_registry.reset_logs()
+        findings = self.report_tool_registry.call(
+            "compose_findings",
+            morphology=morphology,
+            paris=paris,
+            features=features,
         )
-        if features.geometric.area_mm2 is not None:
-            findings_parts.append(f"（面积约 {features.geometric.area_mm2:.1f} mm²）")
-
-        findings_parts.append("。")
-
-        # 形态描述
-        findings_parts.append(
-            f"病变呈{self._pedicle_cn(morphology.pedicle_type.value)}，"
-            f"{morphology.shape_description}"
+        conclusion = self.report_tool_registry.call(
+            "compose_conclusion",
+            paris=paris,
+            risk=risk,
         )
-
-        # Paris 分型
-        findings_parts.append(
-            f"按 Paris 分型标准，该病变为 {paris.paris_type.value} 型"
+        layout = self.report_tool_registry.call(
+            "suggest_layout",
+            morphology=morphology,
+            paris=paris,
+            risk=risk,
         )
-        if paris.sub_type:
-            findings_parts.append(f"（{paris.sub_type}）")
-        findings_parts.append("。")
-
-        # 表面与血管
-        findings_parts.append(
-            f"表面纹理呈{self._surface_cn(features.texture.surface_pattern.value)}，"
-            f"血管密度{self._vessel_cn(features.texture.vessel_density)}。"
+        keywords = self.report_tool_registry.call(
+            "suggest_report_keywords",
+            findings=findings,
+            conclusion=conclusion,
+            max_keywords=6,
         )
+        tool_calls = self.report_tool_registry.get_call_logs()
 
-        # 颜色
-        findings_parts.append(
-            f"病变{self._color_cn(features.color.dominant_color.value)}，"
-            f"边缘对比度{self._contrast_cn(features.color.border_contrast)}。"
-        )
-
-        findings = "".join(findings_parts)
-
-        # ---- 诊断结论 (conclusion) ----
-        conclusion_parts: list[str] = []
-
-        # 风险等级
-        risk_cn = {
-            RiskLevel.LOW: "低",
-            RiskLevel.INTERMEDIATE: "中等",
-            RiskLevel.HIGH: "高",
-        }
-        conclusion_parts.append(
-            f"综合评估恶性风险为{risk_cn.get(risk.risk_level, '未明确')}风险"
-            f"（评分 {risk.total_score:.1f}/10）。"
-        )
-
-        # 处理建议
-        disp_cn = {
-            Disposition.MONITOR: "定期随访观察",
-            Disposition.ENDOSCOPIC_RESECTION: "内镜下切除",
-            Disposition.BIOPSY: "活检明确病理",
-            Disposition.SURGICAL_REFERRAL: "外科会诊评估",
-            Disposition.URGENT_REFERRAL: "紧急转诊",
-        }
-        conclusion_parts.append(
-            f"建议：{disp_cn.get(risk.disposition, '进一步评估')}。"
-            f"{risk.disposition_reason}"
-        )
-
-        # Paris 分型提示
-        if paris.invasion_risk.value in ("moderate", "high"):
-            conclusion_parts.append(
-                f"Paris {paris.paris_type.value} 型病变浸润风险为"
-                f"{paris.invasion_risk.value}，需重点关注。"
-            )
-
-        conclusion = "".join(conclusion_parts)
-
-        # ---- 排版建议 (layoutSuggestion) ----
-        layout = self._generate_layout_suggestion(morphology, paris, risk)
-
-        # ---- 汇总 ----
-        return ReportData(
+        # ---- 初步报告 ----
+        report_data = ReportData(
             patient_id=patient_id,
             study_id=study_id,
             exam_date=exam_date or datetime.now().strftime("%Y-%m-%d"),
@@ -264,8 +222,20 @@ class ReportGenerator:
             conclusion=conclusion,
             layout_suggestion=layout,
             lesion_summary=morphology.to_dict(),
-            risk_summary=risk.to_dict(),
+            risk_summary={
+                **risk.to_dict(),
+                "suggested_keywords": keywords,
+            },
+            tool_calls=tool_calls,
             generated_at=datetime.now().isoformat(),
+        )
+
+        # ---- ReAct 反思与精修 ----
+        return self._apply_react_refinement(
+            report_data,
+            morphology=morphology,
+            paris=paris,
+            risk=risk,
         )
 
     # ---- LLM 模式 ----
@@ -284,6 +254,7 @@ class ReportGenerator:
         prompt = self._build_llm_prompt(
             patient_id, morphology, paris, risk, features, study_id, exam_date
         )
+        self.report_tool_registry.reset_logs()
 
         try:
             response = self.llm_client.chat(
@@ -292,23 +263,124 @@ class ReportGenerator:
                 max_tokens=1024,
             )
             parsed = self._parse_llm_report(response)
+            findings = parsed.get("findings", "")
+            conclusion = parsed.get("conclusion", "")
+            layout_suggestion = parsed.get("layoutSuggestion", "")
 
-            return ReportData(
+            if not layout_suggestion.strip():
+                layout_suggestion = self.report_tool_registry.call(
+                    "suggest_layout",
+                    morphology=morphology,
+                    paris=paris,
+                    risk=risk,
+                )
+
+            keywords = self.report_tool_registry.call(
+                "suggest_report_keywords",
+                findings=findings,
+                conclusion=conclusion,
+                max_keywords=6,
+            )
+            tool_calls = self.report_tool_registry.get_call_logs()
+
+            # ---- 初步报告 ----
+            report_data = ReportData(
                 patient_id=patient_id,
                 study_id=study_id,
                 exam_date=exam_date or datetime.now().strftime("%Y-%m-%d"),
-                findings=parsed.get("findings", ""),
-                conclusion=parsed.get("conclusion", ""),
-                layout_suggestion=parsed.get("layoutSuggestion", ""),
+                findings=findings,
+                conclusion=conclusion,
+                layout_suggestion=layout_suggestion,
                 lesion_summary=morphology.to_dict(),
-                risk_summary=risk.to_dict(),
+                risk_summary={
+                    **risk.to_dict(),
+                    "suggested_keywords": keywords,
+                },
+                tool_calls=tool_calls,
                 generated_at=datetime.now().isoformat(),
+            )
+
+            # ---- ReAct 反思与精修 ----
+            return self._apply_react_refinement(
+                report_data,
+                morphology=morphology,
+                paris=paris,
+                risk=risk,
             )
         except Exception as exc:
             logger.warning("LLM report generation failed, falling back to template: %s", exc)
             return self._generate_with_template(
                 patient_id, morphology, paris, risk, features, study_id, exam_date
             )
+
+    def _apply_react_refinement(
+        self,
+        report_data: ReportData,
+        morphology: MorphologyResult,
+        paris: ParisTypingResult,
+        risk: RiskAssessmentResult,
+    ) -> ReportData:
+        """
+        ReAct 范式：对初步报告进行反思、精修、评分。
+
+        流程：
+          1. 反思（Thinking）：分析报告问题
+          2. 改进（Acting）：精修发现的问题
+          3. 评分（Scoring）：给出多维度评分
+        """
+        try:
+            # ---- 第一步：ReAct Thinking - 反思与分析 ----
+            analysis_result = self.report_tool_registry.call(
+                "analyze_report",
+                findings=report_data.findings,
+                conclusion=report_data.conclusion,
+                paris=paris,
+                risk=risk,
+            )
+            report_data.react_analysis = analysis_result
+
+            # ---- 第二步：ReAct Acting - 根据反思精修报告 ----
+            if analysis_result.get("has_issues") and analysis_result.get("suggestions"):
+                refinement_findings = self.report_tool_registry.call(
+                    "refine_report",
+                    original_text=report_data.findings,
+                    suggestions=analysis_result.get("suggestions", []),
+                    refinement_type="findings",
+                )
+                report_data.findings = refinement_findings.get("refined_text", report_data.findings)
+
+                refinement_conclusion = self.report_tool_registry.call(
+                    "refine_report",
+                    original_text=report_data.conclusion,
+                    suggestions=analysis_result.get("suggestions", []),
+                    refinement_type="conclusion",
+                )
+                report_data.conclusion = refinement_conclusion.get("refined_text", report_data.conclusion)
+
+                report_data.react_refinement = {
+                    "findings_refinement": refinement_findings,
+                    "conclusion_refinement": refinement_conclusion,
+                }
+
+            # ---- 第三步：评分 ----
+            score_result = self.report_tool_registry.call(
+                "score_report",
+                findings=report_data.findings,
+                conclusion=report_data.conclusion,
+                paris=paris,
+                risk=risk,
+                analysis_result=analysis_result,
+            )
+            report_data.report_score = score_result
+
+            # ---- 更新 tool_calls 来包含所有 ReAct 工具调用 ----
+            report_data.tool_calls = self.report_tool_registry.get_call_logs()
+
+            return report_data
+
+        except Exception as exc:
+            logger.warning("ReAct refinement failed, returning original report: %s", exc)
+            return report_data
 
     def _build_llm_prompt(
         self,

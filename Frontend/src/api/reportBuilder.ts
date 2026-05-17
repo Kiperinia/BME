@@ -22,6 +22,10 @@ export const httpClient = axios.create({
   timeout: 45000,
 })
 
+const SAM3_READY_POLL_INTERVAL_MS = 1000
+const SAM3_READY_MAX_WAIT_MS = 30000
+const SAM3_SEGMENT_TIMEOUT_MS = 120000
+
 interface ApiResponseEnvelope<T> {
   code: number
   message: string
@@ -29,8 +33,20 @@ interface ApiResponseEnvelope<T> {
 }
 
 interface SegmentFrameApiPayload {
+  mask_data_url: string
   mask_coordinates: [number, number][]
   bounding_box: [number, number, number, number]
+  mask_area_pixels: number
+}
+
+interface Sam3PreloadStatus {
+  started: boolean
+  ready: boolean
+  in_progress: boolean
+  load_mode: string
+  device: string
+  warmup_enabled: boolean
+  last_error: string
 }
 
 export const reportBuilderApiContracts = {
@@ -245,25 +261,52 @@ export const saveReportDraft = async (
 }
 
 export const segmentFrameWithSam3 = async (imageSource: string): Promise<SegmentFrameResponse> => {
+  await ensureSam3Ready()
   const normalizedImageSource = await normalizeImageSource(imageSource)
   const imageBlob = dataUrlToBlob(normalizedImageSource)
   const formData = new FormData()
   formData.append('image', imageBlob, 'captured-frame.png')
 
-  const response = await axios.post<ApiResponseEnvelope<SegmentFrameApiPayload>>(
+  const response = await httpClient.post<ApiResponseEnvelope<SegmentFrameApiPayload>>(
     reportBuilderApiContracts.segmentFrame.url,
     formData,
-    {
-      timeout: 45000,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    },
+    { timeout: SAM3_SEGMENT_TIMEOUT_MS },
   )
 
   const payload = extractApiData(response)
   return {
+    maskDataUrl: payload.mask_data_url,
     maskCoordinates: payload.mask_coordinates,
     boundingBox: payload.bounding_box,
+    maskAreaPixels: payload.mask_area_pixels,
+  }
+}
+
+export const preloadSam3Model = async (): Promise<void> => {
+  await httpClient.post(`${apiBaseUrl}/analysis/preload-model`)
+}
+
+const getSam3PreloadStatus = async (): Promise<Sam3PreloadStatus> => {
+  const response = await httpClient.get<ApiResponseEnvelope<Sam3PreloadStatus>>(
+    `${apiBaseUrl}/analysis/preload-model-status`,
+  )
+  return extractApiData(response)
+}
+
+const ensureSam3Ready = async (): Promise<void> => {
+  await preloadSam3Model()
+  const deadline = Date.now() + SAM3_READY_MAX_WAIT_MS
+
+  while (Date.now() < deadline) {
+    const status = await getSam3PreloadStatus()
+    if (status.ready) {
+      return
+    }
+
+    if (status.last_error) {
+      throw new Error(`SAM3 preload failed: ${status.last_error}`)
+    }
+
+    await wait(SAM3_READY_POLL_INTERVAL_MS)
   }
 }

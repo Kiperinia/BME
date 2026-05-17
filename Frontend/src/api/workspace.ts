@@ -17,8 +17,10 @@ interface ApiResponseEnvelope<T> {
 }
 
 interface SegmentFrameApiPayload {
+  mask_data_url: string
   mask_coordinates: [number, number][]
   bounding_box: [number, number, number, number]
+  mask_area_pixels: number
 }
 
 const workspaceClient = axios.create({
@@ -59,18 +61,14 @@ export const segmentWorkspaceImage = async (
   const response = await workspaceClient.post<ApiResponseEnvelope<SegmentFrameApiPayload>>(
     '/analysis/segment-frame',
     formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    },
   )
 
   const payload = extractApiData(response)
-  const maskAreaPixels = calculatePolygonArea(payload.mask_coordinates)
+  const maskAreaPixels = payload.mask_area_pixels ?? calculatePolygonArea(payload.mask_coordinates)
   const imageArea = Math.max(dimensions.width * dimensions.height, 1)
 
   return {
+    maskDataUrl: payload.mask_data_url,
     maskCoordinates: payload.mask_coordinates,
     boundingBox: payload.bounding_box,
     maskAreaPixels,
@@ -99,4 +97,8 @@ export const evaluateExemplarCandidate = async (
   )
 
   return extractApiData(response)
+}
+
+export const preloadWorkspaceSam3Model = async (): Promise<void> => {
+  await workspaceClient.post('/analysis/preload-model')
 }

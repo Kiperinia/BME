@@ -5,6 +5,8 @@ import { getSystemSettings, updateSystemSettings } from '@/api/systemSettings'
 import FeedbackToast from '@/components/common/FeedbackToast.vue'
 import type { LlmProfile, LlmProviderKind, SystemSettingsPayload, SystemSettingsStatus } from '@/types/systemSettings'
 
+type ProfileCreationKind = LlmProviderKind | 'deepseek'
+
 const savedSettings = ref<SystemSettingsPayload | null>(null)
 const form = ref<SystemSettingsPayload | null>(null)
 const runtimeStatus = ref<SystemSettingsStatus | null>(null)
@@ -19,6 +21,54 @@ let toastTimer: number | undefined
 
 const cloneSettings = (value: SystemSettingsPayload): SystemSettingsPayload => {
   return JSON.parse(JSON.stringify(value)) as SystemSettingsPayload
+}
+
+const createProfileDraft = (providerKind: ProfileCreationKind, profileId: string): LlmProfile => {
+  if (providerKind === 'deepseek') {
+    return {
+      profileId,
+      providerKind: 'openai_compatible',
+      defaultProvider: 'deepseek',
+      defaultModel: 'deepseek-chat',
+      apiKey: '',
+      baseUrl: 'https://api.deepseek.com/v1',
+      timeout: 60,
+    }
+  }
+
+  if (providerKind === 'modelscope') {
+    return {
+      profileId,
+      providerKind,
+      defaultProvider: 'modelscope',
+      defaultModel: 'Qwen/Qwen2.5-VL-72B-Instruct',
+      apiKey: '',
+      baseUrl: 'https://api-inference.modelscope.cn/v1/',
+      timeout: 60,
+    }
+  }
+
+  return {
+    profileId,
+    providerKind,
+    defaultProvider: 'openai',
+    defaultModel: 'gpt-4o-mini',
+    apiKey: '',
+    baseUrl: '',
+    timeout: 60,
+  }
+}
+
+const buildUniqueProfileId = (baseId: string, existingIds: string[]) => {
+  let candidate = baseId
+  let suffix = 2
+
+  while (existingIds.includes(candidate)) {
+    candidate = `${baseId}-${suffix}`
+    suffix += 1
+  }
+
+  return candidate
 }
 
 const pushToast = (message: string, tone: 'info' | 'success' | 'error' = 'info') => {
@@ -77,6 +127,23 @@ const handleProviderKindChange = (value: LlmProviderKind) => {
   if (value === 'modelscope' && !activeProfile.value.baseUrl.trim()) {
     activeProfile.value.baseUrl = 'https://api-inference.modelscope.cn/v1/'
   }
+}
+
+const handleCreateProfile = (providerKind: ProfileCreationKind) => {
+  if (!form.value) {
+    return
+  }
+
+  const baseId = providerKind === 'modelscope' ? 'modelscope-profile' : providerKind === 'deepseek' ? 'deepseek-profile' : 'openai-profile'
+  const profileId = buildUniqueProfileId(
+    baseId,
+    form.value.llm.profiles.map((profile) => profile.profileId),
+  )
+  const nextProfile = createProfileDraft(providerKind, profileId)
+
+  form.value.llm.profiles.push(nextProfile)
+  form.value.llm.activeProfile = nextProfile.profileId
+  pushToast(`已新增 ${providerKind === 'modelscope' ? 'ModelScope' : providerKind === 'deepseek' ? 'DeepSeek' : 'OpenAI'} API Profile。`, 'success')
 }
 
 const handleReset = () => {
@@ -161,6 +228,27 @@ onMounted(async () => {
             </select>
           </label>
 
+          <label class="flex items-center gap-3 rounded-3xl border border-slate-200 px-4 py-3 dark:border-slate-700">
+            <input v-model="form.sam3.loraEnabled" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-200">鍚敤 LoRA 鎺ㄧ悊</span>
+          </label>
+
+          <div v-if="form.sam3.loraEnabled" class="grid gap-4 rounded-3xl border border-slate-200 p-4 dark:border-slate-700">
+            <label>
+              <span class="text-xs font-medium uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">LoRA Checkpoint</span>
+              <input v-model="form.sam3.loraPath" class="surface-input mt-2">
+            </label>
+
+            <label>
+              <span class="text-xs font-medium uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">LoRA Stage</span>
+              <select v-model="form.sam3.loraStage" class="surface-input mt-2">
+                <option value="stage_a">stage_a</option>
+                <option value="stage_b">stage_b</option>
+                <option value="stage_c">stage_c</option>
+              </select>
+            </label>
+          </div>
+
           <div class="rounded-3xl bg-slate-50 p-4 dark:bg-slate-900">
             <p class="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">当前状态</p>
             <p class="mt-2 text-sm font-medium text-slate-900 dark:text-white">
@@ -192,6 +280,18 @@ onMounted(async () => {
         </div>
 
         <div class="mt-5 grid gap-4">
+          <div class="flex flex-wrap gap-3">
+            <button type="button" class="surface-button-primary px-4 py-2.5 text-sm" @click="handleCreateProfile('openai_compatible')">
+              新增 OpenAI Profile
+            </button>
+            <button type="button" class="surface-button-primary px-4 py-2.5 text-sm" @click="handleCreateProfile('deepseek')">
+              新增 DeepSeek Profile
+            </button>
+            <button type="button" class="surface-button-secondary px-4 py-2.5 text-sm" @click="handleCreateProfile('modelscope')">
+              新增 ModelScope Profile
+            </button>
+          </div>
+
           <label>
             <span class="text-xs font-medium uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Active Profile</span>
             <select v-model="form.llm.activeProfile" class="surface-input mt-2">

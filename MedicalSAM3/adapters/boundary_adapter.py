@@ -60,17 +60,19 @@ class BoundaryAwareAdapter(nn.Module):
 
         feature_size = image_features.shape[-2:]
         boundary_target = None
+        boundary_map = None
         if gt_mask is not None:
             if gt_mask.shape[-2:] != feature_size:
                 gt_mask = F.interpolate(gt_mask.float(), size=feature_size, mode="nearest")
             boundary_target = _boundary_from_mask(gt_mask)
-        elif coarse_mask_logits is not None:
+        if coarse_mask_logits is not None:
             coarse = coarse_mask_logits.sigmoid()
             if coarse.shape[-2:] != feature_size:
                 coarse = F.interpolate(coarse, size=feature_size, mode="bilinear", align_corners=False)
-            boundary_target = _boundary_from_mask((coarse > 0.5).float())
+            boundary_map = _boundary_from_mask((coarse > 0.5).float())
 
-        boundary_map = boundary_target if boundary_target is not None else _contrast_prior(image_features)
+        if boundary_map is None:
+            boundary_map = _contrast_prior(image_features)
         boundary_features = self.boundary_encoder(boundary_map)
         boundary_logits = self.boundary_head(boundary_features)
         boundary_gate = self.gate_head(torch.cat([image_features, boundary_features], dim=1))
@@ -81,5 +83,9 @@ class BoundaryAwareAdapter(nn.Module):
             "boundary_gate": boundary_gate,
         }
         if boundary_target is not None:
-            aux["boundary_loss"] = F.binary_cross_entropy_with_logits(boundary_logits, boundary_target)
+            with torch.autocast(device_type=image_features.device.type, enabled=False):
+                aux["boundary_loss"] = F.binary_cross_entropy_with_logits(
+                    boundary_logits.float(),
+                    boundary_target.float(),
+                )
         return enhanced, aux

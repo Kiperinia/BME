@@ -21,6 +21,12 @@ class Settings(BaseSettings):
         default="mysql+asyncmy://root:password@127.0.0.1:3306/bme",
         alias="MYSQL_URL",
     )
+    sqlite_url: str = Field(
+        default=f"sqlite+aiosqlite:///{(BACKEND_DIR / 'runtime' / 'bme-dev.sqlite3').resolve().as_posix()}",
+        alias="SQLITE_URL",
+    )
+    db_backend: str = Field(default="auto", alias="DB_BACKEND", pattern="^(auto|mysql|sqlite)$")
+    db_fallback_to_sqlite: bool = Field(default=True, alias="DB_FALLBACK_TO_SQLITE")
     redis_url: str = Field(default="redis://127.0.0.1:6379/0", alias="REDIS_URL")
     celery_broker_url: str | None = Field(default=None, alias="CELERY_BROKER_URL")
     celery_result_backend: str | None = Field(default=None, alias="CELERY_RESULT_BACKEND")
@@ -50,6 +56,7 @@ class Settings(BaseSettings):
     )
     model_lora_enabled: bool = Field(default=False, alias="MODEL_LORA_ENABLED")
     model_lora_path: str = Field(default="", alias="MODEL_LORA_PATH")
+    model_lora_stage: str = Field(default="stage_a", alias="MODEL_LORA_STAGE", pattern="^(stage_a|stage_b|stage_c)$")
     model_keep_aspect_ratio: bool = Field(default=False, alias="MODEL_KEEP_ASPECT_RATIO")
     model_warmup_enabled: bool = Field(default=True, alias="MODEL_WARMUP_ENABLED")
     model_inference_timeout_seconds: int = Field(

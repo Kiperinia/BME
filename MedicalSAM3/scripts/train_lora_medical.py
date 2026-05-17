@@ -252,7 +252,12 @@ def _run_preflight(
         if split_exists and train_records:
             criterion = MedExLossComposer(w_contrast=0.0, w_neg=0.0, w_consistency=0.0)
             loader = DataLoader(
-                SplitSegmentationDataset(train_records, args.image_size),
+                SplitSegmentationDataset(
+                    train_records,
+                    args.image_size,
+                    box_padding_ratio=args.box_padding_ratio,
+                    box_jitter_ratio=args.train_box_jitter_ratio,
+                ),
                 batch_size=args.batch_size,
                 shuffle=False,
                 collate_fn=collate_batch,
@@ -274,7 +279,7 @@ def _run_preflight(
                 )
                 if "mask_logits" not in outputs:
                     raise RuntimeError("forward output missing mask_logits")
-                loss, _ = criterion(outputs["mask_logits"], runtime_batch["masks"])
+            loss, _ = criterion(outputs["mask_logits"].float(), runtime_batch["masks"].float())
             report["forward_success"] = True
             loss.backward()
             report["backward_success"] = any(
@@ -324,6 +329,8 @@ def main() -> int:
     parser.add_argument("--min-lora-modules", type=int, default=1)
     parser.add_argument("--max-train-steps", type=int, default=None)
     parser.add_argument("--max-val-steps", type=int, default=None)
+    parser.add_argument("--box-padding-ratio", type=float, default=0.05)
+    parser.add_argument("--train-box-jitter-ratio", type=float, default=0.05)
     parser.add_argument("--stage", choices=["stage_a", "stage_b", "stage_c"], default="stage_a")
     args = parser.parse_args()
 
@@ -354,6 +361,8 @@ def main() -> int:
             "min_lora_modules": args.min_lora_modules,
             "max_train_steps": args.max_train_steps,
             "max_val_steps": args.max_val_steps,
+            "box_padding_ratio": args.box_padding_ratio,
+            "train_box_jitter_ratio": args.train_box_jitter_ratio,
             "stage": args.stage,
         },
     )
@@ -384,13 +393,23 @@ def main() -> int:
     trainable, total, ratio = count_trainable_parameters(model)
 
     train_loader = DataLoader(
-        SplitSegmentationDataset(train_records, args.image_size),
+        SplitSegmentationDataset(
+            train_records,
+            args.image_size,
+            box_padding_ratio=args.box_padding_ratio,
+            box_jitter_ratio=args.train_box_jitter_ratio,
+        ),
         batch_size=args.batch_size,
         shuffle=True,
         collate_fn=collate_batch,
     )
     val_loader = DataLoader(
-        SplitSegmentationDataset(val_records, args.image_size),
+        SplitSegmentationDataset(
+            val_records,
+            args.image_size,
+            box_padding_ratio=args.box_padding_ratio,
+            box_jitter_ratio=0.0,
+        ),
         batch_size=1,
         shuffle=False,
         collate_fn=collate_batch,
@@ -421,6 +440,8 @@ def main() -> int:
     val_metrics_path = output_dir / "val_metrics.json"
     global_step = 0
 
+    log_path.write_text("", encoding="utf-8")
+
     for epoch in range(start_epoch, args.epochs):
         model.train()
         for step_index, batch in _iter_limited(train_loader, args.max_train_steps):
@@ -437,9 +458,10 @@ def main() -> int:
                     text_prompt=runtime_batch["text_prompt"],
                     gt_mask=runtime_batch["masks"],
                 )
-                loss, _ = criterion(outputs["mask_logits"], runtime_batch["masks"])
-                if outputs["adapter_aux"].get("boundary_loss") is not None:
-                    loss = loss + 0.1 * outputs["adapter_aux"]["boundary_loss"]
+            loss, loss_parts = criterion(outputs["mask_logits"].float(), runtime_batch["masks"].float())
+            adapter_boundary = outputs["adapter_aux"].get("boundary_loss")
+            if adapter_boundary is not None:
+                loss = loss + 0.1 * adapter_boundary.float()
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -454,6 +476,10 @@ def main() -> int:
                             "step": step_index,
                             "global_step": global_step,
                             "loss": float(loss.item()),
+                            "bce": float(loss_parts["bce"].item()),
+                            "dice": float(loss_parts["dice"].item()),
+                            "boundary": float(loss_parts["boundary"].item()),
+                            "adapter_boundary": float(adapter_boundary.item()) if adapter_boundary is not None else None,
                             "lr": scheduler.get_last_lr()[0],
                         }
                     )
@@ -470,7 +496,6 @@ def main() -> int:
                     images=runtime_batch["images"],
                     boxes=runtime_batch["boxes"],
                     text_prompt=runtime_batch["text_prompt"],
-                    gt_mask=runtime_batch["masks"],
                 )
                 metrics = compute_segmentation_metrics(outputs["mask_logits"], runtime_batch["masks"])
                 for key, value in metrics.items():

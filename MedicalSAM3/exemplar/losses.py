@@ -18,9 +18,9 @@ def _soft_dice(mask_a: torch.Tensor, mask_b: torch.Tensor, eps: float = 1e-6) ->
 
 
 def _boundary_band(mask: torch.Tensor) -> torch.Tensor:
-    kernel = torch.ones(1, 1, 3, 3, device=mask.device, dtype=mask.dtype)
-    eroded = (F.conv2d(mask, kernel, padding=1) >= 9.0).float()
-    dilated = (F.conv2d(mask, kernel, padding=1) > 0.0).float()
+    mask = mask.float()
+    dilated = F.max_pool2d(mask, kernel_size=3, stride=1, padding=1)
+    eroded = -F.max_pool2d(-mask, kernel_size=3, stride=1, padding=1)
     return (dilated - eroded).clamp(0, 1)
 
 
@@ -51,6 +51,13 @@ class ExemplarInfoNCELoss(nn.Module):
 class NegativeSuppressionLoss(nn.Module):
     def forward(self, negative_prompt_mask_logits: torch.Tensor) -> torch.Tensor:
         return torch.sigmoid(negative_prompt_mask_logits).mean()
+
+
+class CrossDomainConsistencyLoss(nn.Module):
+    def forward(self, anchor_embedding: torch.Tensor, prototype_embedding: torch.Tensor) -> torch.Tensor:
+        anchor = F.normalize(anchor_embedding, dim=-1)
+        prototype = F.normalize(prototype_embedding, dim=-1)
+        return 1.0 - (anchor * prototype).sum(dim=-1).mean()
 
 
 class ExemplarConsistencyLoss(nn.Module):

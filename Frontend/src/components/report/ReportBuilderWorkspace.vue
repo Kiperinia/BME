@@ -86,7 +86,7 @@ const emit = defineEmits<{
           <template #prompt>
             <Sam3PromptPanel
               class="h-full min-h-0"
-              :polyp-count="context.maskData.length"
+              :polyp-count="Array.isArray(context.maskData) ? context.maskData.length : (context.maskData ? 1 : 0)"
               :prompt-text="sam3PromptText"
               @update:prompt-text="emit('update:sam3-prompt-text', $event)"
             />

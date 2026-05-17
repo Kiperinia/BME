@@ -144,9 +144,9 @@ def main() -> int:
             images = batch["images"].to(device)
             masks = batch["masks"].to(device)
             boxes = batch["boxes"].to(device)
-            warmup = model(images=images, boxes=boxes, text_prompt=batch["text_prompt"], gt_mask=masks)
+            warmup = model(images=images, boxes=boxes, text_prompt=batch["text_prompt"])
             prompt_tokens, selection = _prompt_tokens_from_bank(bank, builder, prompt_adapter, warmup)
-            outputs = model(images=images, boxes=boxes, text_prompt=batch["text_prompt"], exemplar_prompt_tokens=prompt_tokens, gt_mask=masks)
+            outputs = model(images=images, boxes=boxes, text_prompt=batch["text_prompt"], exemplar_prompt_tokens=prompt_tokens)
             metrics = compute_segmentation_metrics(outputs["mask_logits"], masks)
             mean_confidence = float(outputs["scores"].mean().item())
             metrics["mean confidence"] = mean_confidence

@@ -45,6 +45,18 @@ class MyLLM(HelloAgentsLLM):
         resolved_config = config or Config.from_env()
         resolved_provider = self._resolve_provider(provider, resolved_config)
         resolved_model = model or resolved_config.default_model
+        resolved_base_url = base_url or resolved_config.base_url
+        if resolved_provider == "deepseek":
+            if not resolved_base_url:
+                resolved_base_url = "https://api.deepseek.com/v1"
+            if not resolved_model:
+                resolved_model = "deepseek-chat"
+        elif resolved_provider == "tencent":
+            # Hunyuan provides an OpenAI-compatible endpoint.
+            if not resolved_base_url:
+                resolved_base_url = "https://api.hunyuan.cloud.tencent.com/v1"
+            if not resolved_model:
+                resolved_model = "hunyuan-turbos-latest"
         resolved_temperature = kwargs.pop("temperature", resolved_config.temperature)
         resolved_max_tokens = kwargs.pop("max_tokens", resolved_config.max_tokens)
         resolved_timeout = kwargs.pop("timeout", resolved_config.timeout)
@@ -71,7 +83,7 @@ class MyLLM(HelloAgentsLLM):
             super().__init__(
                 model=resolved_model,
                 api_key=api_key or resolved_config.api_key,
-                base_url=base_url or resolved_config.base_url,
+                base_url=resolved_base_url,
                 temperature=resolved_temperature,
                 max_tokens=resolved_max_tokens,
                 timeout=resolved_timeout,

@@ -72,17 +72,31 @@ class SubmitTaskResponseSchema(BaseModel):
 
 
 class SegmentFrameResponseSchema(BaseModel):
+    mask_data_url: str = Field(default="")
     mask_coordinates: list[tuple[int, int]] = Field(default_factory=list)
     bounding_box: tuple[int, int, int, int] = Field(default_factory=lambda: (0, 0, 0, 0))
+    mask_area_pixels: int = Field(default=0, ge=0)
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
+                "mask_data_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
                 "mask_coordinates": [[124, 88], [188, 92], [201, 146], [136, 152]],
                 "bounding_box": [118, 88, 201, 152],
+                "mask_area_pixels": 7421,
             }
         }
     )
+
+
+class Sam3PreloadStatusSchema(BaseModel):
+    started: bool = Field(default=False)
+    ready: bool = Field(default=False)
+    in_progress: bool = Field(default=False)
+    load_mode: str = Field(default="")
+    device: str = Field(default="")
+    warmup_enabled: bool = Field(default=False)
+    last_error: str = Field(default="")
 
 
 class TaskStatusResponseSchema(BaseModel):

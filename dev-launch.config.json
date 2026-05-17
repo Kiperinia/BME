@@ -2,7 +2,9 @@
   "backend": {
     "enabled": true,
     "host": "127.0.0.1",
-    "port": 8000
+    "port": 8000,
+    "mysqlUrl": "",
+    "dbBackend": "sqlite"
   },
   "frontend": {
     "enabled": true,
@@ -11,12 +13,13 @@
     "proxyBackendTarget": "http://127.0.0.1:8000"
   },
   "sam3": {
-    "enabled": false,
-    "runImportCheck": false,
+    "enabled": true,
+    "runImportCheck": true,
     "device": "cuda",
     "checkpointPath": "MedicalSAM3/checkpoint/MedSAM3.pt",
     "loraEnabled": false,
     "loraPath": "",
+    "loraStage": "stage_a",
     "warmupEnabled": true,
     "mockDelayMs": 0,
     "inferenceTimeoutSeconds": 20

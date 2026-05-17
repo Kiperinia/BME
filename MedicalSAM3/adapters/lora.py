@@ -23,6 +23,7 @@ from MedicalSAM3.sam3_official.module_inspector import (
 
 logger = logging.getLogger(__name__)
 DEFAULT_LORA_REPORT = Path(__file__).resolve().parents[1] / "outputs" / "medex_sam3" / "preflight" / "lora_injection_report.json"
+_STATE_DICT_PREFIXES = ("wrapper.model.", "model.", "module.")
 
 
 def _infer_scope_from_name(name: str, scope_aliases: dict[str, list[str]] | None = None) -> str:
@@ -101,8 +102,10 @@ class LoRALinear(nn.Module):
         if self.base_linear.bias is not None:
             self.base_linear.bias.requires_grad = config.train_bias
 
-        self.lora_A = nn.Linear(base_linear.in_features, config.rank, bias=False)
-        self.lora_B = nn.Linear(config.rank, base_linear.out_features, bias=False)
+        parameter_device = base_linear.weight.device
+        parameter_dtype = base_linear.weight.dtype
+        self.lora_A = nn.Linear(base_linear.in_features, config.rank, bias=False).to(device=parameter_device, dtype=parameter_dtype)
+        self.lora_B = nn.Linear(config.rank, base_linear.out_features, bias=False).to(device=parameter_device, dtype=parameter_dtype)
         nn.init.kaiming_uniform_(self.lora_A.weight, a=5**0.5)
         nn.init.zeros_(self.lora_B.weight)
 
@@ -330,8 +333,71 @@ def save_lora_weights(model: nn.Module, path: str | Path) -> None:
     torch.save(get_lora_state_dict(model), destination)
 
 
+def _extract_state_dict(payload: Any) -> dict[str, torch.Tensor]:
+    if isinstance(payload, dict) and all(isinstance(key, str) for key in payload):
+        direct_tensor_map = {
+            key: value
+            for key, value in payload.items()
+            if isinstance(value, torch.Tensor)
+        }
+        if direct_tensor_map:
+            return direct_tensor_map
+
+        for nested_key in ("state_dict", "model", "lora_state_dict", "lora", "weights"):
+            nested = payload.get(nested_key)
+            if isinstance(nested, dict):
+                nested_tensor_map = {
+                    key: value
+                    for key, value in nested.items()
+                    if isinstance(key, str) and isinstance(value, torch.Tensor)
+                }
+                if nested_tensor_map:
+                    return nested_tensor_map
+
+    raise TypeError("LoRA checkpoint does not contain a tensor state dict.")
+
+
+def _strip_known_prefixes(key: str) -> list[str]:
+    variants = [key]
+    pending = [key]
+    seen = {key}
+
+    while pending:
+        current = pending.pop()
+        for prefix in _STATE_DICT_PREFIXES:
+            if not current.startswith(prefix):
+                continue
+            stripped = current[len(prefix) :]
+            if stripped in seen:
+                continue
+            seen.add(stripped)
+            variants.append(stripped)
+            pending.append(stripped)
+
+    return variants
+
+
+def _normalize_lora_state_dict(model: nn.Module, state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    model_state_keys = set(model.state_dict().keys())
+    normalized: dict[str, torch.Tensor] = {}
+
+    for key, value in state_dict.items():
+        target_key = key
+        for candidate in _strip_known_prefixes(key):
+            if candidate in model_state_keys:
+                target_key = candidate
+                break
+        normalized[target_key] = value
+
+    return normalized
+
+
 def load_lora_weights(model: nn.Module, path: str | Path, strict: bool = False) -> tuple[list[str], list[str]]:
-    state_dict = torch.load(path, map_location="cpu", weights_only=False)
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    raw_state_dict = _extract_state_dict(payload)
+    state_dict = _normalize_lora_state_dict(model, raw_state_dict)
+    matched_keys = sum(1 for key in state_dict if key in model.state_dict())
+    logger.info("Loading LoRA checkpoint %s with %s matched tensor keys.", path, matched_keys)
     missing, unexpected = model.load_state_dict(state_dict, strict=strict)
     return list(missing), list(unexpected)
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 
-import { getReportBuilderContext, segmentFrameWithSam3 } from '@/api/reportBuilder'
+import { getReportBuilderContext, preloadSam3Model, segmentFrameWithSam3 } from '@/api/reportBuilder'
 import ReportBuilderWorkspace from '@/components/report/ReportBuilderWorkspace.vue'
-import type { CaptureFramePayload, PolygonMask, ReportContextData } from '@/types/eis'
+import type { CaptureFramePayload, PolygonMask, ReportContextData, SegmentFrameResponse, TumorMaskData } from '@/types/eis'
 
 const props = defineProps<{
   reportId?: string
@@ -74,6 +74,19 @@ const createSam3Mask = (points: PolygonMask['points'], frameWidth: number, frame
   }
 }
 
+const resolveSam3MaskData = (
+  segmentation: SegmentFrameResponse,
+  frameWidth: number,
+  frameHeight: number,
+): TumorMaskData => {
+  if (segmentation.maskDataUrl) {
+    return segmentation.maskDataUrl
+  }
+
+  const fallbackMask = createSam3Mask(segmentation.maskCoordinates, frameWidth, frameHeight)
+  return fallbackMask ? [fallbackMask] : ''
+}
+
 const handleCaptureFrame = async (payload: CaptureFramePayload) => {
   captureImages.value = [payload.dataUrl, ...captureImages.value].slice(0, 6)
 
@@ -88,13 +101,14 @@ const handleCaptureFrame = async (payload: CaptureFramePayload) => {
     const segmentation = await segmentFrameWithSam3(payload.dataUrl)
     const frameWidth = context.value?.videoFrameData.width ?? 1024
     const frameHeight = context.value?.videoFrameData.height ?? 1024
-    const nextMask = createSam3Mask(segmentation.maskCoordinates, frameWidth, frameHeight)
+    const nextMaskData = resolveSam3MaskData(segmentation, frameWidth, frameHeight)
+    const hasMaskData = Array.isArray(nextMaskData) ? nextMaskData.length > 0 : Boolean(nextMaskData)
 
-    if (context.value && nextMask) {
+    if (context.value && hasMaskData) {
       context.value = {
         ...context.value,
         showMask: true,
-        maskData: [nextMask],
+        maskData: nextMaskData,
         captureImageSrcs: [...captureImages.value],
         videoFrameData: {
           ...context.value.videoFrameData,
@@ -103,7 +117,7 @@ const handleCaptureFrame = async (payload: CaptureFramePayload) => {
         tumorFocus: {
           ...context.value.tumorFocus,
           tumorImageSrc: payload.dataUrl,
-          maskData: [nextMask],
+          maskData: nextMaskData,
           details: {
             ...context.value.tumorFocus.details,
             classification: 'SAM3 分割病灶候选',
@@ -143,6 +157,7 @@ watch(
 )
 
 onMounted(async () => {
+  preloadSam3Model().catch(() => undefined)
   await hydrateContext()
 })
 </script>

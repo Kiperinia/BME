@@ -13,6 +13,15 @@ from .morphology_classifier import MorphologyClassifier
 from .paris_typing import ParisTypingEngine
 from .risk_assessor import RiskAssessor
 from .report_generator import ReportGenerator
+from .report_tools import (
+    ConclusionComposerTool,
+    FindingsComposerTool,
+    LayoutSuggestionTool,
+    ReportKeywordSuggestionTool,
+    ReportToolRegistry,
+    ToolParameterSchema,
+    create_default_report_tool_registry,
+)
 
 __all__ = [
     "FeatureExtractor",
@@ -20,4 +29,11 @@ __all__ = [
     "ParisTypingEngine",
     "RiskAssessor",
     "ReportGenerator",
+    "FindingsComposerTool",
+    "ConclusionComposerTool",
+    "LayoutSuggestionTool",
+    "ReportKeywordSuggestionTool",
+    "ToolParameterSchema",
+    "ReportToolRegistry",
+    "create_default_report_tool_registry",
 ]

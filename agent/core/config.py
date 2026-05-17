@@ -82,11 +82,21 @@ class Config(HelloAgentsConfig):
 
     @staticmethod
     def _load_env_overrides(current: Dict[str, Any]) -> Dict[str, Any]:
+        provider = os.getenv("LLM_PROVIDER", current.get("default_provider", "openai"))
+        tencent_key = os.getenv("TENCENT_API_KEY") or os.getenv("HUNYUAN_API_KEY")
+        tencent_base = os.getenv("TENCENT_BASE_URL") or os.getenv("HUNYUAN_BASE_URL")
+        resolved_api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or current.get("api_key")
+        resolved_base_url = os.getenv("LLM_BASE_URL") or os.getenv("OPENAI_BASE_URL") or current.get("base_url")
+
+        if str(provider).lower() == "tencent":
+            resolved_api_key = resolved_api_key or tencent_key
+            resolved_base_url = resolved_base_url or tencent_base or "https://api.hunyuan.cloud.tencent.com/v1"
+
         return {
             "default_model": os.getenv("LLM_MODEL_ID", current.get("default_model", "gpt-3.5-turbo")),
-            "default_provider": os.getenv("LLM_PROVIDER", current.get("default_provider", "openai")),
-            "api_key": os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or current.get("api_key"),
-            "base_url": os.getenv("LLM_BASE_URL") or os.getenv("OPENAI_BASE_URL") or current.get("base_url"),
+            "default_provider": provider,
+            "api_key": resolved_api_key,
+            "base_url": resolved_base_url,
             "timeout": int(os.getenv("LLM_TIMEOUT", str(current.get("timeout", 60)))),
             "modelscope_api_key": os.getenv("MODELSCOPE_API_KEY") or current.get("modelscope_api_key"),
             "modelscope_base_url": os.getenv(

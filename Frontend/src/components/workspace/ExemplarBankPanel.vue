@@ -17,9 +17,6 @@ defineEmits<{
     <div class="flex flex-col gap-4 border-b border-slate-200 pb-4 dark:border-slate-700 xl:flex-row xl:items-end xl:justify-between">
       <div>
         <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Exemplar Bank Agent</h3>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          根据标签完整度、分割质量与样本新颖度评估是否纳入 exemplar bank。
-        </p>
       </div>
 
       <button
@@ -78,8 +75,6 @@ defineEmits<{
     <div
       v-else
       class="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400"
-    >
-      完成分割后即可评估高价值样本，报告生成后会自动带入更多上下文。
-    </div>
+    />
   </section>
 </template>

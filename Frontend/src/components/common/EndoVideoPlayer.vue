@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
-import type { CaptureFramePayload, PolygonMask } from '@/types/eis'
+import type { CaptureFramePayload, PolygonMask, TumorMaskData } from '@/types/eis'
 
 type PlayStateSource = 'control' | 'video' | 'upload'
 
@@ -12,7 +12,7 @@ const props = withDefaults(
   defineProps<{
     videoSrc?: string
     isPlaying?: boolean
-    maskData?: PolygonMask[]
+    maskData?: TumorMaskData
     showMask?: boolean
   }>(),
   {
@@ -32,6 +32,7 @@ const emit = defineEmits<{
 const videoElement = ref<HTMLVideoElement>()
 const canvasElement = ref<HTMLCanvasElement>()
 const fileInputElement = ref<HTMLInputElement>()
+const maskImageElement = ref<HTMLImageElement>()
 const uploadViewportElement = ref<HTMLElement>()
 const uploadedVideoUrl = ref('')
 const hasMetadata = ref(false)
@@ -45,6 +46,9 @@ let animationFrameId: number | null = null
 let uploadResizeObserver: ResizeObserver | null = null
 
 const currentVideoSrc = computed(() => props.videoSrc || uploadedVideoUrl.value)
+const maskPolygons = computed<PolygonMask[]>(() => (Array.isArray(props.maskData) ? props.maskData : []))
+const maskImageSrc = computed(() => (typeof props.maskData === 'string' ? props.maskData : ''))
+const maskGroupCount = computed(() => (Array.isArray(props.maskData) ? props.maskData.length : (props.maskData ? 1 : 0)))
 const showUploadState = computed(() => !currentVideoSrc.value)
 const uploadSurfaceStyle = computed(() => {
   return {
@@ -144,7 +148,7 @@ const drawMask = () => {
   syncCanvasSize()
   clearCanvas()
 
-  if (!maskVisible.value || !props.maskData.length || !hasMetadata.value) {
+  if (!maskVisible.value || !maskPolygons.value.length || !hasMetadata.value) {
     return
   }
 
@@ -158,7 +162,7 @@ const drawMask = () => {
   const displayWidth = canvas.clientWidth
   const displayHeight = canvas.clientHeight
 
-  for (const polygon of props.maskData) {
+  for (const polygon of maskPolygons.value) {
     if (!polygon.points.length) {
       continue
     }
@@ -300,31 +304,35 @@ const handleCaptureFrame = () => {
   context.drawImage(video, 0, 0, exportCanvas.width, exportCanvas.height)
 
   if (maskVisible.value) {
-    for (const polygon of props.maskData) {
-      if (!polygon.points.length) {
-        continue
-      }
-
-      const scaleX = exportCanvas.width / polygon.frameWidth
-      const scaleY = exportCanvas.height / polygon.frameHeight
-
-      context.beginPath()
-      polygon.points.forEach(([x, y], index) => {
-        const targetX = x * scaleX
-        const targetY = y * scaleY
-
-        if (index === 0) {
-          context.moveTo(targetX, targetY)
-        } else {
-          context.lineTo(targetX, targetY)
+    if (maskImageSrc.value && maskImageElement.value?.complete) {
+      context.drawImage(maskImageElement.value, 0, 0, exportCanvas.width, exportCanvas.height)
+    } else {
+      for (const polygon of maskPolygons.value) {
+        if (!polygon.points.length) {
+          continue
         }
-      })
-      context.closePath()
-      context.fillStyle = polygon.fillColor ?? 'rgba(37, 99, 235, 0.26)'
-      context.strokeStyle = polygon.strokeColor ?? 'rgba(37, 99, 235, 0.9)'
-      context.lineWidth = 6
-      context.fill()
-      context.stroke()
+
+        const scaleX = exportCanvas.width / polygon.frameWidth
+        const scaleY = exportCanvas.height / polygon.frameHeight
+
+        context.beginPath()
+        polygon.points.forEach(([x, y], index) => {
+          const targetX = x * scaleX
+          const targetY = y * scaleY
+
+          if (index === 0) {
+            context.moveTo(targetX, targetY)
+          } else {
+            context.lineTo(targetX, targetY)
+          }
+        })
+        context.closePath()
+        context.fillStyle = polygon.fillColor ?? 'rgba(37, 99, 235, 0.26)'
+        context.strokeStyle = polygon.strokeColor ?? 'rgba(37, 99, 235, 0.9)'
+        context.lineWidth = 6
+        context.fill()
+        context.stroke()
+      }
     }
   }
 
@@ -341,6 +349,14 @@ watch(
     maskVisible.value = nextValue
     drawMask()
   },
+)
+
+watch(
+  () => props.maskData,
+  () => {
+    drawMask()
+  },
+  { deep: true },
 )
 
 watch(
@@ -469,6 +485,14 @@ onBeforeUnmount(() => {
           @waiting="isBuffering = true"
         />
 
+        <img
+          v-if="maskImageSrc && maskVisible"
+          ref="maskImageElement"
+          :src="maskImageSrc"
+          alt="SAM3 掩码图层"
+          class="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+
         <canvas ref="canvasElement" class="pointer-events-none absolute inset-0 h-full w-full" />
 
         <div
@@ -497,7 +521,7 @@ onBeforeUnmount(() => {
       </div>
 
       <p class="text-xs text-gray-500 dark:text-gray-400 md:text-sm">
-        当前测试遮罩点位：{{ props.maskData.length }} 组
+        当前测试遮罩：{{ maskGroupCount }} 组
       </p>
     </div>
   </section>

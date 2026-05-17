@@ -4,6 +4,7 @@ import torch
 
 from MedicalSAM3.exemplar.losses import (
     BoundaryBandDiceLoss,
+    CrossDomainConsistencyLoss,
     ExemplarConsistencyLoss,
     ExemplarInfoNCELoss,
     NegativeSuppressionLoss,
@@ -26,6 +27,7 @@ class TestLossBackward(unittest.TestCase):
         losses = [
             ExemplarInfoNCELoss()(anchor, positive, negatives),
             NegativeSuppressionLoss()(logits_a),
+            CrossDomainConsistencyLoss()(anchor, positive),
             ExemplarConsistencyLoss()(logits_a, logits_b),
             PrototypeVarianceLoss()(embeddings, prototype),
             BoundaryBandDiceLoss()(logits_a, target),

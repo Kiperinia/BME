@@ -75,7 +75,7 @@ export interface TumorFocusData {
 export interface ReportContextData {
   patient: PatientRecord
   videoSrc: string
-  maskData: PolygonMask[]
+  maskData: TumorMaskData
   showMask: boolean
   videoFrameData: VideoFrameData
   captureImageSrcs: string[]
@@ -153,8 +153,10 @@ export interface AgentWorkflowSummary {
 }
 
 export interface SegmentFrameResponse {
+  maskDataUrl: string
   maskCoordinates: MaskPoint[]
   boundingBox: [number, number, number, number]
+  maskAreaPixels: number
 }
 
 export interface ApiContractDefinition {

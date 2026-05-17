@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import get_db_session
 from app.core.dependencies import get_current_user
 from app.core.exceptions import AppException, build_http_exception
 from app.core.response import ApiResponse
@@ -19,11 +21,12 @@ router = APIRouter(prefix="/agent")
     status_code=status.HTTP_200_OK,
 )
 async def list_patient_previews(
+    session: AsyncSession = Depends(get_db_session),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[list[PatientContextSchema]]:
-    service = ReportContextService()
+    service = ReportContextService(session=session)
     try:
-        return ApiResponse(data=service.list_patient_previews())
+        return ApiResponse(data=await service.list_patient_previews())
     except AppException as exc:
         raise build_http_exception(exc.status_code, exc.error_code, exc.message) from exc
     except Exception as exc:
@@ -42,11 +45,12 @@ async def list_patient_previews(
 async def get_report_context(
     report_id: str | None = Query(default=None, alias="reportId"),
     patient_id: str | None = Query(default=None, alias="patientId"),
+    session: AsyncSession = Depends(get_db_session),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[ReportContextSchema]:
-    service = ReportContextService()
+    service = ReportContextService(session=session)
     try:
-        return ApiResponse(data=service.get_report_context(report_id=report_id, patient_id=patient_id))
+        return ApiResponse(data=await service.get_report_context(report_id=report_id, patient_id=patient_id))
     except AppException as exc:
         raise build_http_exception(exc.status_code, exc.error_code, exc.message) from exc
     except Exception as exc:

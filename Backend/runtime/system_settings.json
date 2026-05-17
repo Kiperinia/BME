@@ -1,9 +1,10 @@
 {
-  "model_load_mode": "mock",
+  "model_load_mode": "sam3",
   "model_device": "cuda",
   "model_checkpoint_path": "E:\\BME\\MedicalSAM3\\checkpoint\\MedSAM3.pt",
   "model_lora_enabled": false,
   "model_lora_path": "",
+  "model_lora_stage": "stage_a",
   "model_input_size": 1024,
   "model_keep_aspect_ratio": false,
   "model_warmup_enabled": true,

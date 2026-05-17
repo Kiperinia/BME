@@ -1,0 +1,1 @@
+Drop negative train-bank exemplar images here.

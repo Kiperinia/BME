@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import ctypes
 import inspect
 import json
 import logging
 from pathlib import Path
+import site
 import warnings
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -20,6 +22,50 @@ _DEFAULT_LOCAL_CHECKPOINTS = ("sam3.pt", "MedSAM3.pt")
 _DEFAULT_BUILD_REPORT = (
     Path(__file__).resolve().parents[1] / "outputs" / "medex_sam3" / "preflight" / "model_build_report.json"
 )
+_CUDA_RUNTIME_PRIMED = False
+
+
+def _prime_cuda_runtime_libraries(device: str) -> None:
+    global _CUDA_RUNTIME_PRIMED
+    if _CUDA_RUNTIME_PRIMED or str(device) != "cuda":
+        return
+
+    cuda_version = str(getattr(torch.version, "cuda", "") or "")
+    if not cuda_version:
+        return
+
+    major_minor = cuda_version.split(".")
+    if len(major_minor) < 2:
+        return
+
+    major, minor = major_minor[0], major_minor[1]
+    site_packages = [Path(path) for path in site.getsitepackages()]
+    versioned_dir = f"cu{major}"
+    versioned_builtins = f"libnvrtc-builtins.so.{major}.{minor}"
+    versioned_nvrtc = f"libnvrtc.so.{major}"
+    fallback_builtins = f"libnvrtc-builtins.so.{major}.{minor}"
+    fallback_nvrtc = f"libnvrtc.so.{major}"
+
+    candidate_files: list[Path] = []
+    for package_dir in site_packages:
+        candidate_files.extend(
+            [
+                package_dir / "nvidia" / versioned_dir / "lib" / versioned_builtins,
+                package_dir / "nvidia" / versioned_dir / "lib" / versioned_nvrtc,
+                package_dir / "nvidia" / "cuda_nvrtc" / "lib" / fallback_builtins,
+                package_dir / "nvidia" / "cuda_nvrtc" / "lib" / fallback_nvrtc,
+            ]
+        )
+
+    loaded_any = False
+    for candidate in candidate_files:
+        if not candidate.exists():
+            continue
+        ctypes.CDLL(str(candidate), mode=ctypes.RTLD_GLOBAL)
+        loaded_any = True
+
+    if loaded_any:
+        _CUDA_RUNTIME_PRIMED = True
 
 
 def _resolve_dtype(dtype: str) -> torch.dtype:
@@ -224,7 +270,18 @@ class DummyPromptEncoder(nn.Module):
         prompts = []
 
         if boxes is not None:
-            prompts.append(self.box_proj(boxes.float()))
+            if boxes.dim() == 2:
+                valid_mask = torch.isfinite(boxes).all(dim=-1, keepdim=True)
+                box_embeddings = self.box_proj(torch.nan_to_num(boxes.float(), nan=0.0))
+                box_embeddings = box_embeddings * valid_mask.to(box_embeddings.dtype)
+                prompts.append(box_embeddings)
+            elif boxes.dim() == 3:
+                valid_mask = torch.isfinite(boxes).all(dim=-1, keepdim=True)
+                box_embeddings = self.box_proj(torch.nan_to_num(boxes.float(), nan=0.0))
+                box_embeddings = box_embeddings * valid_mask.to(box_embeddings.dtype)
+                prompts.append(box_embeddings.mean(dim=1))
+            else:
+                raise ValueError("DummyPromptEncoder boxes must have shape [B, 4] or [B, N, 4]")
 
         if points is not None:
             if point_labels is None:
@@ -315,6 +372,7 @@ class DummyOfficialSam3ImageModel(nn.Module):
         point_labels: Optional[torch.Tensor] = None,
         text_prompt: Optional[list[str]] = None,
         exemplar_prompt_tokens: Optional[torch.Tensor] = None,
+        retrieval_prior: Optional[dict[str, Any]] = None,
     ) -> dict[str, torch.Tensor | dict[str, torch.Tensor] | None]:
         image_tokens, image_features = self._image_tokens(images)
         query_tokens = self.detector_encoder(image_tokens[:, :1])
@@ -327,11 +385,48 @@ class DummyOfficialSam3ImageModel(nn.Module):
             text_prompt=text_prompt,
             exemplar_prompt_tokens=exemplar_prompt_tokens,
         )
+        retrieval_summary: dict[str, Any] = {}
+        if isinstance(retrieval_prior, dict):
+            decoder_bias = retrieval_prior.get("decoder_feature_bias_map")
+            if isinstance(decoder_bias, torch.Tensor) and decoder_bias.dim() == 4:
+                resized_bias = F.interpolate(
+                    decoder_bias.to(image_features.device, dtype=image_features.dtype),
+                    size=image_features.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                )
+                image_features = image_features + resized_bias
+                retrieval_summary["used_decoder_feature_bias_map"] = True
+            spatial_bias = retrieval_prior.get("spatial_bias_map")
+            if isinstance(spatial_bias, torch.Tensor) and spatial_bias.dim() == 4:
+                resized_spatial = F.interpolate(
+                    spatial_bias.to(image_features.device, dtype=image_features.dtype),
+                    size=image_features.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                )
+                image_features = image_features + image_features * resized_spatial
+                retrieval_summary["used_spatial_bias_map"] = True
+            semantic_prototype = retrieval_prior.get("semantic_prototype")
+            if isinstance(semantic_prototype, torch.Tensor) and semantic_prototype.dim() == 2:
+                prompt_embeddings = prompt_embeddings + semantic_prototype.to(prompt_embeddings.device, dtype=prompt_embeddings.dtype)
+                retrieval_summary["used_semantic_prototype"] = True
         detector_queries = self.detector_decoder(
             query_tokens + prompt_embeddings.unsqueeze(1),
             context=image_tokens,
         )
         mask_logits, scores = self.mask_decoder(detector_queries, image_features)
+        if isinstance(retrieval_prior, dict):
+            logit_bias = retrieval_prior.get("mask_logit_bias_map")
+            if isinstance(logit_bias, torch.Tensor) and logit_bias.dim() == 4:
+                resized_logit_bias = F.interpolate(
+                    logit_bias.to(mask_logits.device, dtype=mask_logits.dtype),
+                    size=mask_logits.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                )
+                mask_logits = mask_logits + resized_logit_bias
+                retrieval_summary["used_mask_logit_bias_map"] = True
         masks = torch.sigmoid(mask_logits)
         return {
             "masks": masks,
@@ -345,6 +440,7 @@ class DummyOfficialSam3ImageModel(nn.Module):
             "intermediate_features": {
                 "image_tokens": image_tokens,
                 "image_features": image_features,
+                "retrieval_prior": retrieval_summary,
             },
         }
 
@@ -438,6 +534,7 @@ def build_official_sam3_image_model(
         logger.info("Using local SAM3 checkpoint: %s", resolved_checkpoint_path)
 
     try:
+        _prime_cuda_runtime_libraries(device)
         model = _build_from_official_builder(
             checkpoint_path=resolved_checkpoint_path,
             device=device,

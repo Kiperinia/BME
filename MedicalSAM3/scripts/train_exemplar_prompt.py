@@ -29,7 +29,9 @@ from MedicalSAM3.scripts.common import (
     dump_config,
     ensure_dir,
     load_config,
+    log_runtime_environment,
     read_records,
+    resolve_runtime_device,
     seed_everything,
 )
 
@@ -144,6 +146,7 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--image-size", type=int, default=128)
     parser.add_argument("--precision", default="fp32")
+    parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
     parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--dummy", action="store_true")
     args = parser.parse_args()
@@ -209,7 +212,13 @@ def main() -> int:
         if not records:
             raise FileNotFoundError("Split file is empty for exemplar prompt training.")
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = resolve_runtime_device(args.device)
+        log_runtime_environment(
+            "train_exemplar_prompt",
+            requested_device=args.device,
+            resolved_device=device,
+            extra={"dummy": bool(args.dummy), "image_size": int(args.image_size)},
+        )
         base_model = build_official_sam3_image_model(
             args.checkpoint,
             device=device,

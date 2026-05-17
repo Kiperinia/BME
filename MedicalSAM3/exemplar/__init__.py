@@ -4,6 +4,7 @@ from .curator import ExemplarScoreBreakdown, compute_exemplar_score
 from .exemplar_encoder import ExemplarEncoder
 from .losses import (
     BoundaryBandDiceLoss,
+    CrossDomainConsistencyLoss,
     ExemplarConsistencyLoss,
     ExemplarInfoNCELoss,
     NegativeSuppressionLoss,
@@ -16,6 +17,7 @@ from .sampler import ExemplarSampler
 
 __all__ = [
     "BoundaryBandDiceLoss",
+    "CrossDomainConsistencyLoss",
     "ExemplarConsistencyLoss",
     "ExemplarEncoder",
     "ExemplarInfoNCELoss",

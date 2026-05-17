@@ -13,6 +13,7 @@ class TestSam3OfficialForward(unittest.TestCase):
             device="cpu",
             dtype="fp32",
             compile_model=False,
+            allow_dummy_fallback=True,
         )
         wrapper = Sam3TensorForwardWrapper(model=model, device="cpu", dtype="fp32")
         images = torch.rand(1, 3, 64, 64)
@@ -23,7 +24,14 @@ class TestSam3OfficialForward(unittest.TestCase):
         self.assertEqual(outputs["masks"].shape[-2:], outputs["mask_logits"].shape[-2:])
 
     def test_sam3_official_forward_accepts_exemplar_tokens(self) -> None:
-        wrapper = Sam3TensorForwardWrapper(device="cpu", dtype="fp32")
+        model = build_official_sam3_image_model(
+            checkpoint_path=None,
+            device="cpu",
+            dtype="fp32",
+            compile_model=False,
+            allow_dummy_fallback=True,
+        )
+        wrapper = Sam3TensorForwardWrapper(model=model, device="cpu", dtype="fp32")
         images = torch.rand(1, 3, 64, 64)
         exemplar_dim = int(getattr(wrapper.model, "hidden_dim", getattr(wrapper.model, "embed_dim", 128)))
         exemplar_tokens = torch.rand(1, 4, exemplar_dim)
@@ -35,6 +43,31 @@ class TestSam3OfficialForward(unittest.TestCase):
 
         self.assertEqual(outputs["mask_logits"].shape[0], 1)
         self.assertEqual(tuple(outputs["scores"].shape), (1, 1))
+
+    def test_sam3_official_forward_accepts_retrieval_prior(self) -> None:
+        model = build_official_sam3_image_model(
+            checkpoint_path=None,
+            device="cpu",
+            dtype="fp32",
+            compile_model=False,
+            allow_dummy_fallback=True,
+        )
+        wrapper = Sam3TensorForwardWrapper(model=model, device="cpu", dtype="fp32")
+        images = torch.rand(1, 3, 64, 64)
+        hidden_dim = int(getattr(wrapper.model, "hidden_dim", getattr(wrapper.model, "embed_dim", 128)))
+        outputs = wrapper(
+            images=images,
+            boxes=torch.tensor([[8.0, 8.0, 48.0, 48.0]]),
+            retrieval_prior={
+                "semantic_prototype": torch.randn(1, hidden_dim),
+                "semantic_prototype_map": torch.randn(1, hidden_dim, 16, 16),
+                "spatial_bias_map": torch.rand(1, 1, 16, 16),
+            },
+        )
+
+        if "retrieval_prior" in outputs["intermediate_features"]:
+            self.assertIsInstance(outputs["intermediate_features"]["retrieval_prior"], dict)
+        self.assertEqual(outputs["mask_logits"].shape[0], 1)
 
 
 if __name__ == "__main__":

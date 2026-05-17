@@ -37,7 +37,6 @@ const fileSizeLabel = computed(() => {
   <section class="surface-card p-5">
     <div class="border-b border-slate-200 pb-4 dark:border-slate-700">
       <h3 class="text-lg font-semibold text-slate-900 dark:text-white">分割信息</h3>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">侧边栏展示上传图像和 MedicalSAM3 结果的关键摘要。</p>
     </div>
 
     <div class="mt-5 grid gap-3">

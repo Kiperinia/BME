@@ -15,7 +15,7 @@ if __package__ in {None, ""}:
 from PIL import Image
 import numpy as np
 
-from MedicalSAM3.scripts.common import ensure_dir, write_records
+from MedicalSAM3.scripts.common import ensure_dir, infer_source_domain, write_records
 
 
 def _dataset_prefix(dataset_name: str) -> str:
@@ -24,11 +24,18 @@ def _dataset_prefix(dataset_name: str) -> str:
 
 
 def _make_record(image_path: Path, mask_path: Path, dataset_name: str, stem: str) -> dict[str, str]:
+    source_domain = infer_source_domain(
+        dataset_name=dataset_name,
+        image_id=stem,
+        image_path=str(image_path),
+        mask_path=str(mask_path),
+    )
     return {
         "image_path": str(image_path),
         "mask_path": str(mask_path),
-        "dataset_name": dataset_name,
-        "image_id": f"{_dataset_prefix(dataset_name)}__{stem}",
+        "dataset_name": source_domain,
+        "source_group": dataset_name,
+        "image_id": f"{_dataset_prefix(source_domain)}__{stem}",
     }
 
 
@@ -222,12 +229,20 @@ def main() -> int:
 
     folds = _build_folds(merged, seed=args.seed)
 
+    source_domain_counts: dict[str, int] = {}
+    for record in merged:
+        source_domain = str(record.get("dataset_name", "unknown"))
+        source_domain_counts[source_domain] = source_domain_counts.get(source_domain, 0) + 1
+
     summary = {
         "seed": args.seed,
         "train_val_count": len(merged),
-        "kvasir_count": len(kvasir_records),
-        "cvc_count": len(cvc_records),
-        "kvasircvc_count": len(kvasircvc_records),
+        "source_domain_counts": source_domain_counts,
+        "source_group_counts": {
+            "Kvasir-SEG": len(kvasir_records),
+            "CVC-ClinicDB": len(cvc_records),
+            "KvasirCVC": len(kvasircvc_records),
+        },
         "external_polypgen_count": len(polypgen_records),
         "folds": [],
         "leakage_check_passed": True,

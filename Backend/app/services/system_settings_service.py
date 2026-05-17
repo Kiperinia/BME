@@ -162,7 +162,10 @@ class SystemSettingsService:
             default_base_url = (
                 "https://api-inference.modelscope.cn/v1/"
                 if provider_kind == "modelscope"
-                else ""
+                else self._resolve_openai_compatible_base_url(
+                    provider=str(profile_data.get("default_provider", default_provider)),
+                    base_url=str(profile_data.get(base_url_field, "")),
+                )
             )
 
             profile_schemas.append(
@@ -213,6 +216,7 @@ class SystemSettingsService:
                 warmupEnabled=settings.model_warmup_enabled,
                 loraEnabled=settings.model_lora_enabled,
                 loraPath=settings.model_lora_path,
+                loraStage=settings.model_lora_stage,
             ),
             runtime=RuntimeSettingsSchema(
                 inferenceTimeoutSeconds=settings.model_inference_timeout_seconds,
@@ -277,13 +281,20 @@ class SystemSettingsService:
     @staticmethod
     def _default_llm_config() -> dict[str, Any]:
         return {
-            "active_profile": "openai_compatible",
+            "active_profile": "deepseek_chat",
             "profiles": {
                 "openai_compatible": {
                     "default_provider": "openai",
                     "default_model": "gpt-4o-mini",
                     "api_key": "",
                     "base_url": "",
+                    "timeout": 60,
+                },
+                "deepseek_chat": {
+                    "default_provider": "deepseek",
+                    "default_model": "deepseek-chat",
+                    "api_key": "",
+                    "base_url": "https://api.deepseek.com/v1",
                     "timeout": 60,
                 },
                 "modelscope_qwen": {
@@ -311,11 +322,15 @@ class SystemSettingsService:
                 }
                 continue
 
+            resolved_base_url = profile.baseUrl
+            if not resolved_base_url.strip() and profile.defaultProvider.strip().lower() == "deepseek":
+                resolved_base_url = "https://api.deepseek.com/v1"
+
             profiles[profile.profileId] = {
                 "default_provider": profile.defaultProvider,
                 "default_model": profile.defaultModel,
                 "api_key": profile.apiKey,
-                "base_url": profile.baseUrl,
+                "base_url": resolved_base_url,
                 "timeout": profile.timeout,
             }
 
@@ -332,6 +347,7 @@ class SystemSettingsService:
             "model_checkpoint_path": payload.sam3.checkpointPath,
             "model_lora_enabled": payload.sam3.loraEnabled,
             "model_lora_path": payload.sam3.loraPath,
+            "model_lora_stage": payload.sam3.loraStage,
             "model_input_size": payload.sam3.inputSize,
             "model_keep_aspect_ratio": payload.sam3.keepAspectRatio,
             "model_warmup_enabled": payload.sam3.warmupEnabled,
@@ -353,6 +369,9 @@ class SystemSettingsService:
             return False
 
         if active_profile.providerKind == "openai_compatible":
+            provider = active_profile.defaultProvider.strip().lower()
+            if provider == "deepseek":
+                return bool(active_profile.apiKey.strip())
             return bool(active_profile.apiKey.strip() and active_profile.baseUrl.strip())
 
         return bool(active_profile.apiKey.strip())
@@ -363,3 +382,12 @@ class SystemSettingsService:
         if "modelscope_api_key" in profile_data or default_provider == "modelscope":
             return "modelscope"
         return "openai_compatible"
+
+    @staticmethod
+    def _resolve_openai_compatible_base_url(*, provider: str, base_url: str) -> str:
+        resolved_provider = provider.strip().lower()
+        if base_url.strip():
+            return base_url
+        if resolved_provider == "deepseek":
+            return "https://api.deepseek.com/v1"
+        return ""

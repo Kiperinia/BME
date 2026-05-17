@@ -112,6 +112,140 @@ def _normalize_xy_points(points: torch.Tensor, height: int, width: int) -> torch
     return points.clamp(0.0, 1.0)
 
 
+def _resize_spatial_bias_to_tokens(spatial_bias: torch.Tensor, token_count: int) -> torch.Tensor:
+    if spatial_bias.dim() == 3:
+        spatial_bias = spatial_bias.unsqueeze(1)
+    if spatial_bias.dim() != 4:
+        raise ValueError("spatial_bias must have shape [B, 1, H, W] or [B, H, W]")
+    side = int(token_count**0.5)
+    if side * side == token_count:
+        resized = F.interpolate(spatial_bias.float(), size=(side, side), mode="bilinear", align_corners=False)
+        return resized.flatten(2)
+    pooled = F.adaptive_avg_pool2d(spatial_bias.float(), output_size=1)
+    return pooled.flatten(2).repeat(1, 1, token_count)
+
+
+def _resize_feature_bias_to_tokens(feature_bias: torch.Tensor, token_count: int) -> torch.Tensor:
+    if feature_bias.dim() != 4:
+        raise ValueError("feature_bias must have shape [B, C, H, W]")
+    side = int(token_count**0.5)
+    if side * side == token_count:
+        resized = F.interpolate(feature_bias.float(), size=(side, side), mode="bilinear", align_corners=False)
+        return resized.flatten(2).transpose(1, 2)
+    pooled = F.adaptive_avg_pool2d(feature_bias.float(), output_size=1)
+    return pooled.flatten(2).transpose(1, 2).repeat(1, token_count, 1)
+
+
+def _add_token_bias(memory: torch.Tensor, token_bias: torch.Tensor) -> tuple[torch.Tensor, bool]:
+    if memory.dim() != 3 or token_bias.dim() != 3:
+        return memory, False
+    batch_size, token_count, channels = token_bias.shape
+    if memory.shape[0] == token_count and memory.shape[1] == batch_size and memory.shape[2] == channels:
+        return memory + token_bias.permute(1, 0, 2), True
+    if memory.shape[0] == batch_size and memory.shape[1] == token_count and memory.shape[2] == channels:
+        return memory + token_bias, True
+    if memory.shape[0] == token_count and memory.shape[2] == channels:
+        return memory + token_bias.mean(dim=0).unsqueeze(1), True
+    if memory.shape[1] == token_count and memory.shape[2] == channels:
+        return memory + token_bias.mean(dim=0, keepdim=True), True
+    return memory, False
+
+
+def _apply_retrieval_prior_to_memory(
+    memory: torch.Tensor,
+    retrieval_prior: Optional[dict[str, Any]],
+) -> tuple[torch.Tensor, dict[str, Any]]:
+    if retrieval_prior is None:
+        return memory, {}
+
+    adapted = memory
+    summary: dict[str, Any] = {}
+    encoder_bias = retrieval_prior.get("encoder_memory_bias") if isinstance(retrieval_prior, dict) else None
+    decoder_feature_bias = retrieval_prior.get("decoder_feature_bias_map") if isinstance(retrieval_prior, dict) else None
+    semantic_prototype = retrieval_prior.get("semantic_prototype") if isinstance(retrieval_prior, dict) else None
+    semantic_prototype_map = retrieval_prior.get("semantic_prototype_map") if isinstance(retrieval_prior, dict) else None
+    spatial_bias = retrieval_prior.get("spatial_bias_map") if isinstance(retrieval_prior, dict) else None
+    fusion_alpha = retrieval_prior.get("fusion_alpha") if isinstance(retrieval_prior, dict) else None
+    negative_lambda = retrieval_prior.get("negative_lambda") if isinstance(retrieval_prior, dict) else None
+
+    if isinstance(fusion_alpha, torch.Tensor) and fusion_alpha.numel() > 0:
+        summary["fusion_alpha"] = float(fusion_alpha.detach().float().mean().item())
+    if isinstance(negative_lambda, torch.Tensor) and negative_lambda.numel() > 0:
+        summary["negative_lambda"] = float(negative_lambda.detach().float().mean().item())
+
+    def _apply_feature_map_bias(bias: torch.Tensor, key: str) -> bool:
+        nonlocal adapted
+        if adapted.dim() != 3 or bias.dim() != 4:
+            return False
+        token_count = adapted.shape[0] if adapted.shape[0] >= adapted.shape[1] else adapted.shape[1]
+        token_bias = _resize_feature_bias_to_tokens(bias.to(adapted.device), token_count)
+        adapted, used = _add_token_bias(adapted, token_bias)
+        if used:
+            summary[key] = True
+            summary[f"{key}_abs_mean"] = float(bias.detach().float().abs().mean().item())
+        return used
+
+    if isinstance(decoder_feature_bias, torch.Tensor):
+        _apply_feature_map_bias(decoder_feature_bias, "used_decoder_feature_bias_map")
+
+    if isinstance(encoder_bias, torch.Tensor):
+        if encoder_bias.shape == adapted.shape:
+            adapted = adapted + encoder_bias
+            summary["used_encoder_memory_bias"] = True
+        elif encoder_bias.dim() == 4:
+            _apply_feature_map_bias(encoder_bias, "used_encoder_memory_feature_bias")
+
+    if isinstance(semantic_prototype_map, torch.Tensor) and adapted.dim() == 3:
+        token_count = adapted.shape[0] if adapted.shape[0] >= adapted.shape[1] else adapted.shape[1]
+        token_bias = _resize_feature_bias_to_tokens(semantic_prototype_map.to(adapted.device), token_count)
+        adapted, used_semantic_map = _add_token_bias(adapted, token_bias)
+        if used_semantic_map:
+            summary["used_semantic_prototype_map"] = True
+    if isinstance(semantic_prototype, torch.Tensor) and not summary.get("used_semantic_prototype_map", False):
+        proto = semantic_prototype.float().to(adapted.device)
+        if proto.dim() == 1:
+            proto = proto.unsqueeze(0)
+        if adapted.dim() == 3:
+            if proto.shape[-1] == adapted.shape[-1]:
+                if proto.shape[0] == adapted.shape[1]:
+                    adapted = adapted + proto.unsqueeze(0)
+                elif proto.shape[0] == adapted.shape[0]:
+                    adapted = adapted + proto.unsqueeze(1)
+                else:
+                    adapted = adapted + proto.mean(dim=0, keepdim=True).unsqueeze(0)
+                summary["used_semantic_prototype"] = True
+
+    if isinstance(spatial_bias, torch.Tensor) and adapted.dim() == 3:
+        token_count = adapted.shape[0] if adapted.shape[0] >= adapted.shape[1] else adapted.shape[1]
+        token_weights = _resize_spatial_bias_to_tokens(spatial_bias.to(adapted.device), token_count).squeeze(1)
+        if adapted.shape[0] == token_weights.shape[1]:
+            adapted = adapted + adapted * token_weights.transpose(0, 1).unsqueeze(-1)
+        elif adapted.shape[1] == token_weights.shape[1]:
+            adapted = adapted + adapted * token_weights.unsqueeze(-1)
+        else:
+            adapted = adapted + adapted.mean(dim=0, keepdim=True) * token_weights.mean(dim=1, keepdim=True).unsqueeze(-1)
+        summary["used_spatial_bias_map"] = True
+    return adapted, summary
+
+
+def _apply_retrieval_prior_to_mask_logits(
+    mask_logits: torch.Tensor,
+    retrieval_prior: Optional[dict[str, Any]],
+) -> tuple[torch.Tensor, dict[str, Any]]:
+    if retrieval_prior is None:
+        return mask_logits, {}
+    logit_bias = retrieval_prior.get("mask_logit_bias_map") if isinstance(retrieval_prior, dict) else None
+    if not isinstance(logit_bias, torch.Tensor) or logit_bias.dim() != 4:
+        return mask_logits, {}
+    resized = F.interpolate(logit_bias.to(mask_logits.device, dtype=mask_logits.dtype), size=mask_logits.shape[-2:], mode="bilinear", align_corners=False)
+    updated = mask_logits + resized
+    summary = {
+        "used_mask_logit_bias_map": True,
+        "mask_logit_bias_abs_mean": float(resized.detach().float().abs().mean().item()),
+    }
+    return updated, summary
+
+
 class Sam3TensorForwardWrapper(nn.Module):
     def __init__(
         self,
@@ -182,6 +316,7 @@ class Sam3TensorForwardWrapper(nn.Module):
         points: Optional[torch.Tensor],
         point_labels: Optional[torch.Tensor],
         exemplar_prompt_tokens: Optional[torch.Tensor],
+        retrieval_prior: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
         if not _is_official_sam3_model(self.model):
             raise TypeError("Current model is not an official SAM3 image model")
@@ -204,10 +339,12 @@ class Sam3TensorForwardWrapper(nn.Module):
             if boxes.dim() != 3 or boxes.shape[0] != batch_size or boxes.shape[-1] != 4:
                 raise ValueError("boxes must have shape [B, 4] or [B, N, 4]")
             boxes = boxes.to(model_device)
-            normalized_boxes = _normalize_xyxy_boxes(boxes, height=orig_height, width=orig_width)
+            valid_box_mask = torch.isfinite(boxes).all(dim=-1)
+            sanitized_boxes = torch.nan_to_num(boxes, nan=0.0)
+            normalized_boxes = _normalize_xyxy_boxes(sanitized_boxes, height=orig_height, width=orig_width)
             box_embeddings = box_xyxy_to_cxcywh(normalized_boxes).permute(1, 0, 2)
             box_labels = torch.ones(box_embeddings.shape[:2], device=model_device, dtype=torch.long)
-            box_mask = torch.zeros(batch_size, box_embeddings.shape[0], device=model_device, dtype=torch.bool)
+            box_mask = (~valid_box_mask).to(model_device)
             geometric_prompt.append_boxes(box_embeddings, box_labels, mask=box_mask)
 
         if points is not None:
@@ -267,6 +404,11 @@ class Sam3TensorForwardWrapper(nn.Module):
                 "backbone_out": backbone_out,
             },
         }
+        retrieval_summary: dict[str, Any] = {}
+        out["encoder_hidden_states"], retrieval_summary = _apply_retrieval_prior_to_memory(
+            out["encoder_hidden_states"],
+            retrieval_prior,
+        )
         out, hs = self.model._run_decoder(
             memory=out["encoder_hidden_states"],
             pos_embed=encoder_out["pos_embed"],
@@ -328,6 +470,10 @@ class Sam3TensorForwardWrapper(nn.Module):
             warnings.warn(f"Failed to restore official SAM3 boxes to pixel scale: {exc}", stacklevel=2)
             selected_boxes = None
 
+        mask_logits, mask_retrieval_summary = _apply_retrieval_prior_to_mask_logits(mask_logits, retrieval_prior)
+        if mask_retrieval_summary:
+            retrieval_summary.update(mask_retrieval_summary)
+
         mask_logits = F.interpolate(mask_logits, size=(orig_height, orig_width), mode="bilinear", align_corners=False)
 
         return {
@@ -346,6 +492,7 @@ class Sam3TensorForwardWrapper(nn.Module):
                 "queries": out.get("queries"),
                 "prompt_before_enc": encoder_out.get("prompt_before_enc"),
                 "prompt_after_enc": encoder_out.get("prompt_after_enc"),
+                "retrieval_prior": retrieval_summary,
             },
         }
 
@@ -357,6 +504,7 @@ class Sam3TensorForwardWrapper(nn.Module):
         points: Optional[torch.Tensor],
         point_labels: Optional[torch.Tensor],
         exemplar_prompt_tokens: Optional[torch.Tensor],
+        retrieval_prior: Optional[dict[str, Any]],
     ) -> Any:
         if _is_official_sam3_model(self.model):
             return self._call_official_model(
@@ -366,17 +514,29 @@ class Sam3TensorForwardWrapper(nn.Module):
                 points=points,
                 point_labels=point_labels,
                 exemplar_prompt_tokens=exemplar_prompt_tokens,
+                retrieval_prior=retrieval_prior,
             )
 
         if hasattr(self.model, "tensor_forward"):
-            return self.model.tensor_forward(
-                images=images,
-                boxes=boxes,
-                points=points,
-                point_labels=point_labels,
-                text_prompt=text_prompt,
-                exemplar_prompt_tokens=exemplar_prompt_tokens,
-            )
+            try:
+                return self.model.tensor_forward(
+                    images=images,
+                    boxes=boxes,
+                    points=points,
+                    point_labels=point_labels,
+                    text_prompt=text_prompt,
+                    exemplar_prompt_tokens=exemplar_prompt_tokens,
+                    retrieval_prior=retrieval_prior,
+                )
+            except TypeError:
+                return self.model.tensor_forward(
+                    images=images,
+                    boxes=boxes,
+                    points=points,
+                    point_labels=point_labels,
+                    text_prompt=text_prompt,
+                    exemplar_prompt_tokens=exemplar_prompt_tokens,
+                )
 
         try:
             return self.model(
@@ -386,6 +546,7 @@ class Sam3TensorForwardWrapper(nn.Module):
                 point_labels=point_labels,
                 text_prompt=text_prompt,
                 exemplar_prompt_tokens=exemplar_prompt_tokens,
+                retrieval_prior=retrieval_prior,
             )
         except TypeError:
             return self.model(
@@ -403,6 +564,7 @@ class Sam3TensorForwardWrapper(nn.Module):
         points: Optional[torch.Tensor] = None,
         point_labels: Optional[torch.Tensor] = None,
         exemplar_prompt_tokens: Optional[torch.Tensor] = None,
+        retrieval_prior: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         if images.dim() != 4 or images.shape[1] != 3:
             raise ValueError("images must have shape [B, 3, H, W]")
@@ -419,6 +581,7 @@ class Sam3TensorForwardWrapper(nn.Module):
             points=points,
             point_labels=point_labels,
             exemplar_prompt_tokens=exemplar_prompt_tokens,
+            retrieval_prior=retrieval_prior,
         )
 
         if isinstance(outputs, torch.Tensor):

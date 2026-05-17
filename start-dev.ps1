@@ -84,6 +84,8 @@ $sam3Config = Get-ConfigValue -Object $config -Name 'sam3' -Default $null
 $backendEnabled = [bool](Get-ConfigValue -Object $backendConfig -Name 'enabled' -Default $true)
 $backendHost = [string](Get-ConfigValue -Object $backendConfig -Name 'host' -Default '127.0.0.1')
 $backendPort = [int](Get-ConfigValue -Object $backendConfig -Name 'port' -Default 8000)
+$backendMysqlUrl = [string](Get-ConfigValue -Object $backendConfig -Name 'mysqlUrl' -Default '')
+$backendDbBackend = [string](Get-ConfigValue -Object $backendConfig -Name 'dbBackend' -Default 'auto')
 
 $frontendEnabled = [bool](Get-ConfigValue -Object $frontendConfig -Name 'enabled' -Default $true)
 $frontendHost = [string](Get-ConfigValue -Object $frontendConfig -Name 'host' -Default '127.0.0.1')
@@ -97,6 +99,7 @@ $sam3Device = [string](Get-ConfigValue -Object $sam3Config -Name 'device' -Defau
 $sam3CheckpointPath = Resolve-WorkspacePath -RootPath $rootPath -Candidate ([string](Get-ConfigValue -Object $sam3Config -Name 'checkpointPath' -Default 'MedicalSAM3/checkpoint/MedSAM3.pt'))
 $sam3LoraEnabled = [bool](Get-ConfigValue -Object $sam3Config -Name 'loraEnabled' -Default $false)
 $sam3LoraPath = Resolve-WorkspacePath -RootPath $rootPath -Candidate ([string](Get-ConfigValue -Object $sam3Config -Name 'loraPath' -Default ''))
+$sam3LoraStage = [string](Get-ConfigValue -Object $sam3Config -Name 'loraStage' -Default 'stage_a')
 $sam3WarmupEnabled = [bool](Get-ConfigValue -Object $sam3Config -Name 'warmupEnabled' -Default $true)
 $sam3MockDelayMs = [int](Get-ConfigValue -Object $sam3Config -Name 'mockDelayMs' -Default 0)
 $sam3InferenceTimeoutSeconds = [int](Get-ConfigValue -Object $sam3Config -Name 'inferenceTimeoutSeconds' -Default 20)
@@ -115,6 +118,12 @@ if ($sam3Enabled -and $sam3RunImportCheck) {
 
 Write-Host 'Loaded startup configuration:' -ForegroundColor Green
 Write-Host "  Backend  : enabled=$backendEnabled host=$backendHost port=$backendPort"
+Write-Host "  DB Mode  : $backendDbBackend"
+if (-not [string]::IsNullOrWhiteSpace($backendMysqlUrl)) {
+    Write-Host '  Database : MYSQL_URL is provided by dev-launch.config.json'
+} else {
+    Write-Host '  Database : using Backend default MYSQL_URL (set backend.mysqlUrl to override)' -ForegroundColor Yellow
+}
 Write-Host "  Frontend : enabled=$frontendEnabled host=$frontendHost port=$frontendPort proxy=$proxyBackendTarget"
 Write-Host "  SAM3     : enabled=$sam3Enabled mode=$backendMode device=$sam3Device"
 
@@ -123,12 +132,21 @@ if (-not $backendEnabled -and -not $frontendEnabled) {
 }
 
 if ($backendEnabled) {
-    $backendCommand = @"
+$mysqlEnvLine = ""
+if (-not [string]::IsNullOrWhiteSpace($backendMysqlUrl)) {
+    $mysqlEnvLine = "`$env:MYSQL_URL = '$backendMysqlUrl'"
+}
+
+$backendCommand = @"
+`$env:DEBUG = 'false'
+$mysqlEnvLine
+`$env:DB_BACKEND = '$backendDbBackend'
 `$env:MODEL_LOAD_MODE = '$backendMode'
 `$env:MODEL_DEVICE = '$sam3Device'
 `$env:MODEL_CHECKPOINT_PATH = '$sam3CheckpointPath'
 `$env:MODEL_LORA_ENABLED = '$sam3LoraEnabled'
 `$env:MODEL_LORA_PATH = '$sam3LoraPath'
+`$env:MODEL_LORA_STAGE = '$sam3LoraStage'
 `$env:MODEL_WARMUP_ENABLED = '$sam3WarmupEnabled'
 `$env:MODEL_MOCK_DELAY_MS = '$sam3MockDelayMs'
 `$env:MODEL_INFERENCE_TIMEOUT_SECONDS = '$sam3InferenceTimeoutSeconds'

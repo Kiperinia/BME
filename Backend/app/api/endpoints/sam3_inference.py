@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from pathlib import Path as FilePath
 
 from fastapi import APIRouter, Depends, File, UploadFile, status
@@ -7,13 +8,39 @@ from app.core.config import Settings, get_settings
 from app.core.dependencies import get_current_user, get_sam3_engine
 from app.core.exceptions import AppException, build_http_exception
 from app.core.response import ApiResponse
-from app.schemas.analysis import SegmentFrameResponseSchema
+from app.schemas.analysis import Sam3PreloadStatusSchema, SegmentFrameResponseSchema
 from app.schemas.common import AuthenticatedUserSchema
-from app.services.sam3_runtime import SAM3Engine
+from app.services.sam3_runtime import SAM3Engine, SAM3RuntimeSingleton
 from app.services.storage_service import StorageService
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+@router.post(
+    "/preload-model",
+    response_model=ApiResponse[Sam3PreloadStatusSchema],
+    status_code=status.HTTP_200_OK,
+)
+async def preload_sam3_model(
+    settings: Settings = Depends(get_settings),
+    _: AuthenticatedUserSchema = Depends(get_current_user),
+) -> ApiResponse[Sam3PreloadStatusSchema]:
+    status_payload = SAM3RuntimeSingleton.ensure_preload_started(settings=settings)
+    return ApiResponse(data=Sam3PreloadStatusSchema(**status_payload))
+
+
+@router.get(
+    "/preload-model-status",
+    response_model=ApiResponse[Sam3PreloadStatusSchema],
+    status_code=status.HTTP_200_OK,
+)
+async def preload_sam3_model_status(
+    _: AuthenticatedUserSchema = Depends(get_current_user),
+) -> ApiResponse[Sam3PreloadStatusSchema]:
+    status_payload = SAM3RuntimeSingleton.get_preload_status()
+    return ApiResponse(data=Sam3PreloadStatusSchema(**status_payload))
 
 
 def _validate_segment_upload(image: UploadFile, settings: Settings) -> None:
@@ -96,8 +123,14 @@ async def segment_frame(
     except AppException as exc:
         raise build_http_exception(exc.status_code, exc.error_code, exc.message) from exc
     except Exception as exc:
+        logger.exception(
+            "SAM3 segmentation failed for filename=%s content_type=%s size=%s",
+            image.filename,
+            image.content_type,
+            len(image_bytes),
+        )
         raise build_http_exception(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             50013,
-            "failed to segment frame with SAM3",
+            f"failed to segment frame with SAM3: {type(exc).__name__}: {exc}",
         ) from exc

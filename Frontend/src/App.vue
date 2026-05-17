@@ -25,6 +25,9 @@ onMounted(async () => {
           <RouterLink class="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-white" active-class="bg-white text-slate-900 shadow-soft dark:bg-slate-800 dark:text-white" to="/workspace">
             Workspace
           </RouterLink>
+          <RouterLink class="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-white" active-class="bg-white text-slate-900 shadow-soft dark:bg-slate-800 dark:text-white" to="/patients">
+            Patients
+          </RouterLink>
           <RouterLink class="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-white" active-class="bg-white text-slate-900 shadow-soft dark:bg-slate-800 dark:text-white" to="/settings">
             Settings
           </RouterLink>

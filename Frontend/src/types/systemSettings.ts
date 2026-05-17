@@ -1,5 +1,6 @@
 export type LlmProviderKind = 'openai_compatible' | 'modelscope'
 export type Sam3RuntimeMode = 'mock' | 'sam3'
+export type Sam3LoraStage = 'stage_a' | 'stage_b' | 'stage_c'
 
 export interface LlmProfile {
   profileId: string
@@ -31,6 +32,7 @@ export interface Sam3Settings {
   warmupEnabled: boolean
   loraEnabled: boolean
   loraPath: string
+  loraStage: Sam3LoraStage
 }
 
 export interface RuntimeSettings {

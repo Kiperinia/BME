@@ -49,6 +49,7 @@ class Sam3SettingsSchema(BaseModel):
     warmupEnabled: bool = True
     loraEnabled: bool = False
     loraPath: str = Field(default="")
+    loraStage: Literal["stage_a", "stage_b", "stage_c"] = "stage_a"
 
 
 class RuntimeSettingsSchema(BaseModel):
