@@ -11,7 +11,7 @@
     "deepseek_chat": {
       "default_provider": "deepseek",
       "default_model": "deepseek-v4-flash",
-      "api_key": "sk-06c4e5330d574228a2bf98ffd3be9afd",
+      "api_key": "",
       "base_url": "https://api.deepseek.com/v1",
       "timeout": 60
     },
