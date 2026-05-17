@@ -80,7 +80,7 @@ cache/
 artifacts/
 downloads/
 MedicalSAM3/data/
-
+agent/config/
 # Package managers
 poetry.lock
 Pipfile.lock
