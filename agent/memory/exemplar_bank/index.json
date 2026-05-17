@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "samples": [
+    {
+      "sample_id": "sample-20260517061838-fb4df94d",
+      "created_at": "2026-05-17T06:18:38.756858+00:00",
+      "image_hash": "1e4ad725741cffe561602159514de1016b633f5183d5b7c65faf9e1c9eebc01b",
+      "filename": "PolypGen__C1_163OLCV1_100H0001_image.png",
+      "patient_id": "PAT-20260517-1755",
+      "paris_classification": "平坦型 / 0-IIb 完全平坦：完全平坦，与周围黏膜齐平。",
+      "lesion_type": "",
+      "pathology_classification": "",
+      "mask_area_ratio": 0.030712127685546875,
+      "score": 0.67,
+      "image_path": "E:\\BME\\agent\\memory\\exemplar_bank\\assets\\sample-20260517061838-fb4df94d.png",
+      "metadata_path": "E:\\BME\\agent\\memory\\exemplar_bank\\metadata\\sample-20260517061838-fb4df94d.json"
+    }
+  ]
+}

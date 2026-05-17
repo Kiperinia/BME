@@ -1,0 +1,147 @@
+@startuml exemplar_bank_workflow
+!define ENTITY_COLOR #E8F5E9
+!define TOOL_COLOR #FFFDE7
+!define AGENT_COLOR #E3F2FD
+!define MEMORY_COLOR #F3E5F5
+!define DECISION_COLOR #FFF3E0
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundcornersize 10
+skinparam sequence {
+    ParticipantBackgroundColor #F5F5F5
+    LifeLineBackgroundColor #FFFFFF
+}
+
+title 样本库评估 Agent 完整工作流
+
+participant "Workspace\nFrontend" as FE #ENTITY_COLOR
+participant "ExemplarBankService" as SERVICE #AGENT_COLOR
+participant "ExemplarBankAgent" as AGENT #AGENT_COLOR
+participant "Memory\nManager" as MEMORY #MEMORY_COLOR
+participant "Quality\nController" as QUALITY #TOOL_COLOR
+participant "Evolution\nManager" as EVO #TOOL_COLOR
+participant "Retrieval\nPipeline" as RETR #TOOL_COLOR
+participant "SAM3Runtime" as SAM3 #AGENT_COLOR
+participant "SAM3 Tensor\nForward" as FORWARD #TOOL_COLOR
+
+== 1. 评估并入库 ==
+
+FE ->> SERVICE: ExemplarBankRequest\n(image + segmentation + expertConfig + report)
+activate SERVICE
+
+SERVICE ->> SERVICE: _build_record()
+SERVICE ->> QUALITY: score(record)
+activate QUALITY
+QUALITY -->> SERVICE: PrototypeQualityScore
+deactivate QUALITY
+
+SERVICE ->> AGENT: ingest(record)
+activate AGENT
+AGENT ->> QUALITY: decide(record)
+activate QUALITY
+QUALITY -->> AGENT: EvolutionDecision
+deactivate QUALITY
+
+AGENT ->> MEMORY: load(snapshot)
+activate MEMORY
+MEMORY -->> AGENT: MemoryBankSnapshot
+deactivate MEMORY
+
+AGENT ->> MEMORY: deduplicate(records)
+activate MEMORY
+MEMORY -->> AGENT: unique records
+deactivate MEMORY
+
+AGENT ->> MEMORY: partition(records)
+activate MEMORY
+MEMORY -->> AGENT: positive / negative / boundary
+deactivate MEMORY
+
+AGENT ->> MEMORY: save(snapshot)
+activate MEMORY
+MEMORY -->> AGENT: snapshot.json
+deactivate MEMORY
+
+AGENT -->> SERVICE: ExemplarAgentResult
+deactivate AGENT
+SERVICE -->> FE: ExemplarBankDecisionSchema
+deactivate SERVICE
+
+== 2. 检索先验生成 ==
+
+FE ->> SERVICE: ExemplarRetrievalRequest
+activate SERVICE
+SERVICE ->> SERVICE: build query embeddings
+SERVICE ->> AGENT: retrieve_prior(query, retrieved)
+activate AGENT
+AGENT ->> RETR: forward(query, retrieved)
+activate RETR
+RETR ->> RETR: SemanticProjector
+RETR ->> RETR: BoundaryEmbeddingHead
+RETR ->> RETR: MultiScaleFeatureAligner
+RETR ->> RETR: CrossAttentionReranker
+RETR ->> RETR: GatedRetrievalFusion
+RETR ->> RETR: RetrievalConfidenceEstimator
+RETR -->> AGENT: RetrievalPackage
+deactivate RETR
+AGENT -->> SERVICE: ExemplarAgentResult
+deactivate AGENT
+SERVICE -->> FE: ExemplarRetrievalResponseSchema
+deactivate SERVICE
+
+== 3. 注入到 SAM3 ==
+
+SAM3 ->> SERVICE: build_retrieval_artifacts(...)
+activate SERVICE
+SERVICE ->> AGENT: retrieve_prior(...)
+activate AGENT
+AGENT ->> RETR: forward(...)
+activate RETR
+RETR -->> AGENT: prompt_tokens + retrieval_prior
+deactivate RETR
+AGENT -->> SERVICE: RetrievalPackage
+deactivate AGENT
+SERVICE -->> SAM3: RetrievalPackage
+deactivate SERVICE
+
+SAM3 ->> FORWARD: model(images,\nboxes,\nexemplar_prompt_tokens,\nretrieval_prior)
+activate FORWARD
+FORWARD ->> FORWARD: prompt encoder 注入
+FORWARD ->> FORWARD: encoder memory bias
+FORWARD ->> FORWARD: decoder feature bias
+FORWARD ->> FORWARD: mask logit bias
+FORWARD -->> SAM3: masks + logits + boxes
+deactivate FORWARD
+
+== 4. 反馈驱动演化 ==
+
+FE ->> SERVICE: ExemplarFeedbackRequest\n(success / false_negative / false_positive / uncertain)
+activate SERVICE
+SERVICE ->> AGENT: update_with_feedback(exemplarId, feedback)
+activate AGENT
+AGENT ->> MEMORY: load(snapshot)
+activate MEMORY
+MEMORY -->> AGENT: MemoryBankSnapshot
+deactivate MEMORY
+
+AGENT ->> EVO: evolve_record(record, feedback)
+activate EVO
+EVO ->> QUALITY: decide(updated_record)
+activate QUALITY
+QUALITY -->> EVO: new state
+deactivate QUALITY
+EVO -->> AGENT: PrototypeEvolutionDecision
+deactivate EVO
+
+AGENT ->> MEMORY: save(snapshot)
+activate MEMORY
+MEMORY -->> AGENT: persisted
+deactivate MEMORY
+
+AGENT -->> SERVICE: ExemplarAgentResult
+deactivate AGENT
+SERVICE -->> FE: ExemplarFeedbackResponseSchema
+deactivate SERVICE
+
+@enduml
