@@ -1,0 +1,50 @@
+{
+  "local_detection": {
+    "image_path": "polyp-detection\\data\\test_images\\cju1ffnjn6ctm08015perkg37.jpg",
+    "model_path": "D:\\BME\\BME\\polyp-detection\\models\\yolov8_polyp.pt",
+    "lesion_present": true,
+    "max_confidence": 0.3997,
+    "box_count": 1,
+    "boxes": [
+      {
+        "class_id": 0,
+        "x_center": 0.721141,
+        "y_center": 0.3813,
+        "width": 0.521617,
+        "height": 0.749595,
+        "confidence": 0.3997
+      }
+    ]
+  },
+  "gemini_assessment": {
+    "status": "ok",
+    "model": "gemini-2.5-flash",
+    "findings": "图像右侧可见一隆起性病灶，形态不规则，表面呈红色，与周围黏膜颜色有差异。病灶基底较宽。可见少量黏液和黄色物质附着。",
+    "impression": "疑似息肉样病变/隆起性病灶，性质待定。",
+    "lesion_present": true,
+    "confidence": 0.3997,
+    "risk_level": "intermediate",
+    "recommendations": [
+      "建议进行活检以明确病理诊断。",
+      "建议结合窄带成像（NBI）或色素内镜等技术进一步评估病灶特征。",
+      "建议根据病灶大小和形态考虑内镜下切除。"
+    ],
+    "raw_text": "{\n  \"lesion_present\": true,\n  \"confidence\": 0.3997,\n  \"findings\": \"图像右侧可见一隆起性病灶，形态不规则，表面呈红色，与周围黏膜颜色有差异。病灶基底较宽。可见少量黏液和黄色物质附着。\",\n  \"impression\": \"疑似息肉样病变/隆起性病灶，性质待定。\",\n  \"risk_level\": \"intermediate\",\n  \"recommendations\": [\n    \"建议进行活检以明确病理诊断。\",\n    \"建议结合窄带成像（NBI）或色素内镜等技术进一步评估病灶特征。\",\n    \"建议根据病灶大小和形态考虑内镜下切除。\"\n  ]\n}",
+    "error": ""
+  },
+  "combined_diagnosis": {
+    "lesion_present": true,
+    "agreement": "both_positive",
+    "confidence": 0.3997,
+    "risk_level": "intermediate",
+    "conclusion": "本地模型和 Gemini 均提示存在疑似息肉/病灶。",
+    "local_box_count": 1,
+    "recommendations": [
+      "建议进行活检以明确病理诊断。",
+      "建议结合窄带成像（NBI）或色素内镜等技术进一步评估病灶特征。",
+      "建议根据病灶大小和形态考虑内镜下切除。",
+      "本结果仅用于辅助诊断，最终结论需由内镜医生结合病史和检查过程确认。",
+      "建议重点复核本地模型给出的 bbox 区域，并结合必要的病理检查。"
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -127,6 +128,20 @@ def refresh_settings_cache() -> None:
     get_settings.cache_clear()
 
 
+def apply_environment_precedence(overrides: dict[str, Any]) -> dict[str, Any]:
+    """Drop runtime overrides when the matching environment variable is set."""
+    if not overrides:
+        return {}
+
+    filtered = dict(overrides)
+    for field_name, field_info in Settings.model_fields.items():
+        alias = str(field_info.alias or field_name)
+        if alias in os.environ:
+            filtered.pop(field_name, None)
+            filtered.pop(alias, None)
+    return filtered
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings(**load_settings_overrides())
+    return Settings(**apply_environment_precedence(load_settings_overrides()))

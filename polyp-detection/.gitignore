@@ -1,0 +1,10 @@
+.venv/
+data/raw/
+data/images/
+data/labels/
+data/test_images/
+data/*.cache
+data/dataset_manifest.json
+models/
+runs/
+yolov8*.pt
