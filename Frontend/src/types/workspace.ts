@@ -1,3 +1,5 @@
+import type { SupervisorDecision } from './supervisor'
+
 export interface WorkspacePatient {
   patientId: string
   patientName: string
@@ -112,6 +114,7 @@ export interface WorkspaceReportResult {
   featureTags: WorkspaceFeatureTag[]
   agentTrace: AgentTraceStep[]
   workflow: WorkspaceWorkflowSummary
+  supervisorDecision?: SupervisorDecision | null
 }
 
 export interface ExemplarBankDecision {
