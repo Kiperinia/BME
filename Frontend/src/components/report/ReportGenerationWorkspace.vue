@@ -8,11 +8,13 @@ import ReportAgentWorkflowPanel from '@/components/report/ReportAgentWorkflowPan
 import ReportCaptureGallery from '@/components/report/ReportCaptureGallery.vue'
 import ReportDraftStatusCard from '@/components/report/ReportDraftStatusCard.vue'
 import ReportPreviewPanel from '@/components/report/ReportPreviewPanel.vue'
+import ReportSupervisorPanel from '@/components/report/ReportSupervisorPanel.vue'
 import type {
   AgentWorkflowSummary,
   AnnotationTag,
   FetchAnnotationTagsRequest,
   ReportContextData,
+  SupervisorDecision,
 } from '@/types/eis'
 
 defineProps<{
@@ -25,6 +27,7 @@ defineProps<{
   streamText: string
   annotationTags: AnnotationTag[]
   agentWorkflow: AgentWorkflowSummary | null
+  supervisorDecision: SupervisorDecision | null
   tagsLoading: boolean
   tagErrorMessage: string
   isHydrating: boolean
@@ -178,12 +181,16 @@ const emit = defineEmits<{
           storage-key="report-generation:right-column"
           class="h-full min-h-0"
           orientation="vertical"
-          :pane-ids="['status', 'preview']"
-          :default-sizes="[14, 86]"
-          :min-sizes="[10, 32]"
+          :pane-ids="['status', 'supervisor', 'preview']"
+          :default-sizes="[14, 26, 60]"
+          :min-sizes="[10, 18, 32]"
         >
           <template #status>
             <ReportDraftStatusCard class="h-full" :saved-at-label="formattedSavedAt" :annotation-count="annotationTags.length" />
+          </template>
+
+          <template #supervisor>
+            <ReportSupervisorPanel class="h-full min-h-0" :decision="supervisorDecision" />
           </template>
 
           <template #preview>

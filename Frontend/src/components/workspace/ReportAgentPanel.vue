@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ReportSupervisorPanel from '@/components/report/ReportSupervisorPanel.vue'
 import MarkdownReportViewer from '@/components/workspace/MarkdownReportViewer.vue'
 import type { AgentTraceStep, FeatureTagTone, WorkspaceFeatureTag, WorkspaceReportResult } from '@/types/workspace'
 
@@ -88,6 +89,8 @@ const resolveTraceTone = (step: AgentTraceStep) => traceToneClasses[step.kind]
       </article>
 
       <MarkdownReportViewer :markdown="reportResult.reportMarkdown" />
+
+      <ReportSupervisorPanel :decision="reportResult.supervisorDecision ?? null" />
 
       <article class="rounded-3xl border border-slate-200 p-4 dark:border-slate-700">
         <div class="flex items-center justify-between gap-3">

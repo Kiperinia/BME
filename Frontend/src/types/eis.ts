@@ -1,3 +1,5 @@
+import type { SupervisorDecision, SupervisorIssue } from './supervisor'
+
 export type PatientGender = '男' | '女' | '其他'
 
 export type PatientExamStatus = 0 | 1 | 2
@@ -96,6 +98,7 @@ export interface GenerateReportDraftResponse {
   layoutSuggestion: string
   workflow: AgentWorkflowSummary
   streamMessages: string[]
+  supervisorDecision?: SupervisorDecision | null
 }
 
 export interface SaveReportDraftRequest {
@@ -151,6 +154,8 @@ export interface AgentWorkflowSummary {
   warnings: string[]
   lesions: AgentWorkflowLesion[]
 }
+
+export type { SupervisorDecision, SupervisorIssue }
 
 export interface SegmentFrameResponse {
   maskDataUrl: string
