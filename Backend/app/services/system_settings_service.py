@@ -226,6 +226,10 @@ class SystemSettingsService:
                 inferenceTimeoutSeconds=settings.model_inference_timeout_seconds,
                 maxUploadSizeMb=settings.max_upload_size_mb,
                 mockDelayMs=settings.model_mock_delay_ms,
+                preprocessEnabled=settings.preprocess_enabled,
+                yoloDetectionEnabled=settings.yolo_detection_enabled,
+                yoloWeightsPath=settings.yolo_weights_path,
+                yoloConfidenceThreshold=settings.yolo_confidence_threshold,
             ),
         )
 
@@ -358,6 +362,10 @@ class SystemSettingsService:
             "model_inference_timeout_seconds": payload.runtime.inferenceTimeoutSeconds,
             "model_mock_delay_ms": payload.runtime.mockDelayMs,
             "max_upload_size_mb": payload.runtime.maxUploadSizeMb,
+            "preprocess_enabled": payload.runtime.preprocessEnabled,
+            "yolo_detection_enabled": payload.runtime.yoloDetectionEnabled,
+            "yolo_weights_path": payload.runtime.yoloWeightsPath,
+            "yolo_confidence_threshold": payload.runtime.yoloConfidenceThreshold,
             "agent_use_llm": payload.agent.enableLlm,
             "agent_use_llm_report": payload.agent.enableLlmReport,
             "agent_pixel_size_mm": payload.agent.pixelSizeMm,

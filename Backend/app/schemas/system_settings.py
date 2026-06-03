@@ -61,6 +61,10 @@ class RuntimeSettingsSchema(BaseModel):
     inferenceTimeoutSeconds: int = Field(default=20, ge=1, le=300)
     maxUploadSizeMb: int = Field(default=20, ge=1, le=200)
     mockDelayMs: int = Field(default=0, ge=0, le=10000)
+    preprocessEnabled: bool = True
+    yoloDetectionEnabled: bool = True
+    yoloWeightsPath: str = Field(default="")
+    yoloConfidenceThreshold: float = Field(default=0.25, ge=0.0, le=1.0)
 
 
 class SystemSettingsPayloadSchema(BaseModel):

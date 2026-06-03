@@ -85,6 +85,13 @@ class Settings(BaseSettings):
     report_enable_reflection: bool = Field(default=False, alias="REPORT_ENABLE_REFLECTION")
     report_reflection_max_iterations: int = Field(default=3, alias="REPORT_REFLECTION_MAX_ITERATIONS", ge=1, le=10)
     report_reflection_quality_threshold: float = Field(default=8.0, alias="REPORT_REFLECTION_QUALITY_THRESHOLD", ge=0.0, le=10.0)
+    preprocess_enabled: bool = Field(default=True, alias="PREPROCESS_ENABLED")
+    yolo_detection_enabled: bool = Field(default=True, alias="YOLO_DETECTION_ENABLED")
+    yolo_weights_path: str = Field(
+        default=str((WORKSPACE_DIR / "polyp-detection" / "models" / "yolov8_polyp.pt").resolve()),
+        alias="YOLO_WEIGHTS_PATH",
+    )
+    yolo_confidence_threshold: float = Field(default=0.25, alias="YOLO_CONFIDENCE_THRESHOLD", ge=0.0, le=1.0)
 
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_DIR / ".env"),

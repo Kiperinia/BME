@@ -82,6 +82,12 @@ class SegmentFrameResponseSchema(BaseModel):
     retrieval_candidate_count: int = Field(default=0, ge=0)
     retrieval_bank_id: str | None = Field(default=None)
     retrieval_prior_keys: list[str] = Field(default_factory=list)
+    preprocess_status: str = Field(default="not_run")
+    quality_warnings: list[str] = Field(default_factory=list)
+    candidate_box: list[int] | None = Field(default=None, min_length=4, max_length=4)
+    candidate_source: str = Field(default="none")
+    candidate_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    pipeline_warnings: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -90,6 +96,9 @@ class SegmentFrameResponseSchema(BaseModel):
                 "mask_coordinates": [[124, 88], [188, 92], [201, 146], [136, 152]],
                 "bounding_box": [118, 88, 201, 152],
                 "mask_area_pixels": 7421,
+                "preprocess_status": "success",
+                "candidate_source": "yolo",
+                "candidate_confidence": 0.86,
             }
         }
     )

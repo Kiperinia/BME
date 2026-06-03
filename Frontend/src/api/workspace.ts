@@ -33,6 +33,12 @@ interface SegmentFrameApiPayload {
   retrieval_candidate_count?: number
   retrieval_bank_id?: string | null
   retrieval_prior_keys?: string[]
+  preprocess_status?: string
+  quality_warnings?: string[]
+  candidate_box?: [number, number, number, number] | null
+  candidate_source?: string
+  candidate_confidence?: number | null
+  pipeline_warnings?: string[]
 }
 
 const workspaceClient = axios.create({
@@ -104,6 +110,12 @@ export const segmentWorkspaceImage = async (
     retrievalCandidateCount: payload.retrieval_candidate_count ?? 0,
     retrievalBankId: payload.retrieval_bank_id ?? null,
     retrievalPriorKeys: payload.retrieval_prior_keys ?? [],
+    preprocessStatus: payload.preprocess_status ?? 'not_run',
+    qualityWarnings: payload.quality_warnings ?? [],
+    candidateBox: payload.candidate_box ?? null,
+    candidateSource: payload.candidate_source ?? 'none',
+    candidateConfidence: payload.candidate_confidence ?? null,
+    pipelineWarnings: payload.pipeline_warnings ?? [],
   }
 }
 

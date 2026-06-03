@@ -29,6 +29,12 @@ export interface WorkspaceSegmentation {
   retrievalCandidateCount?: number
   retrievalBankId?: string | null
   retrievalPriorKeys?: string[]
+  preprocessStatus?: string
+  qualityWarnings?: string[]
+  candidateBox?: [number, number, number, number] | null
+  candidateSource?: string
+  candidateConfidence?: number | null
+  pipelineWarnings?: string[]
 }
 
 export type ParisMorphologyGroup = 'elevated' | 'flat' | 'depressed'
