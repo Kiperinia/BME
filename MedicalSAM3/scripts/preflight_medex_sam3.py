@@ -74,7 +74,7 @@ CORE_FILES = {
     },
     "MedicalSAM3/adapters/medical_adapter.py": {
         "module": "MedicalSAM3.adapters.medical_adapter",
-        "symbols": ["MedicalImageAdapter", "MultiScaleMedicalAdapter"],
+        "symbols": ["MedicalImageAdapter"],
         "blocking": False,
     },
     "MedicalSAM3/adapters/boundary_adapter.py": {

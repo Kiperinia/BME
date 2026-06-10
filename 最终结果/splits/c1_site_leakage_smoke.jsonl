@@ -1,0 +1,1 @@
+{"image_path": "MedicalSAM3/data/PolypGen_external_test/Dataset502_PolypGen/imagesTs/C1_133OLCV1_100H0006_0000.png", "mask_path": "MedicalSAM3/data/PolypGen_external_test/Dataset502_PolypGen/labelsTs/C1_133OLCV1_100H0006.png", "dataset_name": "PolypGen", "image_id": "PolypGen__C1_133OLCV1_100H0006"}

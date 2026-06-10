@@ -52,6 +52,9 @@ log/
 *.err
 nohup.out
 MedicalSAM3/logs/
+Backend/memory/traces/
+agent/memory/traces/
+nul
 
 # Training outputs, experiment artifacts, and checkpoints
 outputs/
@@ -71,6 +74,7 @@ checkpoint/
 MedicalSAM3/checkpoint/
 MedicalSAM3/outputs/
 MedicalSAM3/results/
+最终结果/*.pt
 
 # Datasets and large generated assets
 data/
@@ -80,6 +84,7 @@ cache/
 artifacts/
 downloads/
 MedicalSAM3/data/
+yolo/
 agent/config/
 # Package managers
 poetry.lock

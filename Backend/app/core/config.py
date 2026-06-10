@@ -57,6 +57,13 @@ class Settings(BaseSettings):
     model_lora_enabled: bool = Field(default=False, alias="MODEL_LORA_ENABLED")
     model_lora_path: str = Field(default="", alias="MODEL_LORA_PATH")
     model_lora_stage: str = Field(default="stage_a", alias="MODEL_LORA_STAGE", pattern="^(stage_a|stage_b|stage_c)$")
+    model_yolo_bbox_enabled: bool = Field(default=False, alias="MODEL_YOLO_BBOX_ENABLED")
+    model_yolo_weights_path: str = Field(
+        default=str((WORKSPACE_DIR / "yolo" / "models" / "yolov8_polyp.pt").resolve()),
+        alias="MODEL_YOLO_WEIGHTS_PATH",
+    )
+    model_yolo_confidence: float = Field(default=0.25, alias="MODEL_YOLO_CONFIDENCE", ge=0.0, le=1.0)
+    model_yolo_iou: float = Field(default=0.7, alias="MODEL_YOLO_IOU", ge=0.0, le=1.0)
     model_keep_aspect_ratio: bool = Field(default=False, alias="MODEL_KEEP_ASPECT_RATIO")
     model_warmup_enabled: bool = Field(default=True, alias="MODEL_WARMUP_ENABLED")
     model_inference_timeout_seconds: int = Field(

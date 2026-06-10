@@ -19,7 +19,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 from MedicalSAM3.adapters.boundary_adapter import BoundaryAwareAdapter
-from MedicalSAM3.adapters.medical_adapter import MedicalImageAdapter, MultiScaleMedicalAdapter
+from MedicalSAM3.adapters.medical_adapter import MedicalImageAdapter
 from MedicalSAM3.sam3_official.tensor_forward import Sam3TensorForwardWrapper
 
 
@@ -467,6 +467,7 @@ class SplitSegmentationDataset(Dataset):
         loose_box_prob: float = 0.0,
         box_dropout_prob: float = 0.0,
         prompt_removal_prob: float = 0.0,
+        box_provider: Any | None = None,
     ) -> None:
         self.records = records
         self.image_size = image_size
@@ -478,6 +479,7 @@ class SplitSegmentationDataset(Dataset):
         self.loose_box_prob = loose_box_prob
         self.box_dropout_prob = box_dropout_prob
         self.prompt_removal_prob = prompt_removal_prob
+        self.box_provider = box_provider
 
     def __len__(self) -> int:
         return len(self.records)
@@ -485,7 +487,16 @@ class SplitSegmentationDataset(Dataset):
     def __getitem__(self, index: int) -> dict[str, Any]:
         record = self.records[index]
         image, mask = load_record_tensors(record, self.image_size, fallback_index=index)
-        box = mask_to_box(mask)
+        if self.box_provider is not None:
+            box = self.box_provider.get_box(
+                record,
+                self.image_size,
+                image=image,
+                mask=mask,
+                fallback_index=index,
+            )
+        else:
+            box = mask_to_box(mask)
         box, prompt_aug = augment_box_prompt(
             box,
             self.image_size,
@@ -539,14 +550,12 @@ class MedExSam3SegmentationModel(nn.Module):
         self,
         wrapper: Sam3TensorForwardWrapper,
         enable_medical_adapter: bool = False,
-        enable_msfa_adapter: bool = False,
         enable_boundary_adapter: bool = False,
         embed_dim: int = 128,
     ) -> None:
         super().__init__()
         self.wrapper = wrapper
         self.medical_adapter = MedicalImageAdapter(embed_dim, max(embed_dim // 4, 8)) if enable_medical_adapter else None
-        self.msfa_adapter = MultiScaleMedicalAdapter(embed_dim) if enable_msfa_adapter else None
         self.boundary_adapter = BoundaryAwareAdapter(embed_dim) if enable_boundary_adapter else None
         self.refine_head = nn.Conv2d(embed_dim, 1, kernel_size=1)
 
@@ -569,8 +578,6 @@ class MedExSam3SegmentationModel(nn.Module):
         feature_map = resolve_feature_map(outputs.get("image_embeddings"), images)
         if self.medical_adapter is not None:
             feature_map = self.medical_adapter(feature_map)
-        if self.msfa_adapter is not None:
-            feature_map = self.msfa_adapter(feature_map)
         aux = {}
         if self.boundary_adapter is not None:
             feature_map, aux = self.boundary_adapter(

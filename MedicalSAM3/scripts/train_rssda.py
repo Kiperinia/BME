@@ -36,6 +36,7 @@ from MedicalSAM3.scripts.common import (
     resolve_feature_map,
     seed_everything,
 )
+from MedicalSAM3.yolo_adapter.cli import add_yolo_bbox_args, build_box_provider_from_args
 
 
 def _resolve_hidden_dim(model: torch.nn.Module) -> int:
@@ -167,6 +168,7 @@ def main() -> int:
     parser.add_argument("--prefer-cross-domain-positive", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
     parser.add_argument("--dummy", action="store_true")
+    add_yolo_bbox_args(parser)
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -283,6 +285,7 @@ def main() -> int:
     )
     criterion = MedExLossComposer()
     cross_domain_criterion = CrossDomainConsistencyLoss()
+    box_provider = build_box_provider_from_args(args, default_cache_name="train_rssda.json")
     loader = DataLoader(
         SplitSegmentationDataset(
             records,
@@ -294,6 +297,7 @@ def main() -> int:
             loose_box_prob=args.loose_bbox_prob,
             box_dropout_prob=args.bbox_dropout_prob,
             prompt_removal_prob=args.prompt_removal_prob,
+            box_provider=box_provider,
         ),
         batch_size=args.batch_size,
         shuffle=True,

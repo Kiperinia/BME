@@ -37,6 +37,7 @@ from MedicalSAM3.scripts.common import (
     read_records,
     seed_everything,
 )
+from MedicalSAM3.yolo_adapter.cli import add_yolo_bbox_args, build_box_provider_from_args
 
 
 def _device_from_args(requested_device: str, precision: str) -> tuple[str, torch.dtype]:
@@ -122,7 +123,7 @@ def _save_adapter_weights(model: torch.nn.Module, path: Path) -> None:
     adapter_state = {
         key: value
         for key, value in model.state_dict().items()
-        if "medical_adapter" in key or "msfa_adapter" in key or "boundary_adapter" in key or "refine_head" in key
+        if "medical_adapter" in key or "boundary_adapter" in key or "refine_head" in key
     }
     torch.save(adapter_state, path)
 
@@ -176,7 +177,6 @@ def _build_training_stack(
     model = MedExSam3SegmentationModel(
         wrapper=wrapper,
         enable_medical_adapter=bool(config.get("enable_medical_adapter", False)),
-        enable_msfa_adapter=args.enable_msfa_adapter,
         enable_boundary_adapter=args.enable_boundary_adapter,
         embed_dim=int(embed_dim),
     ).to(device)
@@ -251,12 +251,14 @@ def _run_preflight(
 
         if split_exists and train_records:
             criterion = MedExLossComposer(w_contrast=0.0, w_neg=0.0, w_consistency=0.0)
+            box_provider = build_box_provider_from_args(args, default_cache_name="train_lora_medical_preflight.json")
             loader = DataLoader(
                 SplitSegmentationDataset(
                     train_records,
                     args.image_size,
                     box_padding_ratio=args.box_padding_ratio,
                     box_jitter_ratio=args.train_box_jitter_ratio,
+                    box_provider=box_provider,
                 ),
                 batch_size=args.batch_size,
                 shuffle=False,
@@ -319,7 +321,6 @@ def main() -> int:
     parser.add_argument("--enable-detector-lora", action="store_true")
     parser.add_argument("--enable-mask-decoder-lora", action="store_true")
     parser.add_argument("--enable-boundary-adapter", action="store_true")
-    parser.add_argument("--enable-msfa-adapter", action="store_true")
     parser.add_argument("--freeze-text-encoder", action="store_true")
     parser.add_argument("--dummy", action="store_true")
     parser.add_argument("--split-dir", default="MedicalSAM3/outputs/medex_sam3/splits")
@@ -332,6 +333,7 @@ def main() -> int:
     parser.add_argument("--box-padding-ratio", type=float, default=0.05)
     parser.add_argument("--train-box-jitter-ratio", type=float, default=0.05)
     parser.add_argument("--stage", choices=["stage_a", "stage_b", "stage_c"], default="stage_a")
+    add_yolo_bbox_args(parser)
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -391,6 +393,7 @@ def main() -> int:
     _base_model, _wrapper, model, replaced = _build_training_stack(args, config, device=device)
     print_trainable_parameters(model)
     trainable, total, ratio = count_trainable_parameters(model)
+    box_provider = build_box_provider_from_args(args, default_cache_name="train_lora_medical.json")
 
     train_loader = DataLoader(
         SplitSegmentationDataset(
@@ -398,6 +401,7 @@ def main() -> int:
             args.image_size,
             box_padding_ratio=args.box_padding_ratio,
             box_jitter_ratio=args.train_box_jitter_ratio,
+            box_provider=box_provider,
         ),
         batch_size=args.batch_size,
         shuffle=True,
@@ -409,6 +413,7 @@ def main() -> int:
             args.image_size,
             box_padding_ratio=args.box_padding_ratio,
             box_jitter_ratio=0.0,
+            box_provider=box_provider,
         ),
         batch_size=1,
         shuffle=False,

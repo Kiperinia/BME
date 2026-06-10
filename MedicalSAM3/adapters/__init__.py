@@ -15,7 +15,7 @@ from .lora import (
     replace_linear_with_lora,
     save_lora_weights,
 )
-from .medical_adapter import BottleneckAdapter, MedicalImageAdapter, MultiScaleMedicalAdapter
+from .medical_adapter import BottleneckAdapter, MedicalImageAdapter
 
 __all__ = [
     "BottleneckAdapter",
@@ -24,7 +24,6 @@ __all__ = [
     "LoRAConfig",
     "LoRALinear",
     "MedicalImageAdapter",
-    "MultiScaleMedicalAdapter",
     "RetrievalSpatialSemanticAdapter",
     "apply_lora_to_model",
     "get_lora_state_dict",

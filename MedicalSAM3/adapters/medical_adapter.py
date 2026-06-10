@@ -65,37 +65,3 @@ class MedicalImageAdapter(nn.Module):
         return out
 
 
-class MultiScaleMedicalAdapter(nn.Module):
-    def __init__(self, channels: int, dilations: tuple[int, ...] = (1, 6, 12, 18)) -> None:
-        super().__init__()
-        branch_channels = max(channels // max(len(dilations), 1), 1)
-        self.branches = nn.ModuleList(
-            [
-                nn.Sequential(
-                    nn.Conv2d(channels, branch_channels, kernel_size=3, padding=dilation, dilation=dilation, bias=False),
-                    nn.BatchNorm2d(branch_channels),
-                    nn.GELU(),
-                )
-                for dilation in dilations
-            ]
-        )
-        self.global_pool = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(channels, branch_channels, kernel_size=1, bias=False),
-            nn.GELU(),
-        )
-        fused_channels = branch_channels * (len(dilations) + 1)
-        self.fuse = nn.Sequential(
-            nn.Conv2d(fused_channels, channels, kernel_size=1, bias=False),
-            nn.BatchNorm2d(channels),
-            nn.GELU(),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if x.dim() != 4:
-            raise ValueError("MultiScaleMedicalAdapter expects [B, C, H, W]")
-        residual = x
-        features = [branch(x) for branch in self.branches]
-        pooled = self.global_pool(x).expand(-1, -1, x.shape[-2], x.shape[-1])
-        features.append(pooled)
-        return residual + self.fuse(torch.cat(features, dim=1))

@@ -15,6 +15,10 @@ import numpy as np
 
 from app.core.config import Settings, get_settings
 
+WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
+if str(WORKSPACE_ROOT) not in sys.path:
+    sys.path.insert(0, str(WORKSPACE_ROOT))
+
 try:
     import torch
 except Exception:
@@ -48,6 +52,7 @@ class SAM3Engine:
         self.mask_threshold = settings.model_mask_threshold
         self.polygon_epsilon_ratio = settings.model_polygon_epsilon_ratio
         self.min_contour_area = settings.model_min_contour_area
+        self.yolo_detector = self._load_yolo_detector()
         self.model = self._load_model()
 
         if self.settings.model_warmup_enabled:
@@ -140,7 +145,9 @@ class SAM3Engine:
                 self.device,
                 non_blocking=self.device.startswith("cuda"),
             )
-            prompt_bbox = self._build_prompt_bbox(preprocess_result=preprocess_result).to(model_input.device)
+            prompt_bbox = self._build_prompt_bbox(preprocess_result=preprocess_result)
+            if prompt_bbox is not None:
+                prompt_bbox = prompt_bbox.to(model_input.device)
             retrieval_package, retrieval_response = self._build_retrieval_artifacts(
                 preprocess_result=preprocess_result,
                 retrieval_context=retrieval_context,
@@ -383,9 +390,39 @@ class SAM3Engine:
         self.predict(image=warmup_image)
         logger.info("SAM3Engine warm-up finished")
 
+    def _load_yolo_detector(self) -> Any | None:
+        if not self.settings.model_yolo_bbox_enabled:
+            return None
+        try:
+            from MedicalSAM3.yolo_adapter.detector import UltralyticsYoloDetector
+
+            return UltralyticsYoloDetector(
+                weights=self.settings.model_yolo_weights_path,
+                conf=self.settings.model_yolo_confidence,
+                iou=self.settings.model_yolo_iou,
+                device=self.device if self.device else None,
+                imgsz=self.input_size,
+            )
+        except Exception as exc:
+            logger.warning("YOLO bbox detector unavailable; falling back to full-frame SAM3 prompt: %s", exc)
+            return None
+
     def _build_prompt_bbox(self, preprocess_result: PreprocessResult) -> Any:
         if torch is None:
             raise RuntimeError("PyTorch runtime is unavailable")
+
+        if self.settings.model_yolo_bbox_enabled:
+            if self.yolo_detector is None:
+                return None
+            try:
+                yolo_image = (preprocess_result.normalized_image * 255.0).clip(0, 255).astype(np.uint8)
+                detection = self.yolo_detector.predict_one_array(yolo_image)
+                if detection is not None:
+                    x_min, y_min, x_max, y_max = detection.xyxy
+                    return torch.tensor([[x_min, y_min, x_max, y_max]], dtype=torch.float32)
+            except Exception as exc:
+                logger.warning("YOLO bbox prompt failed; continuing without bbox prompt: %s", exc)
+            return None
 
         x_min = float(preprocess_result.pad_left)
         y_min = float(preprocess_result.pad_top)

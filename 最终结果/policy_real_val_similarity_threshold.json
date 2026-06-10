@@ -1,0 +1,637 @@
+{
+  "Dice": 0.9303104451658556,
+  "IoU": 0.8815215101736618,
+  "Precision": 0.9625882003975358,
+  "Recall": 0.9074075876190197,
+  "Boundary F1": 0.6549664211370074,
+  "HD95": 3.8945988310564412,
+  "ASSD": 0.8217089911129891,
+  "False Positive Rate": 0.00490998607659125,
+  "False Negative Rate": 0.09259241150444138,
+  "Dice Delta": 0.0,
+  "Mask Area Delta": 0.0,
+  "Boundary F1 Delta": 0.0,
+  "Attention Proxy Delta": 0.0,
+  "Baseline Dice Delta": 0.0,
+  "retrieval_mode": "joint",
+  "top_k_positive": 1,
+  "top_k_negative": 1,
+  "positive_weight": 1.0,
+  "negative_weight": 0.25,
+  "similarity_threshold": 0.5,
+  "confidence_scale": 8.0,
+  "retrieval_policy": "similarity-threshold",
+  "uncertainty_threshold": 0.35,
+  "uncertainty_scale": 10.0,
+  "policy_activation_threshold": 0.05,
+  "residual_strength": 0.5,
+  "retrieval_diagnostics_summary": {
+    "count": 323,
+    "similarity_distribution": {
+      "positive": {
+        "mean": 0.21618519723415375,
+        "std": 0.002954975701868534,
+        "min": 0.20545099675655365,
+        "max": 0.2232682704925537
+      },
+      "negative": {
+        "mean": 0.21747367084026337,
+        "std": 0.002831485355272889,
+        "min": 0.20710620284080505,
+        "max": 0.22448863089084625
+      },
+      "margin": {
+        "mean": -0.0012884875759482384,
+        "std": 0.0007125674746930599,
+        "min": -0.0033354759216308594,
+        "max": 0.0005906522274017334
+      },
+      "positive_histogram": {
+        "min": 0.20545099675655365,
+        "max": 0.2232682704925537,
+        "edges": [
+          0.20545099675655365,
+          0.20723272413015364,
+          0.20901445150375367,
+          0.21079617887735366,
+          0.21257790625095369,
+          0.21435963362455368,
+          0.21614136099815368,
+          0.2179230883717537,
+          0.2197048157453537,
+          0.22148654311895372,
+          0.2232682704925537
+        ],
+        "counts": [
+          4,
+          3,
+          4,
+          20,
+          51,
+          73,
+          79,
+          51,
+          33,
+          5
+        ]
+      },
+      "negative_histogram": {
+        "min": 0.20710620284080505,
+        "max": 0.22448863089084625,
+        "edges": [
+          0.20710620284080505,
+          0.20884444564580917,
+          0.2105826884508133,
+          0.2123209312558174,
+          0.21405917406082153,
+          0.21579741686582565,
+          0.21753565967082977,
+          0.2192739024758339,
+          0.221012145280838,
+          0.22275038808584213,
+          0.22448863089084625
+        ],
+        "counts": [
+          4,
+          4,
+          0,
+          25,
+          52,
+          83,
+          64,
+          58,
+          30,
+          3
+        ]
+      },
+      "margin_histogram": {
+        "min": -0.0033354759216308594,
+        "max": 0.0005906522274017334,
+        "edges": [
+          -0.0033354759216308594,
+          -0.0029428631067276003,
+          -0.0025502502918243407,
+          -0.0021576374769210816,
+          -0.0017650246620178223,
+          -0.001372411847114563,
+          -0.0009797990322113039,
+          -0.0005871862173080443,
+          -0.00019457340240478524,
+          0.00019803941249847386,
+          0.0005906522274017334
+        ],
+        "counts": [
+          2,
+          8,
+          24,
+          54,
+          58,
+          67,
+          56,
+          32,
+          12,
+          10
+        ]
+      }
+    },
+    "gate_distribution": {
+      "fusion_gate": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "policy_gate": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "retrieval_confidence_gate": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "positive_confidence_gate": {
+        "mean": 0.09361344575881958,
+        "std": 0.001995077123865485,
+        "min": 0.08655904978513718,
+        "max": 0.09851329773664474
+      },
+      "negative_confidence_gate": {
+        "mean": 0.09449012577533722,
+        "std": 0.0019296436803415418,
+        "min": 0.08761175721883774,
+        "max": 0.09938370436429977
+      },
+      "fusion_gate_histogram": {
+        "min": 0.0,
+        "max": 1e-06,
+        "edges": [
+          0.0,
+          1e-07,
+          2e-07,
+          3e-07,
+          4e-07,
+          5e-07,
+          6e-07,
+          7e-07,
+          8e-07,
+          9e-07,
+          1e-06
+        ],
+        "counts": [
+          323,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "policy_gate_histogram": {
+        "min": 0.0,
+        "max": 1e-06,
+        "edges": [
+          0.0,
+          1e-07,
+          2e-07,
+          3e-07,
+          4e-07,
+          5e-07,
+          6e-07,
+          7e-07,
+          8e-07,
+          9e-07,
+          1e-06
+        ],
+        "counts": [
+          323,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "retrieval_confidence_histogram": {
+        "min": 0.0,
+        "max": 1e-06,
+        "edges": [
+          0.0,
+          1e-07,
+          2e-07,
+          3e-07,
+          4e-07,
+          5e-07,
+          6e-07,
+          7e-07,
+          8e-07,
+          9e-07,
+          1e-06
+        ],
+        "counts": [
+          323,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "policy_distribution": {
+      "segmentation_confidence": {
+        "mean": 0.925717830657959,
+        "std": 0.11959343403577805,
+        "min": 0.16192416846752167,
+        "max": 0.9993563890457153
+      },
+      "segmentation_uncertainty": {
+        "mean": 0.07428213208913803,
+        "std": 0.11959342658519745,
+        "min": 0.0006436187541112304,
+        "max": 0.8380758166313171
+      },
+      "segmentation_entropy": {
+        "mean": 0.11922948807477951,
+        "std": 0.16248618066310883,
+        "min": 0.0011264306958764791,
+        "max": 0.9601423740386963
+      },
+      "uncertainty_gate": {
+        "mean": 1.0,
+        "std": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "retrieval_activation_ratio": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "retrieval_suppression_ratio": {
+        "mean": 1.0,
+        "std": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "similarity_activation_ratio": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "residual_strength": {
+        "mean": 1.0,
+        "std": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "used_baseline_uncertainty": {
+        "mean": 1.0,
+        "std": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "segmentation_confidence_histogram": {
+        "min": 0.16192416846752167,
+        "max": 0.9993563890457153,
+        "edges": [
+          0.16192416846752167,
+          0.24566739052534103,
+          0.3294106125831604,
+          0.41315383464097977,
+          0.49689705669879913,
+          0.5806402787566185,
+          0.6643835008144379,
+          0.7481267228722572,
+          0.8318699449300766,
+          0.915613166987896,
+          0.9993563890457153
+        ],
+        "counts": [
+          1,
+          0,
+          2,
+          3,
+          6,
+          3,
+          8,
+          17,
+          32,
+          251
+        ]
+      },
+      "segmentation_uncertainty_histogram": {
+        "min": 0.0006436187541112304,
+        "max": 0.8380758166313171,
+        "edges": [
+          0.0006436187541112304,
+          0.08438683854183182,
+          0.1681300583295524,
+          0.251873278117273,
+          0.3356164979049936,
+          0.4193597176927142,
+          0.5031029374804348,
+          0.5868461572681554,
+          0.670589377055876,
+          0.7543325968435965,
+          0.8380758166313171
+        ],
+        "counts": [
+          251,
+          32,
+          17,
+          8,
+          3,
+          6,
+          3,
+          2,
+          0,
+          1
+        ]
+      },
+      "segmentation_entropy_histogram": {
+        "min": 0.0011264306958764791,
+        "max": 0.9601423740386963,
+        "edges": [
+          0.0011264306958764791,
+          0.09702802503015846,
+          0.19292961936444045,
+          0.28883121369872244,
+          0.3847328080330044,
+          0.4806344023672864,
+          0.5765359967015684,
+          0.6724375910358503,
+          0.7683391853701323,
+          0.8642407797044144,
+          0.9601423740386963
+        ],
+        "counts": [
+          213,
+          51,
+          20,
+          12,
+          10,
+          6,
+          5,
+          3,
+          2,
+          1
+        ]
+      },
+      "uncertainty_gate_histogram": {
+        "min": 1.0,
+        "max": 1.000001,
+        "edges": [
+          1.0,
+          1.0000001,
+          1.0000002,
+          1.0000003,
+          1.0000004,
+          1.0000005,
+          1.0000006,
+          1.0000007,
+          1.0000008,
+          1.0000008999999999,
+          1.000001
+        ],
+        "counts": [
+          323,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "retrieval_activation_histogram": {
+        "min": 0.0,
+        "max": 1e-06,
+        "edges": [
+          0.0,
+          1e-07,
+          2e-07,
+          3e-07,
+          4e-07,
+          5e-07,
+          6e-07,
+          7e-07,
+          8e-07,
+          9e-07,
+          1e-06
+        ],
+        "counts": [
+          323,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "retrieval_suppression_histogram": {
+        "min": 1.0,
+        "max": 1.000001,
+        "edges": [
+          1.0,
+          1.0000001,
+          1.0000002,
+          1.0000003,
+          1.0000004,
+          1.0000005,
+          1.0000006,
+          1.0000007,
+          1.0000008,
+          1.0000008999999999,
+          1.000001
+        ],
+        "counts": [
+          323,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "calibrated_weight_distribution": {
+      "positive": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "negative": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "positive_histogram": {
+        "min": 0.0,
+        "max": 1e-06,
+        "edges": [
+          0.0,
+          1e-07,
+          2e-07,
+          3e-07,
+          4e-07,
+          5e-07,
+          6e-07,
+          7e-07,
+          8e-07,
+          9e-07,
+          1e-06
+        ],
+        "counts": [
+          323,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "negative_histogram": {
+        "min": 0.0,
+        "max": 1e-06,
+        "edges": [
+          0.0,
+          1e-07,
+          2e-07,
+          3e-07,
+          4e-07,
+          5e-07,
+          6e-07,
+          7e-07,
+          8e-07,
+          9e-07,
+          1e-06
+        ],
+        "counts": [
+          323,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "retrieval_stability": {
+      "positive_similarity_std": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "negative_similarity_std": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "positive_weight_entropy": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "negative_weight_entropy": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "influence_strength": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "histogram": {
+        "min": 0.0,
+        "max": 1e-06,
+        "edges": [
+          0.0,
+          1e-07,
+          2e-07,
+          3e-07,
+          4e-07,
+          5e-07,
+          6e-07,
+          7e-07,
+          8e-07,
+          9e-07,
+          1e-06
+        ],
+        "counts": [
+          323,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "bank_context": {
+    "resolved_path": "MedicalSAM3/banks/train_bank",
+    "source": "directory_bank",
+    "cache_root": "MedicalSAM3/banks/train_bank/.cache",
+    "stats": {
+      "positive_count": 6,
+      "negative_count": 6,
+      "cache_hits": 12,
+      "cache_misses": 0
+    }
+  },
+  "artifacts": {
+    "per_image_metrics": "MedicalSAM3/outputs/medex_sam3/policy_real_val_similarity_threshold/per_image_metrics.jsonl",
+    "retrieval_diagnostics": "MedicalSAM3/outputs/medex_sam3/policy_real_val_similarity_threshold/retrieval_diagnostics.jsonl",
+    "visualizations": "MedicalSAM3/outputs/medex_sam3/policy_real_val_similarity_threshold/visualizations",
+    "retrieval_calibration": "MedicalSAM3/outputs/medex_sam3/policy_real_val_similarity_threshold/retrieval_calibration_summary.json"
+  }
+}

@@ -16,6 +16,7 @@ from torch.optim import AdamW
 from torch.utils.data import DataLoader
 
 from MedicalSAM3.adapters.exemplar_prompt_adapter import ExemplarPromptAdapter
+from MedicalSAM3.adapters.lora import load_lora_weights
 from MedicalSAM3.exemplar.losses import MedExLossComposer
 from MedicalSAM3.exemplar.memory_bank import ExemplarItem, ExemplarMemoryBank
 from MedicalSAM3.exemplar.prototype_builder import PrototypeBuilder
@@ -24,6 +25,7 @@ from MedicalSAM3.sam3_official.tensor_forward import Sam3TensorForwardWrapper
 from MedicalSAM3.scripts.common import (
     MedExSam3SegmentationModel,
     SplitSegmentationDataset,
+    apply_config_overrides,
     collate_batch,
     compute_segmentation_metrics,
     dump_config,
@@ -34,6 +36,7 @@ from MedicalSAM3.scripts.common import (
     resolve_runtime_device,
     seed_everything,
 )
+from MedicalSAM3.yolo_adapter.cli import add_yolo_bbox_args, build_box_provider_from_args
 
 
 def _prototype_summary(proto: torch.Tensor | None) -> torch.Tensor | None:
@@ -122,10 +125,37 @@ def _build_type_prototype(
     }
 
 
+def _expand_proto_for_batch(proto: torch.Tensor | None) -> torch.Tensor | None:
+    if proto is None:
+        return None
+    return proto.unsqueeze(0)
+
+
 def _write_preflight_report(path: Path, payload: dict[str, object]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return path
+
+
+def _save_prompt_checkpoint(
+    output_dir: Path,
+    prompt_adapter: ExemplarPromptAdapter,
+    *,
+    epoch: int,
+    metrics: dict[str, float] | None = None,
+    suffix: str = "latest",
+) -> Path:
+    checkpoint_path = output_dir / f"prompt_adapter_{suffix}.pt"
+    torch.save(
+        {
+            "epoch": epoch,
+            "prompt_adapter": prompt_adapter.state_dict(),
+            "metrics": metrics or {},
+        },
+        checkpoint_path,
+    )
+    torch.save(prompt_adapter.state_dict(), output_dir / "prompt_adapter.pt")
+    return checkpoint_path
 
 
 def main() -> int:
@@ -140,7 +170,10 @@ def main() -> int:
     parser.add_argument("--enable-consistency-loss", action="store_true")
     parser.add_argument("--enable-contrastive-loss", action="store_true")
     parser.add_argument("--checkpoint", default=None)
+    parser.add_argument("--lora-checkpoint", default=None)
+    parser.add_argument("--adapter-checkpoint", default=None)
     parser.add_argument("--split-file", default="MedicalSAM3/outputs/medex_sam3/splits/fold_0/train_ids.txt")
+    parser.add_argument("--val-split-file", default="MedicalSAM3/outputs/medex_sam3/splits/fold_0/val_ids.txt")
     parser.add_argument("--output-dir", default="MedicalSAM3/outputs/medex_sam3/exemplar_prompt")
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=1)
@@ -149,20 +182,47 @@ def main() -> int:
     parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
     parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--dummy", action="store_true")
+    add_yolo_bbox_args(parser)
     args = parser.parse_args()
 
     config = load_config(args.config)
+    apply_config_overrides(
+        args,
+        config,
+        {
+            "prototype_mode": "weighted_mean",
+            "top_k_positive": 3,
+            "top_k_negative": 1,
+            "top_k_boundary": 1,
+            "enable_negative_suppression": False,
+            "enable_consistency_loss": False,
+            "enable_contrastive_loss": False,
+            "lora_checkpoint": None,
+            "adapter_checkpoint": None,
+            "split_file": "MedicalSAM3/outputs/medex_sam3/splits/fold_0/train_ids.txt",
+            "val_split_file": "MedicalSAM3/outputs/medex_sam3/splits/fold_0/val_ids.txt",
+            "epochs": 1,
+            "batch_size": 1,
+            "image_size": 128,
+            "precision": "fp32",
+        },
+    )
     seed_everything(int(config.get("seed", 42)))
     output_dir = ensure_dir(args.output_dir)
     preflight_report_path = output_dir / "preflight_report.json"
     variance_log = output_dir / "prototype_variance_log.jsonl"
     selected_log = output_dir / "selected_exemplars.jsonl"
+    val_metrics_log = output_dir / "val_metrics.jsonl"
     variance_log.write_text("", encoding="utf-8")
     selected_log.write_text("", encoding="utf-8")
+    val_metrics_log.write_text("", encoding="utf-8")
 
     records = read_records(args.split_file)
+    val_records = read_records(args.val_split_file) if args.val_split_file else []
     if args.dummy and not records:
         records = [{"image_path": "", "mask_path": "", "dataset_name": "dummy", "image_id": f"train_{i}"} for i in range(4)]
+    if args.dummy and not val_records:
+        val_records = [{"image_path": "", "mask_path": "", "dataset_name": "dummy", "image_id": f"val_{i}"} for i in range(2)]
     if args.batch_size != 1:
         raise ValueError("train_exemplar_prompt.py currently expects --batch-size 1.")
 
@@ -226,6 +286,8 @@ def main() -> int:
             compile_model=False,
             allow_dummy_fallback=args.dummy,
         )
+        if args.lora_checkpoint and Path(args.lora_checkpoint).exists():
+            load_lora_weights(base_model, args.lora_checkpoint, strict=False)
         freeze_model(base_model)
         wrapper = Sam3TensorForwardWrapper(model=base_model, device=device, dtype=args.precision)
         hidden_dim = _infer_hidden_dim(base_model, wrapper, device=device, image_size=args.image_size)
@@ -235,6 +297,9 @@ def main() -> int:
             enable_boundary_adapter=True,
             embed_dim=hidden_dim,
         ).to(device)
+        if args.adapter_checkpoint and Path(args.adapter_checkpoint).exists():
+            adapter_state = torch.load(args.adapter_checkpoint, map_location=device, weights_only=False)
+            model.load_state_dict(adapter_state, strict=False)
         prompt_adapter = ExemplarPromptAdapter(hidden_dim).to(device)
 
         if prompt_adapter.positive_proj.proj[0].in_features != hidden_dim:
@@ -257,109 +322,188 @@ def main() -> int:
 
     builder = PrototypeBuilder()
     criterion = MedExLossComposer()
+    box_provider = build_box_provider_from_args(args, default_cache_name="train_exemplar_prompt.json")
     optimizer = AdamW(
         list(prompt_adapter.parameters()) + [parameter for parameter in model.parameters() if parameter.requires_grad],
         lr=float(config.get("lr", 1e-4)),
+        weight_decay=float(config.get("weight_decay", 1e-4)),
     )
     loader = DataLoader(
-        SplitSegmentationDataset(records, args.image_size),
+        SplitSegmentationDataset(records, args.image_size, box_provider=box_provider),
         batch_size=args.batch_size,
         shuffle=True,
         collate_fn=collate_batch,
     )
+    val_loader = (
+        DataLoader(
+            SplitSegmentationDataset(val_records, args.image_size, box_provider=box_provider),
+            batch_size=1,
+            shuffle=False,
+            collate_fn=collate_batch,
+        )
+        if val_records
+        else None
+    )
 
     approximate_negative_suppression = enable_negative_suppression
-    for epoch in range(args.epochs):
-        model.train()
-        for batch in loader:
-            images = batch["images"].to(device)
-            masks = batch["masks"].to(device)
-            boxes = batch["boxes"].to(device)
-            warmup_outputs = model(images=images, boxes=boxes, text_prompt=batch["text_prompt"], gt_mask=masks)
-            query_embedding = warmup_outputs["query_embedding"].detach()[0]
+    final_metrics: dict[str, float] | None = None
+    last_outputs: dict[str, torch.Tensor] | None = None
+    last_masks: torch.Tensor | None = None
+    try:
+        for epoch in range(args.epochs):
+            model.train()
+            prompt_adapter.train()
+            for batch in loader:
+                images = batch["images"].to(device)
+                masks = batch["masks"].to(device)
+                boxes = batch["boxes"].to(device)
+                warmup_outputs = model(images=images, boxes=boxes, text_prompt=batch["text_prompt"], gt_mask=masks)
+                query_embedding = warmup_outputs["query_embedding"][0]
 
-            positive = _build_type_prototype(builder, query_embedding, positive_items, args.top_k_positive, args.prototype_mode)
-            negative = _build_type_prototype(builder, query_embedding, negative_items, args.top_k_negative, args.prototype_mode)
-            boundary = _build_type_prototype(builder, query_embedding, boundary_items, args.top_k_boundary, args.prototype_mode) if enable_boundary else {"prototype": None, "selected_item_ids": [], "weights": [], "variance": None}
-            if positive["prototype"] is None:
-                raise RuntimeError("No positive prototypes available for exemplar training.")
+                positive = _build_type_prototype(builder, query_embedding, positive_items, args.top_k_positive, args.prototype_mode)
+                negative = _build_type_prototype(builder, query_embedding, negative_items, args.top_k_negative, args.prototype_mode)
+                boundary = _build_type_prototype(builder, query_embedding, boundary_items, args.top_k_boundary, args.prototype_mode) if enable_boundary else {"prototype": None, "selected_item_ids": [], "weights": [], "variance": None}
+                if positive["prototype"] is None:
+                    raise RuntimeError("No positive prototypes available for exemplar training.")
 
-            positive_proto = positive["prototype"].unsqueeze(0) if positive["prototype"].dim() == 1 else positive["prototype"].unsqueeze(0)
-            negative_proto = None if negative["prototype"] is None else negative["prototype"].unsqueeze(0) if negative["prototype"].dim() == 1 else negative["prototype"].unsqueeze(0)
-            boundary_proto = None if boundary["prototype"] is None else boundary["prototype"].unsqueeze(0) if boundary["prototype"].dim() == 1 else boundary["prototype"].unsqueeze(0)
+                positive_proto = _expand_proto_for_batch(positive["prototype"])
+                negative_proto = _expand_proto_for_batch(negative["prototype"])
+                boundary_proto = _expand_proto_for_batch(boundary["prototype"])
+                query_feat_for_adapter = query_embedding.detach().unsqueeze(0)
 
-            prompt_tokens, prompt_aux = prompt_adapter(
-                positive_proto=positive_proto,
-                negative_proto=negative_proto,
-                boundary_proto=boundary_proto,
-                query_feat=warmup_outputs["query_embedding"],
-            )
-            outputs = model(
-                images=images,
-                boxes=boxes,
-                text_prompt=batch["text_prompt"],
-                exemplar_prompt_tokens=prompt_tokens,
-                gt_mask=masks,
-            )
-
-            consistency_pair = None
-            if args.enable_consistency_loss:
-                alt_outputs = model(
+                prompt_tokens, prompt_aux = prompt_adapter(
+                    positive_proto=positive_proto,
+                    negative_proto=negative_proto,
+                    boundary_proto=boundary_proto,
+                    query_feat=query_feat_for_adapter,
+                )
+                outputs = model(
                     images=images,
                     boxes=boxes,
                     text_prompt=batch["text_prompt"],
-                    exemplar_prompt_tokens=prompt_tokens.flip(1),
+                    exemplar_prompt_tokens=prompt_tokens,
                     gt_mask=masks,
                 )
-                consistency_pair = (outputs["mask_logits"], alt_outputs["mask_logits"])
 
-            optimizer.zero_grad(set_to_none=True)
-            loss, _ = criterion(
-                outputs["mask_logits"],
-                masks,
-                anchor_embedding=outputs["query_embedding"] if args.enable_contrastive_loss and negative_proto is not None else None,
-                positive_embedding=_prototype_summary(positive_proto) if args.enable_contrastive_loss and negative_proto is not None else None,
-                negative_embeddings=negative_proto if args.enable_contrastive_loss and negative_proto is not None else None,
-                negative_prompt_mask_logits=outputs["mask_logits"] * prompt_aux["suppression_gate"].view(-1, 1, 1, 1)
-                if approximate_negative_suppression and negative_proto is not None
-                else None,
-                consistency_pair=consistency_pair,
-            )
-            loss.backward()
-            optimizer.step()
-
-            with variance_log.open("a", encoding="utf-8") as handle:
-                handle.write(
-                    json.dumps(
-                        {
-                            "epoch": epoch,
-                            "prototype_mode": args.prototype_mode,
-                            "positive_variance": positive["variance"],
-                            "negative_variance": negative["variance"],
-                            "boundary_variance": boundary["variance"],
-                        }
+                consistency_pair = None
+                if args.enable_consistency_loss:
+                    alt_outputs = model(
+                        images=images,
+                        boxes=boxes,
+                        text_prompt=batch["text_prompt"],
+                        exemplar_prompt_tokens=prompt_tokens.flip(1),
+                        gt_mask=masks,
                     )
-                    + "\n"
-                )
-            with selected_log.open("a", encoding="utf-8") as handle:
-                handle.write(
-                    json.dumps(
-                        {
-                            "epoch": epoch,
-                            "prototype_mode": args.prototype_mode,
-                            "positive_ids": positive["selected_item_ids"],
-                            "negative_ids": negative["selected_item_ids"],
-                            "boundary_ids": boundary["selected_item_ids"],
-                            "positive_weights": positive["weights"],
-                            "negative_weights": negative["weights"],
-                            "boundary_weights": boundary["weights"],
-                            "approximate_negative_suppression": approximate_negative_suppression,
-                        }
-                    )
-                    + "\n"
-                )
+                    consistency_pair = (outputs["mask_logits"], alt_outputs["mask_logits"])
 
-    metrics = compute_segmentation_metrics(outputs["mask_logits"].detach(), masks.detach())
+                optimizer.zero_grad(set_to_none=True)
+                loss, _ = criterion(
+                    outputs["mask_logits"],
+                    masks,
+                    anchor_embedding=outputs["query_embedding"] if args.enable_contrastive_loss and negative_proto is not None else None,
+                    positive_embedding=_prototype_summary(positive_proto) if args.enable_contrastive_loss and negative_proto is not None else None,
+                    negative_embeddings=negative_proto if args.enable_contrastive_loss and negative_proto is not None else None,
+                    negative_prompt_mask_logits=outputs["mask_logits"] * prompt_aux["suppression_gate"].view(-1, 1, 1, 1)
+                    if approximate_negative_suppression and negative_proto is not None
+                    else None,
+                    consistency_pair=consistency_pair,
+                )
+                loss.backward()
+                optimizer.step()
+                last_outputs = outputs
+                last_masks = masks
+
+                with variance_log.open("a", encoding="utf-8") as handle:
+                    handle.write(
+                        json.dumps(
+                            {
+                                "epoch": epoch,
+                                "prototype_mode": args.prototype_mode,
+                                "positive_variance": positive["variance"],
+                                "negative_variance": negative["variance"],
+                                "boundary_variance": boundary["variance"],
+                            }
+                        )
+                        + "\n"
+                    )
+                with selected_log.open("a", encoding="utf-8") as handle:
+                    handle.write(
+                        json.dumps(
+                            {
+                                "epoch": epoch,
+                                "prototype_mode": args.prototype_mode,
+                                "positive_ids": positive["selected_item_ids"],
+                                "negative_ids": negative["selected_item_ids"],
+                                "boundary_ids": boundary["selected_item_ids"],
+                                "positive_weights": positive["weights"],
+                                "negative_weights": negative["weights"],
+                                "boundary_weights": boundary["weights"],
+                                "approximate_negative_suppression": approximate_negative_suppression,
+                            }
+                        )
+                        + "\n"
+                    )
+
+            if val_loader is not None and ((epoch + 1) % 3 == 0 or epoch == args.epochs - 1):
+                model.eval()
+                prompt_adapter.eval()
+                metrics_sum: dict[str, float] = {}
+                val_steps = 0
+                with torch.no_grad():
+                    for batch in val_loader:
+                        images = batch["images"].to(device)
+                        masks = batch["masks"].to(device)
+                        boxes = batch["boxes"].to(device)
+                        warmup_outputs = model(images=images, boxes=boxes, text_prompt=batch["text_prompt"], gt_mask=masks)
+                        query_embedding = warmup_outputs["query_embedding"][0]
+                        positive = _build_type_prototype(builder, query_embedding, positive_items, args.top_k_positive, args.prototype_mode)
+                        negative = _build_type_prototype(builder, query_embedding, negative_items, args.top_k_negative, args.prototype_mode)
+                        boundary = (
+                            _build_type_prototype(builder, query_embedding, boundary_items, args.top_k_boundary, args.prototype_mode)
+                            if enable_boundary
+                            else {"prototype": None, "selected_item_ids": [], "weights": [], "variance": None}
+                        )
+                        prompt_tokens = None
+                        if positive["prototype"] is not None:
+                            prompt_tokens, _ = prompt_adapter(
+                                positive_proto=_expand_proto_for_batch(positive["prototype"]),
+                                negative_proto=_expand_proto_for_batch(negative["prototype"]),
+                                boundary_proto=_expand_proto_for_batch(boundary["prototype"]),
+                                query_feat=query_embedding.detach().unsqueeze(0),
+                            )
+                        outputs = model(
+                            images=images,
+                            boxes=boxes,
+                            text_prompt=batch["text_prompt"],
+                            exemplar_prompt_tokens=prompt_tokens,
+                            gt_mask=masks,
+                        )
+                        metrics = compute_segmentation_metrics(outputs["mask_logits"], masks)
+                        for key, value in metrics.items():
+                            metrics_sum[key] = metrics_sum.get(key, 0.0) + value
+                        val_steps += 1
+                final_metrics = {key: value / max(val_steps, 1) for key, value in metrics_sum.items()}
+                final_metrics["epoch"] = epoch
+                with val_metrics_log.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(final_metrics) + "\n")
+
+            epoch_metrics = final_metrics
+            if epoch_metrics is None and last_outputs is not None and last_masks is not None:
+                epoch_metrics = compute_segmentation_metrics(last_outputs["mask_logits"].detach(), last_masks.detach())
+                epoch_metrics["epoch"] = epoch
+            _save_prompt_checkpoint(output_dir, prompt_adapter, epoch=epoch, metrics=epoch_metrics, suffix=f"epoch_{epoch:03d}")
+            _save_prompt_checkpoint(output_dir, prompt_adapter, epoch=epoch, metrics=epoch_metrics, suffix="latest")
+    except KeyboardInterrupt:
+        _save_prompt_checkpoint(output_dir, prompt_adapter, epoch=-1, metrics=final_metrics, suffix="interrupt")
+        print(json.dumps({"interrupted": True, "saved": str(output_dir / "prompt_adapter_interrupt.pt")}, indent=2))
+        return 130
+
+    if final_metrics is None:
+        if last_outputs is None or last_masks is None:
+            raise RuntimeError("No training batches were processed; cannot write metrics.")
+        metrics = compute_segmentation_metrics(last_outputs["mask_logits"].detach(), last_masks.detach())
+    else:
+        metrics = final_metrics
     metrics["approximate_negative_suppression"] = approximate_negative_suppression
     (output_dir / "val_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     torch.save(prompt_adapter.state_dict(), output_dir / "prompt_adapter.pt")
@@ -371,6 +515,9 @@ def main() -> int:
             "top_k_positive": args.top_k_positive,
             "top_k_negative": args.top_k_negative,
             "top_k_boundary": args.top_k_boundary,
+            "lora_checkpoint": args.lora_checkpoint,
+            "adapter_checkpoint": args.adapter_checkpoint,
+            "val_split_file": args.val_split_file,
             "dummy": args.dummy,
         },
     )

@@ -45,9 +45,9 @@ class ExemplarPromptAdapter(nn.Module):
     def __init__(
         self,
         dim: int,
-        num_pos_tokens: int = 2,
-        num_neg_tokens: int = 1,
-        num_boundary_tokens: int = 1,
+        num_pos_tokens: int = 4,
+        num_neg_tokens: int = 2,
+        num_boundary_tokens: int = 2,
     ) -> None:
         super().__init__()
         self.num_pos_tokens = num_pos_tokens
@@ -86,7 +86,7 @@ class ExemplarPromptAdapter(nn.Module):
         boundary_tokens = _project_tokens(boundary_proto, self.boundary_proj) * gates[:, 2:3, None] if boundary_proto is not None else self.boundary_proj(boundary_summary) * gates[:, 2:3, None]
         suppression_gate = gates[:, 3:4]
 
-        prompt_tokens = torch.cat([positive_tokens, boundary_tokens], dim=1)
+        prompt_tokens = torch.cat([positive_tokens, boundary_tokens, negative_tokens], dim=1)
         prompt_tokens = self.token_norm(prompt_tokens)
         aux = {
             "positive_tokens": self.token_norm(positive_tokens),

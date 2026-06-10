@@ -1,0 +1,17 @@
+{
+  "count": 1537,
+  "mean_delta_dice": 0.0008920568921325665,
+  "min_delta_dice": -0.999999999894759,
+  "max_delta_dice": 0.6261092722415924,
+  "positive_delta_count": 215,
+  "negative_delta_count": 243,
+  "bins": {
+    "<=-0.10": 12,
+    "(-0.10,-0.03]": 27,
+    "(-0.03,0]": 1283,
+    "(0,0.03]": 161,
+    "(0.03,0.10]": 32,
+    ">0.10": 22
+  },
+  "target_mean_delta_positive": true
+}

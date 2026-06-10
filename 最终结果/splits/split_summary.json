@@ -1,0 +1,37 @@
+{
+  "seed": 42,
+  "train_val_count": 1612,
+  "kvasir_count": 0,
+  "cvc_count": 0,
+  "kvasircvc_count": 1612,
+  "external_polypgen_count": 1537,
+  "folds": [
+    {
+      "fold_id": 0,
+      "train_count": 1289,
+      "val_count": 323
+    },
+    {
+      "fold_id": 1,
+      "train_count": 1289,
+      "val_count": 323
+    },
+    {
+      "fold_id": 2,
+      "train_count": 1290,
+      "val_count": 322
+    },
+    {
+      "fold_id": 3,
+      "train_count": 1290,
+      "val_count": 322
+    },
+    {
+      "fold_id": 4,
+      "train_count": 1290,
+      "val_count": 322
+    }
+  ],
+  "leakage_check_passed": true,
+  "warnings": []
+}
