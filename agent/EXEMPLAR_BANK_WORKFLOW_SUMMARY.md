@@ -1,5 +1,7 @@
 # 样本库评估 Agent 工作流总结
 
+> 文档边界：本文描述的是 `agent/` 子系统中的样本库评估与反馈闭环。它与 `MedicalSAM3/scripts` 的训练/验证脚本共享 positive、negative、boundary exemplar 概念，但不是当前医学分割主实验的必经调用链。论文主实验应以 `MedicalSAM3` 下的训练、验证和结果产物为准；本文内容更适合作为系统扩展或临床闭环章节。
+
 ## 一、整体架构
 
 ```text
