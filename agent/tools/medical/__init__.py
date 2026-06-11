@@ -58,6 +58,20 @@ from .report_tools import (
     ToolParameterSchema,
     create_default_report_tool_registry,
 )
+from .sample_library_toolsets import (
+    LabelEmbeddingToolSet,
+    ReportGenerationToolSet,
+    ResultReviewToolSet,
+    SampleAuditToolSet,
+    SampleLibraryRecord,
+    SampleLibraryToolRegistry,
+    SegmentationPreprocessToolSet,
+    ToolCallLog,
+    ToolExplanation,
+    create_sample_library_tool_registry,
+    explain_sample_library_toolsets,
+    group_tool_specs_by_agent,
+)
 
 __all__ = [
     "FeatureExtractor",
@@ -102,4 +116,16 @@ __all__ = [
     "ToolParameterSchema",
     "ReportToolRegistry",
     "create_default_report_tool_registry",
+    "LabelEmbeddingToolSet",
+    "ReportGenerationToolSet",
+    "ResultReviewToolSet",
+    "SampleAuditToolSet",
+    "SampleLibraryRecord",
+    "SampleLibraryToolRegistry",
+    "SegmentationPreprocessToolSet",
+    "ToolCallLog",
+    "ToolExplanation",
+    "create_sample_library_tool_registry",
+    "explain_sample_library_toolsets",
+    "group_tool_specs_by_agent",
 ]
