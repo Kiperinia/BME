@@ -2,6 +2,8 @@
 
 ## Scope
 
+Boundary note: this document describes the `agent/` subsystem for exemplar memory lifecycle management and feedback-driven retrieval. It is an engineering/system extension around the segmentation stack, not the default execution path of `MedicalSAM3/scripts/train_lora_medical.py`, `train_exemplar_prompt.py`, or `validate_rssda.py`.
+
 This document specifies a research-grade and production-oriented `Exemplar Bank Agent` for the SAM3-based medical segmentation stack in this repository.
 
 The agent is designed to:
