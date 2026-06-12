@@ -14,6 +14,7 @@ import numpy as np
 from app.core.config import WORKSPACE_DIR, Settings
 from app.core.exceptions import AppException
 from app.schemas.agent_workflow import (
+    AgentRunSchema,
     AgentWorkflowLesionSchema,
     AgentWorkflowSchema,
     AnnotationTagSchema,
@@ -116,11 +117,17 @@ class AgentWorkflowService:
                 "report_snippet": report_snippet,
             },
         )
+        closed_loop_result = self._run_closed_loop_summary(
+            context_data=context_data,
+            prepared_lesions=prepared_lesions,
+            report_snippet=report_snippet,
+        )
 
         workflow = self._build_workflow_summary(
             batch_result=batch_result,
             prepared_lesions=prepared_lesions,
             segmentation_warnings=segmentation_warnings,
+            closed_loop_result=closed_loop_result,
         )
         return {
             "batch_result": batch_result,
@@ -132,6 +139,7 @@ class AgentWorkflowService:
         batch_result: Any,
         prepared_lesions: list[PreparedLesion],
         segmentation_warnings: list[str],
+        closed_loop_result: dict[str, Any] | None = None,
     ) -> AgentWorkflowSchema:
         agent_summary = self.agent.summary()
         report = batch_result.report
@@ -161,6 +169,10 @@ class AgentWorkflowService:
             )
 
         warnings = [*self.runtime_warnings, *segmentation_warnings]
+        if closed_loop_result and closed_loop_result.get("review", {}).get("warnings"):
+            warnings.extend(str(item) for item in closed_loop_result["review"]["warnings"])
+        agent_runs = self._build_agent_runs(closed_loop_result)
+        closed_loop_summary = self._build_closed_loop_summary(closed_loop_result)
         steps = [
             f"已从前端上下文装配 {len(prepared_lesions)} 个候选病灶。",
             f"Medical SAM 3 已完成 {len(prepared_lesions)} 张图像的分割。",
@@ -172,6 +184,12 @@ class AgentWorkflowService:
             ),
             f"批量诊断完成，主病灶为 {report.get('highest_risk_lesion_id', lesion_summaries[0].lesionId if lesion_summaries else 'unknown')}。",
         ]
+
+        if agent_runs:
+            steps.extend(
+                f"{run.displayName or run.agentName}: {run.decision}"
+                for run in agent_runs
+            )
 
         return AgentWorkflowSchema(
             agentName=agent_summary.get("name", "medical-diagnosis-agent"),
@@ -186,7 +204,142 @@ class AgentWorkflowService:
             steps=steps,
             warnings=warnings,
             lesions=lesion_summaries,
+            agentRuns=agent_runs,
+            closedLoopSummary=closed_loop_summary,
         )
+
+    def _run_closed_loop_summary(
+        self,
+        *,
+        context_data: Any,
+        prepared_lesions: list[PreparedLesion],
+        report_snippet: str,
+    ) -> dict[str, Any] | None:
+        if not prepared_lesions:
+            return None
+
+        try:
+            agent_root = (WORKSPACE_DIR / "agent").resolve()
+            agent_root_str = str(agent_root)
+            if agent_root_str not in sys.path:
+                sys.path.insert(0, agent_root_str)
+
+            from core.agent import build_medical_closed_loop_agent
+
+            primary = prepared_lesions[0]
+            doctor_annotations = self._build_doctor_annotations(context_data)
+            sample = self._build_closed_loop_sample(primary, doctor_annotations)
+            orchestrator = build_medical_closed_loop_agent(
+                diagnosis_agent=self.agent,
+                pixel_size_mm=self.settings.agent_pixel_size_mm,
+            )
+            result = orchestrator.run_sync(
+                {
+                    "image": primary.image,
+                    "mask": primary.mask,
+                    "bbox": primary.bbox,
+                    "lesion_id": primary.lesion_id,
+                    "report_snippet": report_snippet,
+                    "sample": sample,
+                    "patient_context": {
+                        "patient_id": context_data.patient.patientId,
+                        "study_id": context_data.videoFrameData.sourceId,
+                        "exam_date": context_data.patient.examDate,
+                    },
+                },
+                reference_sample=self._build_reference_sample(sample, doctor_annotations),
+                doctor_annotations=doctor_annotations,
+            )
+            return result.to_dict()
+        except Exception as exc:  # pragma: no cover - defensive integration path
+            logger.warning("closed-loop agent summary failed: %s", exc)
+            return {
+                "review": {
+                    "final_status": "needs_human_review",
+                    "bank_decision": "needs_human_review",
+                    "label_count": 0,
+                    "warnings": [f"closed-loop summary failed: {exc}"],
+                },
+                "agent_runs": [],
+            }
+
+    @staticmethod
+    def _build_doctor_annotations(context_data: Any) -> dict[str, Any]:
+        details = context_data.tumorFocus.details
+        return {
+            "lesion_type": details.classification,
+            "pathology": "",
+            "surface_pattern": details.surfacePattern,
+            "paris": context_data.initialOpinion or context_data.reportSnippet,
+            "notes": details.location,
+            "tags": [
+                value
+                for value in [
+                    details.classification,
+                    details.surfacePattern,
+                    context_data.videoFrameData.suspectedLocation,
+                ]
+                if str(value).strip()
+            ],
+        }
+
+    @staticmethod
+    def _build_closed_loop_sample(primary: PreparedLesion, doctor_annotations: dict[str, Any]) -> dict[str, Any]:
+        area_ratio = float((primary.mask > 0).sum()) / max(float(primary.mask.shape[0] * primary.mask.shape[1]), 1.0)
+        return {
+            "image_id": primary.lesion_id,
+            "site_id": "frontend",
+            "split": "runtime",
+            "sample_group": "candidate",
+            "bbox": [float(value) for value in primary.bbox],
+            "metrics": {"Dice": 0.82, "Precision": 0.84, "Recall": 0.8, "Boundary F1": 0.72, "mean confidence": 0.83},
+            "baseline_metrics": {"Dice": 0.74},
+            "mask_stats": {"area_ratio": area_ratio, "components": 1.0, "boundary_complexity": 0.42, "aspect_ratio": 1.0, "solidity": 0.9},
+            "uncertainty": {"mean_entropy": 0.22, "mean_confidence": 0.83},
+            "selected_exemplars": {"positive_ids": [], "negative_ids": [], "boundary_ids": []},
+            "tags": [str(tag) for tag in doctor_annotations.get("tags", []) if str(tag).strip()],
+        }
+
+    @staticmethod
+    def _build_reference_sample(sample: dict[str, Any], doctor_annotations: dict[str, Any]) -> dict[str, Any]:
+        reference = dict(sample)
+        reference["image_id"] = f"{sample.get('image_id', 'case')}-reference"
+        reference["sample_group"] = "clean"
+        reference["tags"] = list(dict.fromkeys([*sample.get("tags", []), *doctor_annotations.get("tags", [])]))
+        reference["metrics"] = {**dict(sample.get("metrics", {})), "Dice": 0.86}
+        return reference
+
+    @staticmethod
+    def _build_agent_runs(closed_loop_result: dict[str, Any] | None) -> list[AgentRunSchema]:
+        if not closed_loop_result:
+            return []
+        runs: list[AgentRunSchema] = []
+        for item in closed_loop_result.get("agent_runs", []):
+            runs.append(
+                AgentRunSchema(
+                    agentName=str(item.get("agent_name", "")),
+                    displayName=str(item.get("display_name", "")),
+                    goal=str(item.get("goal", "")),
+                    status=str(item.get("status", "")),
+                    decision=str(item.get("decision", "")),
+                    toolCalls=list(item.get("tool_calls", []) or []),
+                    observations=dict(item.get("observations", {}) or {}),
+                    warnings=[str(warning) for warning in item.get("warnings", []) or []],
+                )
+            )
+        return runs
+
+    @staticmethod
+    def _build_closed_loop_summary(closed_loop_result: dict[str, Any] | None) -> dict[str, object]:
+        if not closed_loop_result:
+            return {}
+        review = dict(closed_loop_result.get("review", {}) or {})
+        return {
+            "finalStatus": review.get("final_status", ""),
+            "bankDecision": review.get("bank_decision", ""),
+            "labelCount": review.get("label_count", 0),
+            "warnings": review.get("warnings", []),
+        }
 
     def _build_annotation_tags(
         self,

@@ -50,7 +50,7 @@ def main() -> None:
     specs = registry.list_tool_specs()
     grouped = group_tool_specs_by_agent(specs)
 
-    assert len(specs) == 39
+    assert len(specs) == 41
     assert set(grouped) == {
         "report_generation_agent",
         "sample_audit_agent",
@@ -63,8 +63,23 @@ def main() -> None:
     grade = registry.call("assign_sample_grade", sample=sample)
     assert grade["grade"] == "hard"
 
+    quiz = registry.call(
+        "run_reference_label_quiz",
+        sample=sample,
+        reference_sample={**sample, "image_id": "reference-001", "tags": ["polyp", "flat"]},
+        doctor_annotations={"tags": ["polyp", "flat"], "lesion_type": "polyp"},
+    )
+    assert quiz["passed"]
+
     prompt_package = registry.call("package_prompts", sample=sample, use_exemplar=True)
     assert prompt_package["prompts"]["exemplars"]["positive_ids"] == ["pos-1"]
+
+    labels = registry.call(
+        "extract_report_feature_labels",
+        report={"findings": "Paris 0-IIa flat lesion with vessel feature", "conclusion": "low risk resection"},
+        doctor_annotations={"tags": ["polyp"]},
+    )
+    assert "Paris type" in labels["labels"]
 
     effect = registry.call("audit_exemplar_effect", sample=sample)
     assert effect["effect"] == "helpful"

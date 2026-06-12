@@ -103,6 +103,17 @@ class AgentWorkflowLesionSchema(BaseModel):
     usedLlm: bool = False
 
 
+class AgentRunSchema(BaseModel):
+    agentName: str
+    displayName: str = Field(default="")
+    goal: str = Field(default="")
+    status: str = Field(default="")
+    decision: str = Field(default="")
+    toolCalls: list[dict[str, object]] = Field(default_factory=list)
+    observations: dict[str, object] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class AgentWorkflowSchema(BaseModel):
     agentName: str
     description: str
@@ -116,6 +127,8 @@ class AgentWorkflowSchema(BaseModel):
     steps: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     lesions: list[AgentWorkflowLesionSchema] = Field(default_factory=list)
+    agentRuns: list[AgentRunSchema] = Field(default_factory=list)
+    closedLoopSummary: dict[str, object] = Field(default_factory=dict)
 
 
 class GenerateReportDraftResponseSchema(BaseModel):

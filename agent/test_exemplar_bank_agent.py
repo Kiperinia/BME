@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 from pathlib import Path
 
 import torch
@@ -39,35 +40,36 @@ def _mock_record(exemplar_id: str, polarity: ExemplarPolarity) -> MedicalExempla
 
 
 def main() -> None:
-    agent = ExemplarBankAgent(memory_root=Path("agent") / "memory" / "exemplar_agent_bank_test", hidden_dim=256)
-    ingest_result = agent.ingest(_mock_record("positive-1", ExemplarPolarity.POSITIVE))
-    assert ingest_result.stored_record is not None
+    with tempfile.TemporaryDirectory(prefix="exemplar_agent_bank_test_") as memory_root:
+        agent = ExemplarBankAgent(memory_root=Path(memory_root), hidden_dim=256)
+        ingest_result = agent.ingest(_mock_record("positive-1", ExemplarPolarity.POSITIVE))
+        assert ingest_result.stored_record is not None
 
-    query = QueryFeatureBatch(
-        query_id="case-001",
-        semantic_embedding=torch.randn(1, 256),
-        spatial_embedding=torch.randn(1, 256, 32, 32),
-        boundary_embedding=torch.randn(1, 256),
-        hidden_states=torch.randn(1, 8, 256),
-    )
-    retrieved = RetrievedFeatureSet(
-        positive_tokens=torch.randn(1, 4, 256),
-        negative_tokens=torch.randn(1, 4, 256),
-        boundary_tokens=torch.randn(1, 4, 256),
-        positive_map=torch.randn(1, 256, 32, 32),
-        negative_map=torch.randn(1, 256, 32, 32),
-        boundary_map=torch.randn(1, 256, 32, 32),
-        candidate_metadata=[],
-    )
-    retrieval_result = agent.retrieve_prior(query, retrieved)
-    assert retrieval_result.retrieval is not None
-    assert retrieval_result.retrieval.prompt_tokens.shape == (1, 1, 256)
+        query = QueryFeatureBatch(
+            query_id="case-001",
+            semantic_embedding=torch.randn(1, 256),
+            spatial_embedding=torch.randn(1, 256, 32, 32),
+            boundary_embedding=torch.randn(1, 256),
+            hidden_states=torch.randn(1, 8, 256),
+        )
+        retrieved = RetrievedFeatureSet(
+            positive_tokens=torch.randn(1, 4, 256),
+            negative_tokens=torch.randn(1, 4, 256),
+            boundary_tokens=torch.randn(1, 4, 256),
+            positive_map=torch.randn(1, 256, 32, 32),
+            negative_map=torch.randn(1, 256, 32, 32),
+            boundary_map=torch.randn(1, 256, 32, 32),
+            candidate_metadata=[],
+        )
+        retrieval_result = agent.retrieve_prior(query, retrieved)
+        assert retrieval_result.retrieval is not None
+        assert retrieval_result.retrieval.prompt_tokens.shape == (1, 1, 256)
 
-    feedback_result = agent.update_with_feedback(
-        "positive-1",
-        {"failure_mode": "false_negative", "quality_score": 0.83, "uncertainty": 0.21},
-    )
-    assert feedback_result.evolution is not None
+        feedback_result = agent.update_with_feedback(
+            "positive-1",
+            {"failure_mode": "false_negative", "quality_score": 0.83, "uncertainty": 0.21},
+        )
+        assert feedback_result.evolution is not None
     print("exemplar-bank-agent-smoke: ok")
 
 

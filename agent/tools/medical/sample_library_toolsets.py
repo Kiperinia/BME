@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 import time
 from dataclasses import asdict, dataclass, field
 from statistics import median
@@ -386,6 +387,68 @@ class SampleAuditToolSet:
             grade = "clean"
         return {"image_id": record.image_id, "grade": grade}
 
+    @staticmethod
+    def run_reference_label_quiz(
+        *,
+        sample: dict[str, Any],
+        reference_sample: dict[str, Any] | None = None,
+        doctor_annotations: dict[str, Any] | None = None,
+        pass_threshold: float = 0.55,
+    ) -> dict[str, Any]:
+        record = SampleLibraryRecord.from_mapping(sample)
+        reference = SampleLibraryRecord.from_mapping(reference_sample or {})
+        annotations = doctor_annotations or {}
+
+        candidate_tags = {tag.lower() for tag in record.tags}
+        reference_tags = {tag.lower() for tag in reference.tags}
+        doctor_tags = {
+            str(value).strip().lower()
+            for value in [
+                annotations.get("lesion_type"),
+                annotations.get("pathology"),
+                annotations.get("surface_pattern"),
+                annotations.get("paris"),
+                *list(annotations.get("tags", []) or []),
+            ]
+            if str(value).strip()
+        }
+
+        target_tags = reference_tags | doctor_tags
+        overlap = len(candidate_tags & target_tags)
+        tag_score = overlap / max(len(target_tags), 1) if target_tags else 0.6
+        mask_score = 1.0
+        area_ratio = _safe_float(record.mask_stats, "area_ratio")
+        if area_ratio <= 0.0 or area_ratio > 0.55:
+            mask_score = 0.0
+        elif area_ratio > 0.35:
+            mask_score = 0.45
+
+        reference_delta = 0.0
+        if reference.image_id:
+            reference_delta = abs(record.result_dice - reference.result_dice)
+        quiz_score = _clamp(0.5 * tag_score + 0.35 * mask_score + 0.15 * max(0.0, 1.0 - reference_delta))
+
+        reasons: list[str] = []
+        if not candidate_tags:
+            reasons.append("missing_candidate_tags")
+        if target_tags and overlap == 0:
+            reasons.append("no_overlap_with_reference_or_doctor_labels")
+        if mask_score < 0.5:
+            reasons.append("mask_quality_failed")
+        if reference.image_id and reference_delta > 0.35:
+            reasons.append("reference_performance_gap")
+
+        return {
+            "image_id": record.image_id,
+            "passed": quiz_score >= pass_threshold and not any(reason == "mask_quality_failed" for reason in reasons),
+            "score": round(quiz_score, 4),
+            "pass_threshold": pass_threshold,
+            "matched_tag_count": overlap,
+            "candidate_tags": sorted(candidate_tags),
+            "target_tags": sorted(target_tags),
+            "reasons": reasons,
+        }
+
 
 class SegmentationPreprocessToolSet:
     agent_name = "segmentation_preprocess_agent"
@@ -445,6 +508,56 @@ class SegmentationPreprocessToolSet:
 
 class LabelEmbeddingToolSet:
     agent_name = "label_embedding_agent"
+
+    _report_label_patterns: tuple[tuple[str, str], ...] = (
+        (r"0-I[p|s]|0-II[a-c]|0-III", "Paris type"),
+        (r"flat|扁平|平坦", "flat morphology"),
+        (r"elevated|隆起", "elevated morphology"),
+        (r"depressed|凹陷", "depressed morphology"),
+        (r"red|充血|发红", "erythema"),
+        (r"vessel|血管", "vascular feature"),
+        (r"浸润|invasion", "invasion risk"),
+        (r"切除|resection", "resection recommendation"),
+        (r"随访|follow", "follow-up recommendation"),
+        (r"低风险|low risk", "low risk"),
+        (r"中等|intermediate", "intermediate risk"),
+        (r"高风险|high risk", "high risk"),
+    )
+
+    @classmethod
+    def extract_report_feature_labels(
+        cls,
+        *,
+        report: dict[str, Any],
+        doctor_annotations: dict[str, Any] | None = None,
+        max_labels: int = 12,
+    ) -> dict[str, Any]:
+        annotations = doctor_annotations or {}
+        text = " ".join(
+            str(report.get(key, ""))
+            for key in ("findings", "conclusion", "layoutSuggestion", "layout_suggestion")
+        )
+        labels: list[str] = []
+        for pattern, label in cls._report_label_patterns:
+            if label not in labels and re.search(pattern, text, flags=re.IGNORECASE):
+                labels.append(label)
+
+        for value in [
+            annotations.get("lesion_type"),
+            annotations.get("pathology"),
+            annotations.get("surface_pattern"),
+            annotations.get("paris"),
+            *list(annotations.get("tags", []) or []),
+        ]:
+            normalized = str(value).strip()
+            if normalized and normalized not in labels:
+                labels.append(normalized)
+
+        return {
+            "labels": labels[: max(1, max_labels)],
+            "source": "report+doctor_annotations",
+            "label_count": min(len(labels), max(1, max_labels)),
+        }
 
     @staticmethod
     def embed_mask_shape(*, sample: dict[str, Any]) -> dict[str, Any]:
@@ -720,6 +833,7 @@ def create_sample_library_tool_registry() -> SampleLibraryToolRegistry:
             ("validate_negative_sample", "Audit whether a negative sample is suspicious.", ["sample"], ["negative_audit"], "Protects the negative bank from false negatives."),
             ("build_review_queue_item", "Create a human-review queue entry.", ["sample", "audit_results"], ["review_item"], "Prioritizes samples that need manual judgment."),
             ("assign_sample_grade", "Assign clean, hard, boundary, reject, or external-only grade.", ["sample"], ["sample_grade"], "Maps samples to their correct library partition."),
+            ("run_reference_label_quiz", "Compare a candidate sample against a labeled reference and doctor annotations.", ["sample", "reference_sample", "doctor_annotations", "pass_threshold"], ["quiz_result"], "Uses an objective reference task to decide whether the sample is worth keeping."),
         ],
     )
     _register_many(
@@ -743,6 +857,7 @@ def create_sample_library_tool_registry() -> SampleLibraryToolRegistry:
         LabelEmbeddingToolSet,
         [
             ("embed_mask_shape", "Build a compact mask-shape vector.", ["sample"], ["shape_embedding"], "Makes shape-based retrieval possible."),
+            ("extract_report_feature_labels", "Extract searchable labels from report text and doctor annotations.", ["report", "doctor_annotations", "max_labels"], ["feature_labels"], "Turns report keywords into retrieval and research filters."),
             ("embed_visual_region_request", "Describe the visual crop needed for embedding.", ["sample", "crop_padding"], ["visual_embedding_request"], "Connects image crops to visual indexers."),
             ("embed_text_label", "Build a simple text-label vector.", ["labels"], ["text_embedding"], "Indexes semantic labels without requiring a model."),
             ("encode_boundary_features", "Encode boundary risk features.", ["sample"], ["boundary_signature"], "Feeds boundary-specialized retrieval."),
