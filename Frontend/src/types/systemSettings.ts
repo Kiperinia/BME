@@ -44,6 +44,10 @@ export interface RuntimeSettings {
   inferenceTimeoutSeconds: number
   maxUploadSizeMb: number
   mockDelayMs: number
+  preprocessEnabled: boolean
+  yoloDetectionEnabled: boolean
+  yoloWeightsPath: string
+  yoloConfidenceThreshold: number
 }
 
 export interface SystemSettingsPayload {

@@ -6,7 +6,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import cv2
 import numpy as np
@@ -43,6 +43,13 @@ class AgentWorkflowService:
         self.settings = settings
         self.sam3_engine = sam3_engine
         self.agent, self.workflow_mode, self.runtime_warnings = self._build_agent()
+        (
+            self.supervisor_agent,
+            self.supervisor_adapter,
+            supervisor_warnings,
+        ) = self._build_supervisor()
+        if supervisor_warnings:
+            self.runtime_warnings.extend(supervisor_warnings)
 
     def generate_report_draft(
         self,
@@ -54,12 +61,29 @@ class AgentWorkflowService:
         )
 
         report = workflow["batch_result"].report
+        report_id = payload.reportId or payload.patientId
+        patient_context = {
+            "patient_id": payload.contextData.patient.patientId,
+            "study_id": payload.contextData.videoFrameData.sourceId,
+            "exam_date": payload.contextData.patient.examDate,
+            "initial_opinion": payload.contextData.initialOpinion,
+            "report_snippet": payload.contextData.reportSnippet,
+        }
+        supervisor_decision = self.evaluate_supervisor(
+            report=report,
+            workflow=workflow["workflow"],
+            patient_context=patient_context,
+            report_id=report_id,
+            stream_messages=workflow["workflow"].steps,
+            tool_logs=report.get("tool_calls", []),
+        )
         return {
             "findings": report.get("findings", ""),
             "conclusion": report.get("conclusion", ""),
             "layoutSuggestion": report.get("layoutSuggestion", ""),
             "workflow": workflow["workflow"],
             "streamMessages": workflow["workflow"].steps,
+            "supervisorDecision": supervisor_decision,
         }
 
     def infer_annotation_tags(
@@ -419,3 +443,107 @@ class AgentWorkflowService:
                 "rule-only",
                 [warning],
             )
+
+    def _build_supervisor(self) -> tuple[Any | None, Callable[..., Any] | None, list[str]]:
+        supervisor_root = (WORKSPACE_DIR / "SupervisorAgent").resolve()
+        supervisor_root_str = str(supervisor_root)
+        if supervisor_root_str not in sys.path:
+            sys.path.insert(0, supervisor_root_str)
+
+        try:
+            from supervisor_agent import PolicyConfig, build_context_from_report_agent, build_default_agent
+        except Exception as exc:
+            logger.warning("SupervisorAgent import failed: %s", exc)
+            return None, None, ["SupervisorAgent 未就绪，已跳过监督评估。"]
+
+        policy = PolicyConfig(
+            min_report_chars=200,
+            min_findings_chars=120,
+            min_conclusion_chars=80,
+            require_evidence=False,
+            require_findings_evidence=False,
+            require_tool_logs=False,
+        )
+        return build_default_agent(policy), build_context_from_report_agent, []
+
+    def evaluate_supervisor(
+        self,
+        report: dict[str, Any],
+        workflow: AgentWorkflowSchema,
+        patient_context: dict[str, Any],
+        report_id: str,
+        stream_messages: Iterable[str] | None = None,
+        tool_logs: Iterable[dict[str, Any]] | None = None,
+    ) -> dict[str, Any] | None:
+        if self.supervisor_agent is None or self.supervisor_adapter is None:
+            return None
+
+        try:
+            from supervisor_agent import EvidenceItem
+        except Exception as exc:
+            logger.warning("SupervisorAgent evidence import failed: %s", exc)
+            EvidenceItem = None  # type: ignore[assignment]
+
+        context = self.supervisor_adapter(
+            report_payload=report,
+            workflow_payload=workflow,
+            tool_logs=list(tool_logs) if tool_logs is not None else report.get("tool_calls", []),
+            patient_context=patient_context,
+            report_id=report_id,
+            correlation_id=report_id,
+            stream_messages=list(stream_messages) if stream_messages is not None else None,
+        )
+
+        if EvidenceItem is not None:
+            context.evidence = self._build_report_evidence(report, EvidenceItem)
+
+        decision = self.supervisor_agent.evaluate(context)
+        return self._serialize_supervisor_decision(decision)
+
+    @staticmethod
+    def _build_report_evidence(report: dict[str, Any], evidence_type: Any) -> list[Any]:
+        evidence: list[Any] = []
+        lesion_summary = report.get("lesion_summary") or {}
+        risk_summary = report.get("risk_summary") or {}
+        if lesion_summary:
+            evidence.append(
+                evidence_type(
+                    source="lesion_summary",
+                    citation="report_agent",
+                    facts=lesion_summary,
+                )
+            )
+        if risk_summary:
+            evidence.append(
+                evidence_type(
+                    source="risk_summary",
+                    citation="report_agent",
+                    facts=risk_summary,
+                )
+            )
+        return evidence
+
+    @staticmethod
+    def _serialize_supervisor_decision(decision: Any) -> dict[str, Any]:
+        issues = []
+        for issue in decision.issues:
+            issues.append(
+                {
+                    "type": issue.type,
+                    "severity": issue.severity,
+                    "message": issue.message,
+                    "location": issue.location,
+                    "evidenceRefs": issue.evidence_refs or [],
+                }
+            )
+        return {
+            "reportId": decision.report_id,
+            "status": getattr(decision.status, "value", decision.status),
+            "riskLevel": getattr(decision.risk_level, "value", decision.risk_level),
+            "issues": issues,
+            "auditId": decision.audit_id,
+            "rationale": decision.rationale,
+            "hardCase": getattr(decision, "hard_case", False),
+            "routing": getattr(decision, "routing", []),
+            "metadata": getattr(decision, "metadata", {}),
+        }

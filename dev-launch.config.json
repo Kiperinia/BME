@@ -23,5 +23,13 @@
     "warmupEnabled": true,
     "mockDelayMs": 0,
     "inferenceTimeoutSeconds": 20
+  },
+  "preprocess": {
+    "enabled": true
+  },
+  "yolo": {
+    "enabled": true,
+    "weightsPath": "polyp-detection/models/yolov8_polyp.pt",
+    "confidenceThreshold": 0.25
   }
 }

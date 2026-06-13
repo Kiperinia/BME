@@ -15,6 +15,7 @@ import type {
   GenerateReportDraftRequest,
   ReportContextData,
   SaveReportDraftRequest,
+  SupervisorDecision,
 } from '@/types/eis'
 
 const props = defineProps<{
@@ -36,6 +37,7 @@ const layoutSuggestion = ref('')
 const streamText = ref('')
 const annotationTags = ref<AnnotationTag[]>([])
 const agentWorkflow = ref<AgentWorkflowSummary | null>(null)
+const supervisorDecision = ref<SupervisorDecision | null>(null)
 const tagsLoading = ref(false)
 const tagErrorMessage = ref('')
 const isHydrating = ref(false)
@@ -68,6 +70,7 @@ const applyContext = (nextContext: ReportContextData) => {
   initialOpinion.value = nextContext.initialOpinion
   annotationTags.value = []
   agentWorkflow.value = null
+  supervisorDecision.value = null
   streamText.value = ''
 }
 
@@ -155,6 +158,7 @@ const handleInvokeAgent = async () => {
     conclusion.value = response.conclusion
     layoutSuggestion.value = response.layoutSuggestion
     agentWorkflow.value = response.workflow
+    supervisorDecision.value = response.supervisorDecision ?? null
     showToast('Agent 已生成结构化草稿。', 'success')
   } catch {
     showToast('Agent 草稿生成失败，请稍后重试。', 'error')
@@ -238,6 +242,7 @@ onMounted(async () => {
       :stream-text="streamText"
       :annotation-tags="annotationTags"
       :agent-workflow="agentWorkflow"
+      :supervisor-decision="supervisorDecision"
       :tags-loading="tagsLoading"
       :tag-error-message="tagErrorMessage"
       :is-hydrating="isHydrating"

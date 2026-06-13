@@ -1,4 +1,5 @@
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -91,6 +92,13 @@ class Settings(BaseSettings):
     report_enable_reflection: bool = Field(default=False, alias="REPORT_ENABLE_REFLECTION")
     report_reflection_max_iterations: int = Field(default=3, alias="REPORT_REFLECTION_MAX_ITERATIONS", ge=1, le=10)
     report_reflection_quality_threshold: float = Field(default=8.0, alias="REPORT_REFLECTION_QUALITY_THRESHOLD", ge=0.0, le=10.0)
+    preprocess_enabled: bool = Field(default=True, alias="PREPROCESS_ENABLED")
+    yolo_detection_enabled: bool = Field(default=True, alias="YOLO_DETECTION_ENABLED")
+    yolo_weights_path: str = Field(
+        default=str((WORKSPACE_DIR / "polyp-detection" / "models" / "yolov8_polyp.pt").resolve()),
+        alias="YOLO_WEIGHTS_PATH",
+    )
+    yolo_confidence_threshold: float = Field(default=0.25, alias="YOLO_CONFIDENCE_THRESHOLD", ge=0.0, le=1.0)
 
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_DIR / ".env"),
@@ -134,6 +142,20 @@ def refresh_settings_cache() -> None:
     get_settings.cache_clear()
 
 
+def apply_environment_precedence(overrides: dict[str, Any]) -> dict[str, Any]:
+    """Drop runtime overrides when the matching environment variable is set."""
+    if not overrides:
+        return {}
+
+    filtered = dict(overrides)
+    for field_name, field_info in Settings.model_fields.items():
+        alias = str(field_info.alias or field_name)
+        if alias in os.environ:
+            filtered.pop(field_name, None)
+            filtered.pop(alias, None)
+    return filtered
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings(**load_settings_overrides())
+    return Settings(**apply_environment_precedence(load_settings_overrides()))

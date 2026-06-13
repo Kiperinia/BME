@@ -1,3 +1,5 @@
+import type { SupervisorDecision } from './supervisor'
+
 export interface WorkspacePatient {
   patientId: string
   patientName: string
@@ -27,6 +29,12 @@ export interface WorkspaceSegmentation {
   retrievalCandidateCount?: number
   retrievalBankId?: string | null
   retrievalPriorKeys?: string[]
+  preprocessStatus?: string
+  qualityWarnings?: string[]
+  candidateBox?: [number, number, number, number] | null
+  candidateSource?: string
+  candidateConfidence?: number | null
+  pipelineWarnings?: string[]
 }
 
 export type ParisMorphologyGroup = 'elevated' | 'flat' | 'depressed'
@@ -112,6 +120,7 @@ export interface WorkspaceReportResult {
   featureTags: WorkspaceFeatureTag[]
   agentTrace: AgentTraceStep[]
   workflow: WorkspaceWorkflowSummary
+  supervisorDecision?: SupervisorDecision | null
 }
 
 export interface ExemplarBankDecision {

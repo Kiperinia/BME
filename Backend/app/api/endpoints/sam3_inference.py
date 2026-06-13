@@ -11,6 +11,7 @@ from app.core.response import ApiResponse
 from app.schemas.analysis import Sam3PreloadStatusSchema, SegmentFrameResponseSchema
 from app.schemas.common import AuthenticatedUserSchema
 from app.services.sam3_runtime import SAM3Engine, SAM3RuntimeSingleton
+from app.services.segmentation_pipeline_service import SegmentationPipelineService
 from app.services.storage_service import StorageService
 
 
@@ -107,11 +108,12 @@ async def segment_frame(
         )
 
     try:
+        service = SegmentationPipelineService(settings=settings, engine=engine)
         data = await asyncio.wait_for(
             asyncio.to_thread(
-                engine.predict_bytes,
-                image_bytes,
-                image.filename,
+                service.segment_image_bytes,
+                image_bytes=image_bytes,
+                filename=image.filename,
                 content_type=image.content_type,
                 retrieval_context={
                     "patient_payload": patient_payload,

@@ -68,6 +68,28 @@ class WorkspaceService:
             diagnosis=diagnosis,
             uses_full_frame_fallback=uses_full_frame_fallback,
         )
+        report_payload = diagnosis.report.to_dict() if hasattr(diagnosis.report, "to_dict") else {}
+        report_payload.update(
+            {
+                "findings": findings,
+                "conclusion": conclusion,
+                "layoutSuggestion": diagnosis.report.layout_suggestion,
+                "report_text": f"{findings}\n{conclusion}".strip(),
+            }
+        )
+        supervisor_decision = self.agent_runtime.evaluate_supervisor(
+            report=report_payload,
+            workflow=workflow,
+            patient_context={
+                "patient_id": payload.patient.patientId,
+                "study_id": payload.image.filename,
+                "exam_date": payload.patient.examDate,
+                "expert_notes": payload.expertConfig.expertNotes,
+            },
+            report_id=payload.patient.patientId or payload.image.filename,
+            stream_messages=workflow.steps,
+            tool_logs=report_payload.get("tool_calls", []),
+        )
         report_markdown = self._build_report_markdown(
             payload=payload,
             findings=findings,
@@ -98,6 +120,7 @@ class WorkspaceService:
             featureTags=feature_tags,
             agentTrace=agent_trace,
             workflow=workflow,
+            supervisorDecision=supervisor_decision,
         )
 
     def _resolve_mask_inputs(

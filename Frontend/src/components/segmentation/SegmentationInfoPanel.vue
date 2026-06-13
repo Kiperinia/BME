@@ -31,6 +31,30 @@ const fileSizeLabel = computed(() => {
 
   return `${(props.image.sizeBytes / 1024 / 1024).toFixed(2)} MB`
 })
+
+const candidateLabel = computed(() => {
+  const segmentation = props.segmentation
+  if (!segmentation) {
+    return '-'
+  }
+  const source = segmentation.candidateSource ?? 'none'
+  if (source === 'none' || !segmentation.candidateBox) {
+    return '未发现候选框，MedicalSAM3 使用默认提示'
+  }
+  const confidence = segmentation.candidateConfidence
+  const confidenceLabel = typeof confidence === 'number' ? `，置信度 ${confidence.toFixed(2)}` : ''
+  return `${source} 候选框 ${segmentation.candidateBox.join(', ')}${confidenceLabel}`
+})
+
+const pipelineWarningsLabel = computed(() => {
+  const warnings = props.segmentation?.pipelineWarnings ?? []
+  return warnings.length ? warnings.join('；') : '无'
+})
+
+const qualityWarningsLabel = computed(() => {
+  const warnings = props.segmentation?.qualityWarnings ?? []
+  return warnings.length ? warnings.join('；') : '无'
+})
 </script>
 
 <template>
@@ -52,6 +76,33 @@ const fileSizeLabel = computed(() => {
       >
         <p class="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{{ item.label }}</p>
         <p class="mt-1 break-words text-sm font-medium text-slate-900 dark:text-white">{{ item.value }}</p>
+      </div>
+
+      <div class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+        <p class="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">图像预处理</p>
+        <p class="mt-1 break-words text-sm font-medium text-slate-900 dark:text-white">
+          {{ segmentation?.preprocessStatus ?? '未运行' }}
+        </p>
+        <p class="mt-1 break-words text-xs text-slate-500 dark:text-slate-400">
+          质量提醒：{{ qualityWarningsLabel }}
+        </p>
+      </div>
+
+      <div class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+        <p class="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">候选定位</p>
+        <p class="mt-1 break-words text-sm font-medium text-slate-900 dark:text-white">
+          {{ candidateLabel }}
+        </p>
+        <p class="mt-1 break-words text-xs text-slate-500 dark:text-slate-400">
+          YOLO 负责候选定位，MedicalSAM3 负责精细轮廓。
+        </p>
+      </div>
+
+      <div class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+        <p class="text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">管线提醒</p>
+        <p class="mt-1 break-words text-sm font-medium text-slate-900 dark:text-white">
+          {{ pipelineWarningsLabel }}
+        </p>
       </div>
     </div>
   </section>

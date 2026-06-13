@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -118,12 +119,33 @@ class AgentWorkflowSchema(BaseModel):
     lesions: list[AgentWorkflowLesionSchema] = Field(default_factory=list)
 
 
+class SupervisorIssueSchema(BaseModel):
+    type: str
+    severity: str
+    message: str
+    location: str | None = None
+    evidenceRefs: list[str] = Field(default_factory=list)
+
+
+class SupervisorDecisionSchema(BaseModel):
+    reportId: str
+    status: str
+    riskLevel: str
+    issues: list[SupervisorIssueSchema] = Field(default_factory=list)
+    auditId: str
+    rationale: str | None = None
+    hardCase: bool = False
+    routing: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class GenerateReportDraftResponseSchema(BaseModel):
     findings: str
     conclusion: str
     layoutSuggestion: str
     workflow: AgentWorkflowSchema
     streamMessages: list[str] = Field(default_factory=list)
+    supervisorDecision: SupervisorDecisionSchema | None = None
 
 
 class FetchAnnotationTagsResponseSchema(BaseModel):

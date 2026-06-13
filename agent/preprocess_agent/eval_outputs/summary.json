@@ -1,0 +1,122 @@
+[
+  {
+    "image": "111polyp.jpg",
+    "status": "success",
+    "next_step": "send_to_bbox_agent",
+    "bbox": [
+      0,
+      125,
+      357,
+      512
+    ],
+    "confidence": 0.487,
+    "source": "2d_polyp_model",
+    "quality_warnings": [],
+    "brightness": 102.8866,
+    "blur": 344.7075,
+    "contrast": 45.5058,
+    "probability_max": 1.0,
+    "probability_mean": 0.2571,
+    "overlay": "preprocess_agent\\eval_outputs\\01_111polyp_overlay.jpg"
+  },
+  {
+    "image": "Adenomatous polyps By Kuyohong.jpg",
+    "status": "success",
+    "next_step": "send_to_bbox_agent",
+    "bbox": [
+      77,
+      162,
+      445,
+      417
+    ],
+    "confidence": 0.4937,
+    "source": "2d_polyp_model",
+    "quality_warnings": [],
+    "brightness": 124.7287,
+    "blur": 765.3683,
+    "contrast": 48.5005,
+    "probability_max": 1.0,
+    "probability_mean": 0.1768,
+    "overlay": "preprocess_agent\\eval_outputs\\02_Adenomatous polyps By Kuyohong_overlay.jpg"
+  },
+  {
+    "image": "Colon-Polyp.jpg",
+    "status": "success",
+    "next_step": "send_to_bbox_agent",
+    "bbox": [
+      203,
+      0,
+      512,
+      493
+    ],
+    "confidence": 0.6227,
+    "source": "2d_polyp_model",
+    "quality_warnings": [],
+    "brightness": 94.2801,
+    "blur": 874.2159,
+    "contrast": 45.1557,
+    "probability_max": 1.0,
+    "probability_mean": 0.3619,
+    "overlay": "preprocess_agent\\eval_outputs\\03_Colon-Polyp_overlay.jpg"
+  },
+  {
+    "image": "Endomucosal resection 1.jpg",
+    "status": "success",
+    "next_step": "send_to_bbox_agent",
+    "bbox": [
+      368,
+      399,
+      394,
+      426
+    ],
+    "confidence": 0.15,
+    "source": "monai_saliency",
+    "quality_warnings": [],
+    "brightness": 89.9315,
+    "blur": 350.3884,
+    "contrast": 44.7692,
+    "probability_max": null,
+    "probability_mean": null,
+    "overlay": "preprocess_agent\\eval_outputs\\04_Endomucosal resection 1_overlay.jpg"
+  },
+  {
+    "image": "MaElenaAM 45.jpg",
+    "status": "success",
+    "next_step": "send_to_bbox_agent",
+    "bbox": [
+      388,
+      80,
+      458,
+      156
+    ],
+    "confidence": 0.379,
+    "source": "2d_polyp_model",
+    "quality_warnings": [],
+    "brightness": 57.2789,
+    "blur": 480.9892,
+    "contrast": 73.1497,
+    "probability_max": 0.9992,
+    "probability_mean": 0.0081,
+    "overlay": "preprocess_agent\\eval_outputs\\05_MaElenaAM 45_overlay.jpg"
+  },
+  {
+    "image": "Polyp.jpg",
+    "status": "success",
+    "next_step": "send_to_bbox_agent",
+    "bbox": [
+      173,
+      83,
+      512,
+      445
+    ],
+    "confidence": 0.484,
+    "source": "2d_polyp_model",
+    "quality_warnings": [],
+    "brightness": 130.2496,
+    "blur": 515.2568,
+    "contrast": 56.3405,
+    "probability_max": 1.0,
+    "probability_mean": 0.2268,
+    "overlay": "preprocess_agent\\eval_outputs\\06_Polyp_overlay.jpg"
+  }
+]

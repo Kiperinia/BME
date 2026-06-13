@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.agent_workflow import AgentWorkflowSchema
+from app.schemas.agent_workflow import AgentWorkflowSchema, SupervisorDecisionSchema
 
 
 class WorkspacePatientSchema(BaseModel):
@@ -80,6 +80,7 @@ class WorkspaceReportResponseSchema(BaseModel):
     featureTags: list[WorkspaceFeatureTagSchema] = Field(default_factory=list)
     agentTrace: list[AgentTraceStepSchema] = Field(default_factory=list)
     workflow: AgentWorkflowSchema
+    supervisorDecision: SupervisorDecisionSchema | None = None
 
 
 class ExemplarBankRequestSchema(BaseModel):
