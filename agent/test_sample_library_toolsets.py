@@ -6,8 +6,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from tools.medical.sample_library_toolsets import (
-    ResultReviewToolSet,
     create_sample_library_tool_registry,
+    get_primary_agent_tool_chains,
     group_tool_specs_by_agent,
 )
 
@@ -50,7 +50,7 @@ def main() -> None:
     specs = registry.list_tool_specs()
     grouped = group_tool_specs_by_agent(specs)
 
-    assert len(specs) == 41
+    assert len(specs) == 66
     assert set(grouped) == {
         "report_generation_agent",
         "sample_audit_agent",
@@ -58,8 +58,73 @@ def main() -> None:
         "label_embedding_agent",
         "result_review_agent",
     }
+    primary_tool_descriptions = {
+        "segmentation_preprocess_agent": {
+            "BuildBboxRequest": "准备 YOLO 请求",
+            "NormalizeImagePlan": "生成图像归一化方案，包括目标尺寸、颜色空间等",
+            "TracePreprocess": "记录预处理步骤",
+            "PackagePrompts": "打包 SAM3 prompt",
+        },
+        "sample_audit_agent": {
+            "BuildReviewQueueItem": "把可疑样本生成医生/人工复核队列项",
+            "RunReferenceLabelQuiz": "把候选样本作为提示词分割并与标准结果比对，输出结果",
+        },
+        "report_generation_agent": {
+            "CaseContextAssembler": "汇总病例与相似样本上下文",
+            "UncertaintyExplainer": "解释分割置信度风险来源",
+            "ReportTemplateComposer": "生成结构化诊疗报告模板",
+        },
+        "label_embedding_agent": {
+            "ExtractReportTerms": "从 findings、conclusion、医生标注中抽取候选词条",
+            "NormalizeMedicalTerms": "把同义词、大小写、中英文混写统一成标准词条",
+            "DeduplicateTerms": "合并重复词条和同义词，避免数据库冗余",
+            "Build_db_TermRecords": "词条记录构建",
+        },
+        "result_review_agent": {
+            "CollectAgentOutputs": "收集四个上游智能体的输出、决策、warnings、tool calls",
+            "AuditPreprocessResult": "检查预处理结果是否合理",
+            "AuditSampleAuditResult": "检查样本审核结果是否合理",
+            "AuditReportResult": "检查报告生成结果是否合理",
+            "AuditTermResult": "检查标签词条结果是否合理",
+        },
+    }
+    for agent_name, descriptions in primary_tool_descriptions.items():
+        specs_by_name = {spec["name"]: spec for spec in grouped[agent_name]}
+        assert list(descriptions) == [spec["name"] for spec in grouped[agent_name][: len(descriptions)]]
+        for tool_name, description in descriptions.items():
+            assert specs_by_name[tool_name]["purpose"] == description
+    primary_chains = get_primary_agent_tool_chains()
+    assert primary_chains["segmentation_preprocess_agent"]["promptDesign"][0].startswith("目标：")
+    assert "不新增诊断或反思智能体" in primary_chains["report_generation_agent"]["promptDesign"][1]
+    assert "数据库检索而非样本库" in primary_chains["label_embedding_agent"]["promptDesign"][2]
 
     sample = _sample("case-001", 0.22, 0.64)
+    bbox = registry.call("BuildBboxRequest", sample=sample)
+    normalization = registry.call("NormalizeImagePlan", sample=sample)
+    trace = registry.call("TracePreprocess", sample=sample, steps=[bbox, normalization])
+    prompt_package = registry.call("PackagePrompts", sample=sample, use_exemplar=True)
+    assert bbox["bbox"] == [10.0, 20.0, 100.0, 120.0]
+    assert normalization["target_size"] == 1024
+    assert trace["step_count"] == 2
+    assert prompt_package["prompts"]["exemplars"]["positive_ids"] == ["pos-1"]
+
+    review_bundle = registry.call("BuildReviewQueueItem", sample=sample)
+    quiz_main = registry.call(
+        "RunReferenceLabelQuiz",
+        sample=sample,
+        reference_sample={**sample, "image_id": "reference-001", "tags": ["polyp", "flat"]},
+        doctor_annotations={"tags": ["polyp", "flat"], "lesion_type": "polyp"},
+    )
+    assert review_bundle["review_item"]["priority"] in {"low", "medium", "high"}
+    assert quiz_main["passed"]
+
+    context = registry.call("CaseContextAssembler", sample=sample, similar_cases=[], review_summary={})
+    uncertainty = registry.call("UncertaintyExplainer", context=context)
+    template = registry.call("ReportTemplateComposer", context=context, report_type="clinical")
+    assert context["image_id"] == "case-001"
+    assert uncertainty["uncertainty_level"] in {"low", "medium", "high"}
+    assert template["sections"] == ["finding", "impression", "risk_note", "evidence"]
+
     grade = registry.call("assign_sample_grade", sample=sample)
     assert grade["grade"] == "hard"
 
@@ -74,25 +139,76 @@ def main() -> None:
     prompt_package = registry.call("package_prompts", sample=sample, use_exemplar=True)
     assert prompt_package["prompts"]["exemplars"]["positive_ids"] == ["pos-1"]
 
-    labels = registry.call(
-        "extract_report_feature_labels",
-        report={"findings": "Paris 0-IIa flat lesion with vessel feature", "conclusion": "low risk resection"},
-        doctor_annotations={"tags": ["polyp"]},
+    report_payload = {
+        "report_id": "report-001",
+        "patient_id": "patient-001",
+        "findings": "Paris 0-IIa flat lesion with vessel feature",
+        "conclusion": "low risk resection recommendation",
+    }
+    terms = registry.call(
+        "ExtractReportTerms",
+        report=report_payload,
+        doctor_annotations={"tags": ["polyp"], "paris": "0-IIa", "lesion_type": "polyp"},
     )
-    assert "Paris type" in labels["labels"]
+    assert terms["term_count"] >= 3
 
-    effect = registry.call("audit_exemplar_effect", sample=sample)
-    assert effect["effect"] == "helpful"
+    normalized = registry.call("NormalizeMedicalTerms", terms=terms["terms"])
+    deduped = registry.call("DeduplicateTerms", terms=normalized["terms"])
+    records = registry.call(
+        "Build_db_TermRecords",
+        terms=deduped["terms"],
+        report=report_payload,
+        doctor_annotations={"tags": ["polyp"], "paris": "0-IIa", "lesion_type": "polyp"},
+        report_id=report_payload["report_id"],
+        patient_id=report_payload["patient_id"],
+    )
 
-    rows = [
-        _sample("case-001", 0.22, 0.64),
-        _sample("case-002", 0.81, 0.80, "clean"),
-        _sample("case-003", 0.10, 0.12),
+    assert records["record_count"] == len(records["dbRecords"])
+    assert records["validation"]["valid"]
+    assert records["routes"]
+    assert records["upsert"]["dryRun"] and records["upsert"]["planned"] == records["record_count"]
+    assert records["facets"]
+    assert 0.0 <= records["coverage"]["coverage"] <= 1.0
+
+    agent_runs = [
+        {"agent_name": "segmentation_preprocess_agent", "decision": "preprocessed"},
+        {"agent_name": "sample_audit_agent", "decision": "accept"},
+        {"agent_name": "report_generation_agent", "decision": "report_ready"},
+        {"agent_name": "label_embedding_agent", "decision": "ready_to_index"},
     ]
-    report = ResultReviewToolSet.generate_hard_case_delta_report(rows=rows)
-    assert report["count"] == 3
-    assert report["threshold_subsets"]["baseline_dice<0.3"]["count"] == 2
-    assert report["overall"]["positive_delta_rate"] == 2 / 3
+    agent_outputs = {
+        "segmentation_preprocess_agent": {
+            "bbox_request": {"bbox": [10, 20, 100, 120]},
+            "prompt_package": {"prompts": {"bbox": [10, 20, 100, 120]}},
+            "large_mask_gate": {"is_large_mask": False},
+        },
+        "sample_audit_agent": {
+            "accepted": True,
+            "bank_decision": "accept",
+            "reference_quiz": {"passed": True},
+            "mask_consistency": {"valid": True},
+        },
+        "report_generation_agent": {**report_payload, "report_score": {"overall_score": 8.5}},
+        "label_embedding_agent": {
+            "dbRecords": records["dbRecords"],
+            "validation": records["validation"],
+            "coverage": records["coverage"],
+            "decision": "ready_to_index",
+        },
+    }
+    package = registry.call("CollectAgentOutputs", agent_outputs=agent_outputs, agent_runs=agent_runs)
+    workflow = package["completeness"]
+    preprocess_audit = registry.call("AuditPreprocessResult", preprocess=agent_outputs["segmentation_preprocess_agent"])
+    sample_audit = registry.call("AuditSampleAuditResult", sample_audit=agent_outputs["sample_audit_agent"])
+    report_audit = registry.call("AuditReportResult", report=agent_outputs["report_generation_agent"])
+    term_audit = registry.call("AuditTermResult", term_payload=agent_outputs["label_embedding_agent"])
+
+    assert package["agent_count"] == 4
+    assert workflow["complete"]
+    assert preprocess_audit["passed"]
+    assert sample_audit["passed"]
+    assert report_audit["passed"]
+    assert term_audit["passed"] or term_audit["issues"]
 
     print("sample-library-toolsets-smoke: ok")
 

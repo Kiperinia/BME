@@ -107,11 +107,37 @@ def main() -> None:
         "label_embedding_agent",
         "result_review_agent",
     ]
+    expected_tool_chains = {
+        "segmentation_preprocess_agent": ["BuildBboxRequest", "NormalizeImagePlan", "TracePreprocess", "PackagePrompts"],
+        "sample_audit_agent": ["BuildReviewQueueItem", "RunReferenceLabelQuiz"],
+        "report_generation_agent": ["CaseContextAssembler", "UncertaintyExplainer", "ReportTemplateComposer"],
+        "label_embedding_agent": ["ExtractReportTerms", "NormalizeMedicalTerms", "DeduplicateTerms", "Build_db_TermRecords"],
+        "result_review_agent": ["CollectAgentOutputs", "AuditPreprocessResult", "AuditSampleAuditResult", "AuditReportResult", "AuditTermResult"],
+    }
+    for run in result["agent_runs"]:
+        tool_names = [call["tool_name"] for call in run["tool_calls"]]
+        assert tool_names == expected_tool_chains[run["agent_name"]]
+        assert run["observations"]["agentDetail"]
+        assert run["observations"]["promptDesign"]
+        assert [tool["name"] for tool in run["observations"]["mainToolChain"]] == expected_tool_chains[run["agent_name"]]
     assert result["report"]["findings"]
     assert result["report"]["conclusion"]
     assert result["label_embedding"]["labels"]
+    assert result["label_embedding"]["dbRecords"]
+    assert result["label_embedding"]["facets"]
+    assert result["label_embedding"]["decision"] in {"ready_to_index", "needs_term_review", "insufficient_terms"}
     assert result["sample_audit"]["reference_quiz"]["passed"]
-    assert result["review"]["final_status"] in {"approved", "needs_human_review", "rejected"}
+    assert result["review"]["finalDecision"] in {
+        "approved",
+        "approved_with_warnings",
+        "needs_human_review",
+        "retry_preprocess",
+        "retry_sample_audit",
+        "retry_report_generation",
+        "retry_term_embedding",
+        "rejected",
+    }
+    assert result["review"]["audits"]["workflow"]["complete"]
 
     print("medical-closed-loop-agents-smoke: ok")
 

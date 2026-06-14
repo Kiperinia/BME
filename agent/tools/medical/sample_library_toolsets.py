@@ -121,6 +121,95 @@ class ToolCallLog:
         }
 
 
+PRIMARY_AGENT_TOOL_CHAINS: dict[str, dict[str, Any]] = {
+    "segmentation_preprocess_agent": {
+        "displayName": "分割预处理智能体",
+        "agentDetail": "准备 YOLO bbox 请求、归一化计划和 prompt 包",
+        "promptDesign": [
+            "目标：围绕 polyp lesion 组织视觉提示，不生成诊断或报告文字。",
+            "空间：优先使用 YOLO bbox；缺失时使用 mask-derived/full-frame bbox。",
+            "参考：把 positive/boundary exemplar ids 放入 SAM3 prompt 包，服务边界定位。",
+        ],
+        "mainToolChain": [
+            {"name": "BuildBboxRequest", "description": "准备 YOLO 请求"},
+            {"name": "NormalizeImagePlan", "description": "生成图像归一化方案，包括目标尺寸、颜色空间等"},
+            {"name": "TracePreprocess", "description": "记录预处理步骤"},
+            {"name": "PackagePrompts", "description": "打包 SAM3 prompt"},
+        ],
+    },
+    "sample_audit_agent": {
+        "displayName": "样本审核智能体",
+        "agentDetail": "判断分割样本是否值得进入样本库作为视觉提示词，输出 accept/reject",
+        "promptDesign": [
+            "输入：候选样本标签、标准样本标签、医生标注和 mask 质量指标。",
+            "任务：像参考标签测验一样比对候选样本是否可作为视觉提示词。",
+            "输出：passed、score、reasons，并汇总为 accept/reject/human review。",
+        ],
+        "mainToolChain": [
+            {"name": "BuildReviewQueueItem", "description": "把可疑样本生成医生/人工复核队列项"},
+            {"name": "RunReferenceLabelQuiz", "description": "把候选样本作为提示词分割并与标准结果比对，输出结果"},
+        ],
+    },
+    "report_generation_agent": {
+        "displayName": "报告生成智能体",
+        "agentDetail": "生成结构化报告，结合分割证据和医生标注",
+        "promptDesign": [
+            "输入：病例上下文、分割指标、mask 统计、医生标注和不确定性。",
+            "任务：只生成 findings、conclusion、layoutSuggestion，不新增诊断或反思智能体。",
+            "约束：每个结论必须能回到分割证据、医生标注或病例上下文。",
+        ],
+        "mainToolChain": [
+            {"name": "CaseContextAssembler", "description": "汇总病例与相似样本上下文"},
+            {"name": "UncertaintyExplainer", "description": "解释分割置信度风险来源"},
+            {"name": "ReportTemplateComposer", "description": "生成结构化诊疗报告模板"},
+        ],
+    },
+    "label_embedding_agent": {
+        "displayName": "标签嵌入智能体",
+        "agentDetail": "从报告和医生标注提取标签",
+        "promptDesign": [
+            "输入：findings、conclusion 和医生标注。",
+            "任务：抽取可检索医学词条，统一中英文、同义词和大小写。",
+            "输出：dbRecords、routes、facets、validation，目标是数据库检索而非样本库。",
+        ],
+        "mainToolChain": [
+            {"name": "ExtractReportTerms", "description": "从 findings、conclusion、医生标注中抽取候选词条"},
+            {"name": "NormalizeMedicalTerms", "description": "把同义词、大小写、中英文混写统一成标准词条"},
+            {"name": "DeduplicateTerms", "description": "合并重复词条和同义词，避免数据库冗余"},
+            {"name": "Build_db_TermRecords", "description": "词条记录构建"},
+        ],
+    },
+    "result_review_agent": {
+        "displayName": "结果复核智能体",
+        "agentDetail": "复核全链路输出质量",
+        "promptDesign": [
+            "输入：四个上游智能体输出、决策、warnings 和 tool calls。",
+            "任务：审核链路完整性、预处理、样本审核、报告和词条结果。",
+            "输出：finalDecision、qualityScore、blockingIssues、retryPlan，不做疾病诊断。",
+        ],
+        "mainToolChain": [
+            {"name": "CollectAgentOutputs", "description": "收集四个上游智能体的输出、决策、warnings、tool calls"},
+            {"name": "AuditPreprocessResult", "description": "检查预处理结果是否合理"},
+            {"name": "AuditSampleAuditResult", "description": "检查样本审核结果是否合理"},
+            {"name": "AuditReportResult", "description": "检查报告生成结果是否合理"},
+            {"name": "AuditTermResult", "description": "检查标签词条结果是否合理"},
+        ],
+    },
+}
+
+
+def get_primary_agent_tool_chains() -> dict[str, dict[str, Any]]:
+    return {
+        agent_name: {
+            "displayName": str(metadata["displayName"]),
+            "agentDetail": str(metadata["agentDetail"]),
+            "promptDesign": [str(item) for item in metadata["promptDesign"]],
+            "mainToolChain": [dict(tool) for tool in metadata["mainToolChain"]],
+        }
+        for agent_name, metadata in PRIMARY_AGENT_TOOL_CHAINS.items()
+    }
+
+
 class SampleLibraryToolRegistry:
     def __init__(self) -> None:
         self._tools: dict[str, tuple[ToolExplanation, Callable[..., Any]]] = {}
@@ -288,6 +377,75 @@ class ReportGenerationToolSet:
         if context.get("sample_group") in {"ambiguous", "reject"}:
             flags.append("sample_quality_risk")
         return {"risk_flags": flags, "needs_human_review": bool(flags)}
+
+
+class CaseContextAssembler:
+    description = "汇总病例与相似样本上下文"
+
+    def __call__(
+        self,
+        *,
+        sample: dict[str, Any],
+        similar_cases: list[dict[str, Any]] | None = None,
+        review_summary: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return ReportGenerationToolSet.assemble_case_context(
+            sample=sample,
+            similar_cases=similar_cases,
+            review_summary=review_summary,
+        )
+
+
+class UncertaintyExplainer:
+    description = "解释分割置信度风险来源"
+
+    def __call__(self, *, context: dict[str, Any]) -> dict[str, Any]:
+        return ReportGenerationToolSet.explain_uncertainty(context=context)
+
+
+class ReportTemplateComposer:
+    description = "生成结构化诊疗报告模板"
+
+    def __call__(self, *, context: dict[str, Any], report_type: str = "segmentation_review") -> dict[str, Any]:
+        return ReportGenerationToolSet.compose_report_template(context=context, report_type=report_type)
+
+
+def _register_report_generation_primary_tools(registry: SampleLibraryToolRegistry) -> None:
+    tools: list[tuple[str, Callable[..., Any], list[str], list[str], str]] = [
+        (
+            "CaseContextAssembler",
+            CaseContextAssembler(),
+            ["sample", "similar_cases", "review_summary"],
+            ["case_context"],
+            "Builds report-ready case evidence from sample metadata and related cases.",
+        ),
+        (
+            "UncertaintyExplainer",
+            UncertaintyExplainer(),
+            ["context"],
+            ["uncertainty_summary"],
+            "Explains confidence and entropy risks before report writing.",
+        ),
+        (
+            "ReportTemplateComposer",
+            ReportTemplateComposer(),
+            ["context", "report_type"],
+            ["template"],
+            "Chooses the structured report skeleton for the case.",
+        ),
+    ]
+    for name, handler, inputs, outputs, role in tools:
+        registry.register(
+            ToolExplanation(
+                name=name,
+                agent=ReportGenerationToolSet.agent_name,
+                purpose=str(getattr(handler, "description")),
+                inputs=inputs,
+                outputs=outputs,
+                sample_library_role=role,
+            ),
+            handler,
+        )
 
 
 class SampleAuditToolSet:
@@ -525,6 +683,209 @@ class LabelEmbeddingToolSet:
     )
 
     @classmethod
+    def extract_report_terms(
+        cls,
+        *,
+        report: dict[str, Any],
+        doctor_annotations: dict[str, Any] | None = None,
+        max_terms: int = 16,
+    ) -> dict[str, Any]:
+        labels = cls.extract_report_feature_labels(
+            report=report,
+            doctor_annotations=doctor_annotations,
+            max_labels=max_terms,
+        )["labels"]
+        terms = [{"term": label, "source": "report+doctor_annotations"} for label in labels]
+        return {"terms": terms, "term_count": len(terms)}
+
+    @staticmethod
+    def normalize_medical_terms(*, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        synonym_map = {
+            "polyp": "息肉",
+            "adenoma": "腺瘤",
+            "flat morphology": "扁平型",
+            "elevated morphology": "隆起型",
+            "depressed morphology": "凹陷型",
+            "paris type": "Paris分型",
+            "low risk": "低风险",
+            "intermediate risk": "中等风险",
+            "high risk": "高风险",
+            "resection recommendation": "内镜下切除",
+            "follow-up recommendation": "随访",
+        }
+        normalized: list[dict[str, Any]] = []
+        for item in terms:
+            raw = str(item.get("term", "")).strip()
+            if not raw:
+                continue
+            key = raw.lower()
+            normalized_term = synonym_map.get(key, raw)
+            normalized.append({**item, "rawTerm": raw, "normalizedTerm": normalized_term})
+        return {"terms": normalized, "term_count": len(normalized)}
+
+    @staticmethod
+    def classify_term_category(*, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        def category_for(term: str) -> str:
+            text = term.lower()
+            if "0-i" in text or "paris" in text:
+                return "Paris分型"
+            if any(token in text for token in ["扁平", "隆起", "凹陷", "flat", "elevated", "depressed"]):
+                return "病灶形态"
+            if "风险" in text or "risk" in text:
+                return "风险等级"
+            if any(token in text for token in ["切除", "随访", "活检", "resection", "follow"]):
+                return "处理建议"
+            if any(token in text for token in ["血管", "vascular", "充血", "erythema"]):
+                return "表面/血管特征"
+            if any(token in text for token in ["息肉", "腺瘤", "polyp", "adenoma"]):
+                return "病理/类型"
+            return "科研筛选标签"
+
+        classified = []
+        for item in terms:
+            normalized = str(item.get("normalizedTerm", item.get("term", ""))).strip()
+            if not normalized:
+                continue
+            classified.append({**item, "category": category_for(normalized)})
+        return {"terms": classified, "categories": sorted({item["category"] for item in classified})}
+
+    @staticmethod
+    def score_term_confidence(*, terms: list[dict[str, Any]], doctor_annotations: dict[str, Any] | None = None) -> dict[str, Any]:
+        annotation_blob = " ".join(str(value) for value in (doctor_annotations or {}).values()).lower()
+        scored = []
+        for item in terms:
+            term = str(item.get("rawTerm", item.get("term", ""))).lower()
+            source = str(item.get("source", ""))
+            score = 0.72
+            if "doctor" in source:
+                score += 0.12
+            if term and term in annotation_blob:
+                score += 0.14
+            scored.append({**item, "confidence": round(_clamp(score), 4), "needsReview": score < 0.7})
+        return {"terms": scored}
+
+    @staticmethod
+    def deduplicate_terms(*, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        deduped: dict[tuple[str, str], dict[str, Any]] = {}
+        for item in terms:
+            key = (
+                str(item.get("category", "")).lower(),
+                str(item.get("normalizedTerm", item.get("term", ""))).lower(),
+            )
+            if key not in deduped or float(item.get("confidence", 0.0)) > float(deduped[key].get("confidence", 0.0)):
+                deduped[key] = item
+        values = list(deduped.values())
+        return {"terms": values, "term_count": len(values)}
+
+    @staticmethod
+    def bind_terms_to_report(*, terms: list[dict[str, Any]], report: dict[str, Any]) -> dict[str, Any]:
+        bindings = []
+        fields = {
+            "findings": str(report.get("findings", "")),
+            "conclusion": str(report.get("conclusion", "")),
+            "layoutSuggestion": str(report.get("layoutSuggestion", report.get("layout_suggestion", ""))),
+        }
+        for item in terms:
+            raw = str(item.get("rawTerm", item.get("term", ""))).lower()
+            matched_field = "doctor_annotations"
+            matched_text = ""
+            for field_name, field_text in fields.items():
+                if raw and raw in field_text.lower():
+                    matched_field = field_name
+                    matched_text = field_text[:240]
+                    break
+            bindings.append({**item, "sourceField": matched_field, "sourceText": matched_text})
+        return {"terms": bindings}
+
+    @staticmethod
+    def build_db_term_records(
+        *,
+        terms: list[dict[str, Any]],
+        report_id: str = "",
+        patient_id: str = "",
+    ) -> dict[str, Any]:
+        records = []
+        for index, item in enumerate(terms, start=1):
+            category = str(item.get("category", "科研筛选标签"))
+            normalized = str(item.get("normalizedTerm", item.get("term", "")))
+            slug = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]+", "-", f"{category}-{normalized}").strip("-").lower()
+            records.append(
+                {
+                    "termId": f"term-{report_id or 'runtime'}-{index:03d}-{slug[:48]}",
+                    "reportId": report_id,
+                    "patientId": patient_id,
+                    "term": item.get("rawTerm", item.get("term", "")),
+                    "normalizedTerm": normalized,
+                    "category": category,
+                    "sourceField": item.get("sourceField", ""),
+                    "sourceText": item.get("sourceText", ""),
+                    "confidence": float(item.get("confidence", 0.0)),
+                    "needsReview": bool(item.get("needsReview", False)),
+                }
+            )
+        return {"dbRecords": records, "record_count": len(records)}
+
+    @staticmethod
+    def validate_term_records(*, records: list[dict[str, Any]]) -> dict[str, Any]:
+        issues: list[str] = []
+        valid_categories = {"Paris分型", "病灶形态", "风险等级", "处理建议", "表面/血管特征", "病理/类型", "科研筛选标签"}
+        for record in records:
+            if not record.get("normalizedTerm"):
+                issues.append("missing_normalized_term")
+            if record.get("category") not in valid_categories:
+                issues.append("invalid_category")
+            confidence = float(record.get("confidence", 0.0))
+            if confidence < 0.0 or confidence > 1.0:
+                issues.append("confidence_out_of_range")
+        return {"valid": not issues, "issues": sorted(set(issues)), "record_count": len(records)}
+
+    @staticmethod
+    def route_term_index(*, records: list[dict[str, Any]]) -> dict[str, Any]:
+        routes: dict[str, list[str]] = {}
+        for record in records:
+            category = str(record.get("category", "科研筛选标签"))
+            table_name = {
+                "Paris分型": "report_terms_paris",
+                "病灶形态": "report_terms_morphology",
+                "风险等级": "report_terms_risk",
+                "处理建议": "report_terms_disposition",
+            }.get(category, "report_terms_general")
+            routes.setdefault(table_name, []).append(str(record.get("termId", "")))
+        return {"routes": routes}
+
+    @staticmethod
+    def upsert_report_terms(*, records: list[dict[str, Any]], dry_run: bool = True) -> dict[str, Any]:
+        return {
+            "dryRun": dry_run,
+            "upserted": 0 if dry_run else len(records),
+            "planned": len(records),
+            "recordIds": [str(record.get("termId", "")) for record in records],
+        }
+
+    @staticmethod
+    def build_filter_facets(*, records: list[dict[str, Any]]) -> dict[str, Any]:
+        facets: dict[str, list[str]] = {}
+        for record in records:
+            category = str(record.get("category", "科研筛选标签"))
+            term = str(record.get("normalizedTerm", ""))
+            if term:
+                facets.setdefault(category, [])
+                if term not in facets[category]:
+                    facets[category].append(term)
+        return {"facets": facets}
+
+    @staticmethod
+    def audit_term_coverage(*, records: list[dict[str, Any]], required_categories: list[str] | None = None) -> dict[str, Any]:
+        required = required_categories or ["Paris分型", "风险等级", "处理建议"]
+        present = {str(record.get("category", "")) for record in records}
+        missing = [category for category in required if category not in present]
+        return {
+            "coverage": 1.0 - len(missing) / max(len(required), 1),
+            "missingCategories": missing,
+            "needsReview": bool(missing),
+        }
+
+    @classmethod
     def extract_report_feature_labels(
         cls,
         *,
@@ -639,6 +1000,179 @@ class LabelEmbeddingToolSet:
 
 class ResultReviewToolSet:
     agent_name = "result_review_agent"
+
+    @staticmethod
+    def collect_agent_outputs(*, agent_outputs: dict[str, Any], agent_runs: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "agent_outputs": agent_outputs,
+            "agent_runs": agent_runs,
+            "agent_count": len(agent_runs),
+            "agent_names": [str(run.get("agent_name", "")) for run in agent_runs],
+        }
+
+    @staticmethod
+    def check_workflow_completeness(*, review_package: dict[str, Any], required_agents: list[str] | None = None) -> dict[str, Any]:
+        required = required_agents or [
+            "segmentation_preprocess_agent",
+            "sample_audit_agent",
+            "report_generation_agent",
+            "label_embedding_agent",
+        ]
+        names = set(review_package.get("agent_names", []))
+        outputs = dict(review_package.get("agent_outputs", {}) or {})
+        missing_agents = [agent for agent in required if agent not in names]
+        missing_outputs = [agent for agent in required if not outputs.get(agent)]
+        return {
+            "complete": not missing_agents and not missing_outputs,
+            "missing_agents": missing_agents,
+            "missing_outputs": missing_outputs,
+        }
+
+    @staticmethod
+    def audit_preprocess_result(*, preprocess: dict[str, Any]) -> dict[str, Any]:
+        bbox = preprocess.get("bbox_request", {}).get("bbox", [])
+        prompts = preprocess.get("prompt_package", {}).get("prompts", {})
+        large_mask = preprocess.get("large_mask_gate", {}).get("is_large_mask", False)
+        issues: list[str] = []
+        if not bbox or len(bbox) != 4:
+            issues.append("missing_bbox")
+        if not prompts:
+            issues.append("missing_prompts")
+        if large_mask:
+            issues.append("large_mask_gate_triggered")
+        return {"passed": not issues, "issues": issues}
+
+    @staticmethod
+    def audit_sample_audit_result(*, sample_audit: dict[str, Any]) -> dict[str, Any]:
+        issues: list[str] = []
+        if sample_audit.get("accepted") and not sample_audit.get("reference_quiz", {}).get("passed"):
+            issues.append("accepted_without_reference_quiz_pass")
+        if sample_audit.get("accepted") and not sample_audit.get("mask_consistency", {}).get("valid"):
+            issues.append("accepted_with_invalid_mask")
+        if sample_audit.get("bank_decision") == "reject" and sample_audit.get("accepted"):
+            issues.append("reject_accept_conflict")
+        return {"passed": not issues, "issues": issues}
+
+    @staticmethod
+    def audit_report_result(*, report: dict[str, Any]) -> dict[str, Any]:
+        findings = str(report.get("findings", "")).strip()
+        conclusion = str(report.get("conclusion", "")).strip()
+        report_score = float(report.get("report_score", {}).get("overall_score", 8.0) or 0.0)
+        issues: list[str] = []
+        if len(findings) < 20:
+            issues.append("findings_too_short")
+        if len(conclusion) < 10:
+            issues.append("conclusion_too_short")
+        if report_score < 6.5:
+            issues.append("low_report_score")
+        return {"passed": not issues, "issues": issues, "report_score": report_score}
+
+    @staticmethod
+    def audit_term_records(*, term_payload: dict[str, Any]) -> dict[str, Any]:
+        validation = term_payload.get("validation", {})
+        coverage = term_payload.get("coverage", {})
+        issues = list(validation.get("issues", []))
+        issues.extend(f"missing_{category}" for category in coverage.get("missingCategories", []))
+        return {
+            "passed": bool(validation.get("valid", False)) and not coverage.get("needsReview", False),
+            "issues": sorted(set(issues)),
+            "record_count": len(term_payload.get("dbRecords", [])),
+        }
+
+    @staticmethod
+    def check_cross_agent_consistency(*, agent_outputs: dict[str, Any]) -> dict[str, Any]:
+        issues: list[str] = []
+        report = agent_outputs.get("report_generation_agent", {})
+        terms = agent_outputs.get("label_embedding_agent", {})
+        sample_audit = agent_outputs.get("sample_audit_agent", {})
+
+        report_text = f"{report.get('findings', '')} {report.get('conclusion', '')}".lower()
+        term_text = " ".join(str(record.get("normalizedTerm", "")) for record in terms.get("dbRecords", [])).lower()
+        if "high risk" in report_text and "低风险" in term_text:
+            issues.append("report_high_risk_term_low_risk_conflict")
+        if sample_audit.get("bank_decision") == "reject" and terms.get("decision") == "ready_to_index":
+            issues.append("rejected_sample_has_index_ready_terms")
+        return {"consistent": not issues, "issues": issues}
+
+    @staticmethod
+    def detect_decision_conflicts(*, agent_runs: list[dict[str, Any]]) -> dict[str, Any]:
+        decisions = {str(run.get("agent_name", "")): str(run.get("decision", "")) for run in agent_runs}
+        conflicts: list[str] = []
+        if decisions.get("sample_audit_agent") == "reject" and decisions.get("label_embedding_agent") == "ready_to_index":
+            conflicts.append("sample_rejected_but_terms_ready")
+        if decisions.get("report_generation_agent") == "needs_human_review" and decisions.get("label_embedding_agent") == "ready_to_index":
+            conflicts.append("report_needs_review_but_terms_ready")
+        return {"has_conflicts": bool(conflicts), "conflicts": conflicts, "decisions": decisions}
+
+    @staticmethod
+    def score_pipeline_quality(*, audit_results: list[dict[str, Any]]) -> dict[str, Any]:
+        if not audit_results:
+            return {"qualityScore": 0.0, "blockingIssues": ["missing_audit_results"], "warnings": []}
+        blocking: list[str] = []
+        warnings: list[str] = []
+        passed_count = 0
+        for result in audit_results:
+            passed = bool(result.get("passed", result.get("complete", result.get("consistent", True))))
+            if passed:
+                passed_count += 1
+            issues = [str(issue) for issue in result.get("issues", []) + result.get("missing_agents", []) + result.get("missing_outputs", []) + result.get("conflicts", [])]
+            if not passed:
+                blocking.extend(issues or ["failed_audit"])
+            else:
+                warnings.extend(issues)
+        return {
+            "qualityScore": round(passed_count / max(len(audit_results), 1), 4),
+            "blockingIssues": sorted(set(blocking)),
+            "warnings": sorted(set(warnings)),
+        }
+
+    @staticmethod
+    def assign_review_action(*, quality: dict[str, Any]) -> dict[str, Any]:
+        blocking = list(quality.get("blockingIssues", []))
+        score = float(quality.get("qualityScore", 0.0))
+        if any("missing_bbox" in issue or "large_mask" in issue for issue in blocking):
+            decision = "retry_preprocess"
+        elif any("reference_quiz" in issue or "invalid_mask" in issue for issue in blocking):
+            decision = "retry_sample_audit"
+        elif any("findings" in issue or "conclusion" in issue or "report" in issue for issue in blocking):
+            decision = "retry_report_generation"
+        elif any("missing_" in issue or "term" in issue for issue in blocking):
+            decision = "retry_term_embedding"
+        elif blocking:
+            decision = "needs_human_review"
+        elif score >= 0.95:
+            decision = "approved"
+        else:
+            decision = "approved_with_warnings"
+        return {"finalDecision": decision, "humanReviewRequired": decision not in {"approved", "approved_with_warnings"}}
+
+    @staticmethod
+    def route_retry_or_human_review(*, review_action: dict[str, Any], quality: dict[str, Any]) -> dict[str, Any]:
+        decision = str(review_action.get("finalDecision", "needs_human_review"))
+        retry_targets = {
+            "retry_preprocess": "segmentation_preprocess_agent",
+            "retry_sample_audit": "sample_audit_agent",
+            "retry_report_generation": "report_generation_agent",
+            "retry_term_embedding": "label_embedding_agent",
+        }
+        target = retry_targets.get(decision, "")
+        return {
+            "shouldRetry": bool(target),
+            "targetAgent": target,
+            "humanReviewRequired": bool(review_action.get("humanReviewRequired", False)),
+            "reason": "; ".join(quality.get("blockingIssues", [])[:3]),
+        }
+
+    @staticmethod
+    def build_review_report(*, review_action: dict[str, Any], quality: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
+        decision = review_action.get("finalDecision", "needs_human_review")
+        if route.get("shouldRetry"):
+            text = f"闭环复核未通过，建议重跑 {route.get('targetAgent')}。原因：{route.get('reason')}"
+        elif review_action.get("humanReviewRequired"):
+            text = f"闭环复核需要人工确认。问题：{'; '.join(quality.get('blockingIssues', [])[:3])}"
+        else:
+            text = f"闭环复核通过，最终决策为 {decision}。"
+        return {"reviewReport": text}
 
     @staticmethod
     def analyze_metric_delta(*, sample: dict[str, Any]) -> dict[str, Any]:
@@ -784,6 +1318,245 @@ class ResultReviewToolSet:
         return {"image_id": record.image_id, "accepted": accepted, "target_group": target_group, "review": review}
 
 
+class BuildBboxRequest:
+    def __call__(self, *, sample: dict[str, Any], detector: str = "yolo") -> dict[str, Any]:
+        return SegmentationPreprocessToolSet.build_bbox_cache_request(sample=sample, detector=detector)
+
+
+class NormalizeImagePlan:
+    def __call__(self, *, sample: dict[str, Any], target_size: int = 1024) -> dict[str, Any]:
+        return SegmentationPreprocessToolSet.normalize_image_plan(sample=sample, target_size=target_size)
+
+
+class TracePreprocess:
+    def __call__(self, *, sample: dict[str, Any], steps: list[dict[str, Any]]) -> dict[str, Any]:
+        return SegmentationPreprocessToolSet.trace_preprocess(sample=sample, steps=steps)
+
+
+class PackagePrompts:
+    def __call__(
+        self,
+        *,
+        sample: dict[str, Any],
+        use_text: bool = True,
+        use_box: bool = True,
+        use_exemplar: bool = True,
+    ) -> dict[str, Any]:
+        return SegmentationPreprocessToolSet.package_prompts(
+            sample=sample,
+            use_text=use_text,
+            use_box=use_box,
+            use_exemplar=use_exemplar,
+        )
+
+
+class BuildReviewQueueItem:
+    def __call__(self, *, sample: dict[str, Any], known_ids: list[str] | None = None) -> dict[str, Any]:
+        identity = SampleAuditToolSet.check_identity(sample=sample, known_ids=known_ids or [])
+        mask_consistency = SampleAuditToolSet.check_label_mask_consistency(sample=sample)
+        hard_case = SampleAuditToolSet.mine_hard_case(sample=sample)
+        boundary_case = SampleAuditToolSet.detect_boundary_case(sample=sample)
+        grade = SampleAuditToolSet.assign_sample_grade(sample=sample)
+        review_item = SampleAuditToolSet.build_review_queue_item(
+            sample=sample,
+            audit_results=[identity, mask_consistency, hard_case, boundary_case],
+        )
+        return {
+            "review_item": review_item,
+            "identity": identity,
+            "mask_consistency": mask_consistency,
+            "hard_case": hard_case,
+            "boundary_case": boundary_case,
+            "grade": grade,
+        }
+
+
+class RunReferenceLabelQuiz:
+    def __call__(
+        self,
+        *,
+        sample: dict[str, Any],
+        reference_sample: dict[str, Any] | None = None,
+        doctor_annotations: dict[str, Any] | None = None,
+        pass_threshold: float = 0.55,
+    ) -> dict[str, Any]:
+        return SampleAuditToolSet.run_reference_label_quiz(
+            sample=sample,
+            reference_sample=reference_sample,
+            doctor_annotations=doctor_annotations,
+            pass_threshold=pass_threshold,
+        )
+
+
+class ExtractReportTerms:
+    def __call__(
+        self,
+        *,
+        report: dict[str, Any],
+        doctor_annotations: dict[str, Any] | None = None,
+        max_terms: int = 16,
+    ) -> dict[str, Any]:
+        return LabelEmbeddingToolSet.extract_report_terms(
+            report=report,
+            doctor_annotations=doctor_annotations,
+            max_terms=max_terms,
+        )
+
+
+class NormalizeMedicalTerms:
+    def __call__(self, *, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        return LabelEmbeddingToolSet.normalize_medical_terms(terms=terms)
+
+
+class DeduplicateTerms:
+    def __call__(self, *, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        return LabelEmbeddingToolSet.deduplicate_terms(terms=terms)
+
+
+class BuildDbTermRecords:
+    def __call__(
+        self,
+        *,
+        terms: list[dict[str, Any]],
+        report: dict[str, Any],
+        doctor_annotations: dict[str, Any] | None = None,
+        report_id: str = "",
+        patient_id: str = "",
+    ) -> dict[str, Any]:
+        classified = LabelEmbeddingToolSet.classify_term_category(terms=terms)
+        scored = LabelEmbeddingToolSet.score_term_confidence(
+            terms=classified["terms"],
+            doctor_annotations=doctor_annotations,
+        )
+        bound = LabelEmbeddingToolSet.bind_terms_to_report(terms=scored["terms"], report=report)
+        records = LabelEmbeddingToolSet.build_db_term_records(
+            terms=bound["terms"],
+            report_id=report_id,
+            patient_id=patient_id,
+        )
+        validation = LabelEmbeddingToolSet.validate_term_records(records=records["dbRecords"])
+        routes = LabelEmbeddingToolSet.route_term_index(records=records["dbRecords"])
+        upsert = LabelEmbeddingToolSet.upsert_report_terms(records=records["dbRecords"], dry_run=True)
+        facets = LabelEmbeddingToolSet.build_filter_facets(records=records["dbRecords"])
+        coverage = LabelEmbeddingToolSet.audit_term_coverage(records=records["dbRecords"])
+        return {
+            **records,
+            "categorized_terms": classified["terms"],
+            "scored_terms": scored["terms"],
+            "bound_terms": bound["terms"],
+            "validation": validation,
+            "routes": routes["routes"],
+            "upsert": upsert,
+            "facets": facets["facets"],
+            "coverage": coverage,
+        }
+
+
+class CollectAgentOutputs:
+    def __call__(self, *, agent_outputs: dict[str, Any], agent_runs: list[dict[str, Any]]) -> dict[str, Any]:
+        package = ResultReviewToolSet.collect_agent_outputs(agent_outputs=agent_outputs, agent_runs=agent_runs)
+        completeness = ResultReviewToolSet.check_workflow_completeness(review_package=package)
+        package["completeness"] = completeness
+        return package
+
+
+class AuditPreprocessResult:
+    def __call__(self, *, preprocess: dict[str, Any]) -> dict[str, Any]:
+        return ResultReviewToolSet.audit_preprocess_result(preprocess=preprocess)
+
+
+class AuditSampleAuditResult:
+    def __call__(self, *, sample_audit: dict[str, Any]) -> dict[str, Any]:
+        return ResultReviewToolSet.audit_sample_audit_result(sample_audit=sample_audit)
+
+
+class AuditReportResult:
+    def __call__(self, *, report: dict[str, Any]) -> dict[str, Any]:
+        return ResultReviewToolSet.audit_report_result(report=report)
+
+
+class AuditTermResult:
+    def __call__(self, *, term_payload: dict[str, Any]) -> dict[str, Any]:
+        return ResultReviewToolSet.audit_term_records(term_payload=term_payload)
+
+
+def _register_primary_agent_tools(registry: SampleLibraryToolRegistry) -> None:
+    handlers: dict[str, Callable[..., Any]] = {
+        "BuildBboxRequest": BuildBboxRequest(),
+        "NormalizeImagePlan": NormalizeImagePlan(),
+        "TracePreprocess": TracePreprocess(),
+        "PackagePrompts": PackagePrompts(),
+        "BuildReviewQueueItem": BuildReviewQueueItem(),
+        "RunReferenceLabelQuiz": RunReferenceLabelQuiz(),
+        "CaseContextAssembler": CaseContextAssembler(),
+        "UncertaintyExplainer": UncertaintyExplainer(),
+        "ReportTemplateComposer": ReportTemplateComposer(),
+        "ExtractReportTerms": ExtractReportTerms(),
+        "NormalizeMedicalTerms": NormalizeMedicalTerms(),
+        "DeduplicateTerms": DeduplicateTerms(),
+        "Build_db_TermRecords": BuildDbTermRecords(),
+        "CollectAgentOutputs": CollectAgentOutputs(),
+        "AuditPreprocessResult": AuditPreprocessResult(),
+        "AuditSampleAuditResult": AuditSampleAuditResult(),
+        "AuditReportResult": AuditReportResult(),
+        "AuditTermResult": AuditTermResult(),
+    }
+    input_map: dict[str, list[str]] = {
+        "BuildBboxRequest": ["sample", "detector"],
+        "NormalizeImagePlan": ["sample", "target_size"],
+        "TracePreprocess": ["sample", "steps"],
+        "PackagePrompts": ["sample", "use_text", "use_box", "use_exemplar"],
+        "BuildReviewQueueItem": ["sample", "known_ids"],
+        "RunReferenceLabelQuiz": ["sample", "reference_sample", "doctor_annotations", "pass_threshold"],
+        "CaseContextAssembler": ["sample", "similar_cases", "review_summary"],
+        "UncertaintyExplainer": ["context"],
+        "ReportTemplateComposer": ["context", "report_type"],
+        "ExtractReportTerms": ["report", "doctor_annotations", "max_terms"],
+        "NormalizeMedicalTerms": ["terms"],
+        "DeduplicateTerms": ["terms"],
+        "Build_db_TermRecords": ["terms", "report", "doctor_annotations", "report_id", "patient_id"],
+        "CollectAgentOutputs": ["agent_outputs", "agent_runs"],
+        "AuditPreprocessResult": ["preprocess"],
+        "AuditSampleAuditResult": ["sample_audit"],
+        "AuditReportResult": ["report"],
+        "AuditTermResult": ["term_payload"],
+    }
+    output_map: dict[str, list[str]] = {
+        "BuildBboxRequest": ["bbox_request"],
+        "NormalizeImagePlan": ["normalization_plan"],
+        "TracePreprocess": ["preprocess_trace"],
+        "PackagePrompts": ["prompt_package"],
+        "BuildReviewQueueItem": ["review_item"],
+        "RunReferenceLabelQuiz": ["quiz_result"],
+        "CaseContextAssembler": ["case_context"],
+        "UncertaintyExplainer": ["uncertainty_summary"],
+        "ReportTemplateComposer": ["template"],
+        "ExtractReportTerms": ["terms"],
+        "NormalizeMedicalTerms": ["normalized_terms"],
+        "DeduplicateTerms": ["deduplicated_terms"],
+        "Build_db_TermRecords": ["db_records"],
+        "CollectAgentOutputs": ["review_package"],
+        "AuditPreprocessResult": ["preprocess_audit"],
+        "AuditSampleAuditResult": ["sample_audit_review"],
+        "AuditReportResult": ["report_audit"],
+        "AuditTermResult": ["term_audit"],
+    }
+    for agent_name, metadata in PRIMARY_AGENT_TOOL_CHAINS.items():
+        for tool in metadata["mainToolChain"]:
+            tool_name = str(tool["name"])
+            registry.register(
+                ToolExplanation(
+                    name=tool_name,
+                    agent=agent_name,
+                    purpose=str(tool["description"]),
+                    inputs=input_map[tool_name],
+                    outputs=output_map[tool_name],
+                    sample_library_role=str(metadata["agentDetail"]),
+                ),
+                handlers[tool_name],
+            )
+
+
 def _register_many(
     registry: SampleLibraryToolRegistry,
     agent: str,
@@ -806,6 +1579,7 @@ def _register_many(
 
 def create_sample_library_tool_registry() -> SampleLibraryToolRegistry:
     registry = SampleLibraryToolRegistry()
+    _register_primary_agent_tools(registry)
     _register_many(
         registry,
         ReportGenerationToolSet.agent_name,
@@ -856,15 +1630,18 @@ def create_sample_library_tool_registry() -> SampleLibraryToolRegistry:
         LabelEmbeddingToolSet.agent_name,
         LabelEmbeddingToolSet,
         [
-            ("embed_mask_shape", "Build a compact mask-shape vector.", ["sample"], ["shape_embedding"], "Makes shape-based retrieval possible."),
-            ("extract_report_feature_labels", "Extract searchable labels from report text and doctor annotations.", ["report", "doctor_annotations", "max_labels"], ["feature_labels"], "Turns report keywords into retrieval and research filters."),
-            ("embed_visual_region_request", "Describe the visual crop needed for embedding.", ["sample", "crop_padding"], ["visual_embedding_request"], "Connects image crops to visual indexers."),
-            ("embed_text_label", "Build a simple text-label vector.", ["labels"], ["text_embedding"], "Indexes semantic labels without requiring a model."),
-            ("encode_boundary_features", "Encode boundary risk features.", ["sample"], ["boundary_signature"], "Feeds boundary-specialized retrieval."),
-            ("build_hard_case_signature", "Create a hard-case signature string.", ["sample"], ["hard_case_signature"], "Clusters failures by cause."),
-            ("index_polarity_groups", "Partition sample IDs by polarity/group.", ["samples"], ["polarity_index"], "Maintains positive, negative, boundary, and hard indexes."),
-            ("route_site_aware_embedding", "Select the embedding index for a site and group.", ["sample", "default_index"], ["index_route"], "Reduces cross-site retrieval bias."),
-            ("monitor_embedding_drift", "Detect embedding outliers against a centroid.", ["embedding", "centroid", "threshold"], ["drift_report"], "Finds samples outside the existing bank distribution."),
+            ("extract_report_terms", "Extract candidate database filter terms from report text and doctor annotations.", ["report", "doctor_annotations", "max_terms"], ["terms"], "Builds research/search terms from generated reports."),
+            ("normalize_medical_terms", "Normalize synonyms and mixed Chinese/English medical terms.", ["terms"], ["normalized_terms"], "Keeps database filters consistent."),
+            ("classify_term_category", "Assign each term to a database filter category.", ["terms"], ["categorized_terms"], "Routes terms to Paris, morphology, risk, pathology, or disposition facets."),
+            ("score_term_confidence", "Score each term from report and doctor annotation evidence.", ["terms", "doctor_annotations"], ["scored_terms"], "Marks low-confidence terms for review."),
+            ("deduplicate_terms", "Merge duplicate terms and synonyms.", ["terms"], ["deduplicated_terms"], "Prevents redundant database rows."),
+            ("bind_terms_to_report", "Bind terms back to report fields and source text.", ["terms", "report"], ["bound_terms"], "Makes filter terms auditable."),
+            ("build_db_term_records", "Build structured database records for report terms.", ["terms", "report_id", "patient_id"], ["db_records"], "Creates payloads ready for persistence."),
+            ("validate_term_records", "Validate term records before insertion.", ["records"], ["validation"], "Protects database writes from malformed terms."),
+            ("route_term_index", "Route term records to logical index tables.", ["records"], ["routes"], "Supports category-specific filtering indexes."),
+            ("upsert_report_terms", "Plan or execute report-term upsert.", ["records", "dry_run"], ["upsert_result"], "Avoids duplicate report terms."),
+            ("build_filter_facets", "Build frontend/research filter facets from records.", ["records"], ["facets"], "Exposes selectable query dimensions."),
+            ("audit_term_coverage", "Check whether terms cover required report concepts.", ["records", "required_categories"], ["coverage"], "Flags missing Paris/risk/disposition terms."),
         ],
     )
     _register_many(
@@ -872,14 +1649,18 @@ def create_sample_library_tool_registry() -> SampleLibraryToolRegistry:
         ResultReviewToolSet.agent_name,
         ResultReviewToolSet,
         [
-            ("analyze_metric_delta", "Compare baseline and result metrics.", ["sample"], ["delta_summary"], "Measures whether the new method helped a sample."),
-            ("generate_hard_case_delta_report", "Summarize gains on low-Dice hard cases.", ["rows", "thresholds", "quantiles"], ["hard_case_delta_report"], "Reports whether the hard-case bank actually improved."),
-            ("classify_failure_case", "Classify the likely failure mode.", ["sample"], ["failure_mode"], "Turns bad results into actionable error classes."),
-            ("check_confidence_consistency", "Find high-confidence wrong predictions.", ["sample"], ["confidence_audit"], "Flags dangerous confidence/quality mismatch."),
-            ("review_mask_sanity", "Check prediction mask sanity.", ["sample"], ["mask_sanity"], "Catches empty, huge, or fragmented predictions."),
-            ("detect_regression", "Detect meaningful regression vs baseline.", ["sample", "min_harm"], ["regression_flag"], "Protects against methods that hurt existing cases."),
-            ("audit_exemplar_effect", "Judge whether exemplars helped or hurt.", ["sample"], ["exemplar_effect"], "Evaluates retrieval usefulness per sample."),
-            ("update_continual_bank_item", "Prepare accepted results for continual bank update.", ["sample", "review"], ["continual_bank_item"], "Feeds verified cases back into the sample library."),
+            ("collect_agent_outputs", "Collect upstream agent outputs and traces.", ["agent_outputs", "agent_runs"], ["review_package"], "Builds the full package for final review."),
+            ("check_workflow_completeness", "Check that all upstream agents ran and produced outputs.", ["review_package", "required_agents"], ["completeness"], "Guards closed-loop execution integrity."),
+            ("audit_preprocess_result", "Audit segmentation preprocessing result.", ["preprocess"], ["preprocess_audit"], "Checks bbox, prompts, and mask gates."),
+            ("audit_sample_audit_result", "Audit sample-review decision consistency.", ["sample_audit"], ["sample_audit_review"], "Ensures accepted samples passed mask and reference checks."),
+            ("audit_report_result", "Audit report completeness and score.", ["report"], ["report_audit"], "Checks findings, conclusion, and report quality."),
+            ("audit_term_records", "Audit database term payloads and coverage.", ["term_payload"], ["term_audit"], "Checks that filter terms are valid and cover key concepts."),
+            ("check_cross_agent_consistency", "Check consistency across upstream agent outputs.", ["agent_outputs"], ["consistency"], "Finds contradictions between report, sample decisions, and terms."),
+            ("detect_decision_conflicts", "Detect conflicting upstream decisions.", ["agent_runs"], ["decision_conflicts"], "Prevents rejected samples from being silently indexed."),
+            ("score_pipeline_quality", "Score the whole closed-loop pipeline.", ["audit_results"], ["quality"], "Aggregates completeness, audits, and conflicts."),
+            ("assign_review_action", "Assign final review action.", ["quality"], ["review_action"], "Chooses approve, retry, reject, or human review."),
+            ("route_retry_or_human_review", "Route retry or human review.", ["review_action", "quality"], ["route"], "Selects which upstream agent should rerun."),
+            ("build_review_report", "Build a final human-readable review report.", ["review_action", "quality", "route"], ["review_report"], "Explains the final quality-control decision."),
         ],
     )
     return registry

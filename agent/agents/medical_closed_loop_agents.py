@@ -9,7 +9,10 @@ import cv2
 import numpy as np
 
 from agents.diagnosis_agent import DiagnosisAgent
-from tools.medical.sample_library_toolsets import create_sample_library_tool_registry
+from tools.medical.sample_library_toolsets import create_sample_library_tool_registry, get_primary_agent_tool_chains
+
+
+PRIMARY_AGENT_TOOL_CHAINS = get_primary_agent_tool_chains()
 
 
 def _plain(value: Any) -> Any:
@@ -70,6 +73,15 @@ class _ClosedLoopAgent:
     def __init__(self, registry: Any):
         self.registry = registry
 
+    def _annotate(self, observations: dict[str, Any]) -> dict[str, Any]:
+        metadata = copy.deepcopy(PRIMARY_AGENT_TOOL_CHAINS.get(self.agent_name, {}))
+        return {
+            **observations,
+            "agentDetail": metadata.get("agentDetail", ""),
+            "promptDesign": metadata.get("promptDesign", []),
+            "mainToolChain": metadata.get("mainToolChain", []),
+        }
+
     def _finish(
         self,
         *,
@@ -97,17 +109,27 @@ class SegmentationPreprocessAgent(_ClosedLoopAgent):
 
     def run(self, case: dict[str, Any], sample: dict[str, Any]) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
         self.registry.reset_logs()
-        normalized = self.registry.call("normalize_image_plan", sample=sample, target_size=int(case.get("target_size", 1024)))
-        bbox_request = self.registry.call("build_bbox_cache_request", sample=sample, detector="yolo")
-        prompt_package = self.registry.call("package_prompts", sample=sample, use_text=True, use_box=True, use_exemplar=True)
-        uncertainty = self.registry.call("scan_region_uncertainty", sample=sample)
-        small_guard = self.registry.call("guard_small_lesion", sample=sample)
-        large_gate = self.registry.call("gate_large_mask", sample=sample)
+        bbox_request = self.registry.call("BuildBboxRequest", sample=sample, detector="yolo")
+        normalized = self.registry.call("NormalizeImagePlan", sample=sample, target_size=int(case.get("target_size", 1024)))
         trace = self.registry.call(
-            "trace_preprocess",
+            "TracePreprocess",
             sample=sample,
-            steps=[normalized, bbox_request, prompt_package, uncertainty, small_guard, large_gate],
+            steps=[bbox_request, normalized],
         )
+        prompt_package = self.registry.call("PackagePrompts", sample=sample, use_text=True, use_box=True, use_exemplar=True)
+
+        uncertainty_payload = dict(sample.get("uncertainty", {}) or {})
+        mask_stats = dict(sample.get("mask_stats", {}) or {})
+        area_ratio = float(mask_stats.get("area_ratio", 0.0) or 0.0)
+        mean_entropy = float(uncertainty_payload.get("mean_entropy", 0.0) or 0.0)
+        mean_confidence = float(uncertainty_payload.get("mean_confidence", 1.0) or 1.0)
+        uncertainty = {
+            "needs_region_attention": mean_entropy > 0.35 or mean_confidence < 0.65,
+            "mean_entropy": mean_entropy,
+            "mean_confidence": mean_confidence,
+        }
+        small_guard = {"is_small_lesion": 0.0 < area_ratio < 0.002, "recommended_scale": 1.5 if 0.0 < area_ratio < 0.002 else 1.0}
+        large_gate = {"is_large_mask": area_ratio > 0.35, "use_exemplar_guard": area_ratio > 0.35, "area_ratio": area_ratio}
 
         warnings: list[str] = []
         if not bbox_request.get("use_cached"):
@@ -115,7 +137,7 @@ class SegmentationPreprocessAgent(_ClosedLoopAgent):
         if large_gate.get("is_large_mask"):
             warnings.append("Large mask gate triggered; downstream review should be stricter.")
 
-        result = {
+        result = self._annotate({
             "normalization": normalized,
             "bbox_request": bbox_request,
             "prompt_package": prompt_package,
@@ -123,7 +145,7 @@ class SegmentationPreprocessAgent(_ClosedLoopAgent):
             "small_lesion_guard": small_guard,
             "large_mask_gate": large_gate,
             "trace": trace,
-        }
+        })
         decision = "use_yolo_bbox" if bbox_request.get("use_cached") else "use_bbox_fallback"
         return result, self._finish(status="ok", decision=decision, observations=result, warnings=warnings)
 
@@ -140,22 +162,24 @@ class SampleAuditAgent(_ClosedLoopAgent):
         doctor_annotations: dict[str, Any],
     ) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
         self.registry.reset_logs()
-        identity = self.registry.call("check_identity", sample=sample, known_ids=[])
-        mask_consistency = self.registry.call("check_label_mask_consistency", sample=sample)
-        hard_case = self.registry.call("mine_hard_case", sample=sample)
-        boundary_case = self.registry.call("detect_boundary_case", sample=sample)
+        review_bundle = self.registry.call("BuildReviewQueueItem", sample=sample, known_ids=[])
         quiz = self.registry.call(
-            "run_reference_label_quiz",
+            "RunReferenceLabelQuiz",
             sample=sample,
             reference_sample=reference_sample or {},
             doctor_annotations=doctor_annotations,
         )
-        grade = self.registry.call("assign_sample_grade", sample=sample)
-        review_item = self.registry.call(
-            "build_review_queue_item",
-            sample=sample,
-            audit_results=[identity, mask_consistency, hard_case, boundary_case, quiz],
-        )
+
+        identity = review_bundle["identity"]
+        mask_consistency = review_bundle["mask_consistency"]
+        hard_case = review_bundle["hard_case"]
+        boundary_case = review_bundle["boundary_case"]
+        grade = review_bundle["grade"]
+        review_item = {
+            **review_bundle["review_item"],
+            "quiz_passed": quiz["passed"],
+            "quiz_score": quiz["score"],
+        }
 
         accepted = bool(identity["valid"] and mask_consistency["valid"] and quiz["passed"] and grade["grade"] != "reject")
         if accepted:
@@ -165,7 +189,7 @@ class SampleAuditAgent(_ClosedLoopAgent):
         else:
             bank_decision = "needs_human_review"
 
-        result = {
+        result = self._annotate({
             "identity": identity,
             "mask_consistency": mask_consistency,
             "hard_case": hard_case,
@@ -175,7 +199,7 @@ class SampleAuditAgent(_ClosedLoopAgent):
             "review_item": review_item,
             "accepted": accepted,
             "bank_decision": bank_decision,
-        }
+        })
         return result, self._finish(status="ok", decision=bank_decision, observations=result)
 
 
@@ -195,10 +219,9 @@ class ReportGenerationAgent(_ClosedLoopAgent):
         doctor_annotations: dict[str, Any],
     ) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
         self.registry.reset_logs()
-        context = self.registry.call("assemble_case_context", sample=sample, similar_cases=[], review_summary={})
-        template = self.registry.call("compose_report_template", context=context, report_type="clinical")
-        findings_evidence = self.registry.call("narrate_findings", context=context)
-        uncertainty = self.registry.call("explain_uncertainty", context=context)
+        context = self.registry.call("CaseContextAssembler", sample=sample, similar_cases=[], review_summary={})
+        uncertainty = self.registry.call("UncertaintyExplainer", context=context)
+        template = self.registry.call("ReportTemplateComposer", context=context, report_type="clinical")
 
         report = self._diagnose(case)
         doctor_notes = self._doctor_note(doctor_annotations)
@@ -206,17 +229,41 @@ class ReportGenerationAgent(_ClosedLoopAgent):
             report["findings"] = f"{report.get('findings', '').strip()} Doctor annotation reference: {doctor_notes}".strip()
             report.setdefault("doctor_annotations", doctor_annotations)
 
-        risks = self.registry.call("flag_report_risks", context={**context, "sample_group": sample.get("sample_group", "")})
-        evidence = self.registry.call(
-            "bind_evidence",
-            context=context,
-            statements=[
+        dice = float(context.get("dice", 0.0))
+        delta = float(context.get("delta_dice", 0.0))
+        area_ratio = float(context.get("mask_stats", {}).get("area_ratio", 0.0))
+        findings_evidence = {
+            "quality_band": "high" if dice >= 0.85 else "moderate" if dice >= 0.65 else "low",
+            "delta_direction": "improved" if delta > 0.03 else "regressed" if delta < -0.03 else "stable",
+            "finding_facts": [
+                f"Dice={dice:.4f}",
+                f"baseline Dice={float(context.get('baseline_dice', 0.0)):.4f}",
+                f"delta Dice={delta:.4f}",
+                f"mask area ratio={area_ratio:.4f}",
+            ],
+        }
+        risk_flags: list[str] = []
+        if dice < 0.5:
+            risk_flags.append("low_result_dice")
+        if delta <= -0.03:
+            risk_flags.append("regression")
+        if sample.get("sample_group") in {"ambiguous", "reject"}:
+            risk_flags.append("sample_quality_risk")
+        risks = {"risk_flags": risk_flags, "needs_human_review": bool(risk_flags)}
+        evidence = [
+            {
+                "statement": statement,
+                "image_id": context.get("image_id", ""),
+                "evidence_refs": ["metrics", "mask_stats", "selected_exemplars"],
+                "similar_case_ids": [case.get("image_id", "") for case in context.get("similar_cases", [])[:3]],
+            }
+            for statement in [
                 report.get("findings", ""),
                 report.get("conclusion", ""),
-            ],
-        )
+            ]
+        ]
 
-        result = {
+        result = self._annotate({
             **report,
             "case_context": context,
             "template": template,
@@ -224,7 +271,7 @@ class ReportGenerationAgent(_ClosedLoopAgent):
             "uncertainty_summary": uncertainty,
             "risk_flags": risks,
             "evidence": evidence,
-        }
+        })
         decision = "needs_human_review" if risks.get("needs_human_review") else "report_ready"
         return result, self._finish(status="ok", decision=decision, observations=result)
 
@@ -261,10 +308,10 @@ class ReportGenerationAgent(_ClosedLoopAgent):
         return "; ".join(f"{key}={value}" for key, value in pairs if str(value or "").strip())
 
 
-class LabelEmbeddingAgent(_ClosedLoopAgent):
+class DatabaseTermAgent(_ClosedLoopAgent):
     agent_name = "label_embedding_agent"
     display_name = "标签嵌入智能体"
-    goal = "Extract report labels and build searchable lightweight embeddings."
+    goal = "Generate normalized database filter terms from report text and doctor annotations."
 
     def run(
         self,
@@ -273,96 +320,161 @@ class LabelEmbeddingAgent(_ClosedLoopAgent):
         doctor_annotations: dict[str, Any],
     ) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
         self.registry.reset_logs()
-        labels = self.registry.call(
-            "extract_report_feature_labels",
+        extracted = self.registry.call(
+            "ExtractReportTerms",
             report=report,
             doctor_annotations=doctor_annotations,
-            max_labels=12,
+            max_terms=16,
         )
-        mask_shape = self.registry.call("embed_mask_shape", sample=sample)
-        text_embedding = self.registry.call("embed_text_label", labels=labels["labels"])
-        boundary = self.registry.call("encode_boundary_features", sample=sample)
-        hard_signature = self.registry.call("build_hard_case_signature", sample=sample)
-        route = self.registry.call("route_site_aware_embedding", sample=sample)
-        drift = self.registry.call(
-            "monitor_embedding_drift",
-            embedding=mask_shape.get("vector", []),
-            centroid=[0.05, 1.0, 0.4, 0.9, 0.1],
-            threshold=0.6,
+        normalized = self.registry.call("NormalizeMedicalTerms", terms=extracted["terms"])
+        deduped = self.registry.call("DeduplicateTerms", terms=normalized["terms"])
+        db_records = self.registry.call(
+            "Build_db_TermRecords",
+            terms=deduped["terms"],
+            report=report,
+            doctor_annotations=doctor_annotations,
+            report_id=str(report.get("study_id", sample.get("image_id", ""))),
+            patient_id=str(report.get("patient_id", "")),
         )
 
-        result = {
-            "labels": labels["labels"],
-            "label_count": labels["label_count"],
-            "mask_shape_embedding": mask_shape,
-            "text_embedding": text_embedding,
-            "boundary_signature": boundary,
-            "hard_case_signature": hard_signature,
-            "index_route": route,
-            "drift": drift,
-        }
-        decision = "index_ready" if labels["label_count"] else "needs_human_review"
+        result = self._annotate({
+            "terms": [record["normalizedTerm"] for record in db_records["dbRecords"]],
+            "labels": [record["normalizedTerm"] for record in db_records["dbRecords"]],
+            "term_count": db_records["record_count"],
+            "label_count": db_records["record_count"],
+            "extracted": extracted,
+            "normalized": normalized,
+            "deduplicated": deduped,
+            "dbRecords": db_records["dbRecords"],
+            "validation": db_records["validation"],
+            "routes": db_records["routes"],
+            "upsert": db_records["upsert"],
+            "facets": db_records["facets"],
+            "coverage": db_records["coverage"],
+        })
+        if not db_records["dbRecords"]:
+            decision = "insufficient_terms"
+        elif not db_records["validation"]["valid"] or db_records["coverage"]["needsReview"]:
+            decision = "needs_term_review"
+        else:
+            decision = "ready_to_index"
+        result["decision"] = decision
         return result, self._finish(status="ok", decision=decision, observations=result)
 
 
-class ResultReviewAgent(_ClosedLoopAgent):
+class CrossAgentResultReviewAgent(_ClosedLoopAgent):
     agent_name = "result_review_agent"
     display_name = "结果复核智能体"
-    goal = "Review the whole closed loop and decide the final disposition."
+    goal = "Review every upstream agent output and decide the final closed-loop action."
 
     def run(
         self,
+        preprocess: dict[str, Any],
         sample: dict[str, Any],
         sample_audit: dict[str, Any],
         report: dict[str, Any],
         label_embedding: dict[str, Any],
-        prior_warnings: list[str],
+        upstream_agent_runs: list[ClosedLoopAgentRun],
     ) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
         self.registry.reset_logs()
-        delta = self.registry.call("analyze_metric_delta", sample=sample)
-        failure = self.registry.call("classify_failure_case", sample=sample)
-        confidence = self.registry.call("check_confidence_consistency", sample=sample)
-        sanity = self.registry.call("review_mask_sanity", sample=sample)
-        regression = self.registry.call("detect_regression", sample=sample)
-        exemplar_effect = self.registry.call("audit_exemplar_effect", sample=sample)
-        continual = self.registry.call(
-            "update_continual_bank_item",
-            sample=sample,
-            review={**sanity, **regression},
-        )
-
-        warnings = list(prior_warnings)
-        if not sample_audit.get("accepted"):
-            warnings.append("Sample audit did not fully accept the case.")
-        if not report.get("findings") or not report.get("conclusion"):
-            warnings.append("Report is incomplete.")
-        if not label_embedding.get("labels"):
-            warnings.append("No searchable labels were extracted.")
-        if confidence.get("inconsistent"):
-            warnings.append("Confidence and result quality are inconsistent.")
-        if regression.get("is_regression"):
-            warnings.append("Meaningful metric regression detected.")
-
-        if not sanity.get("sane") or sample_audit.get("bank_decision") == "reject":
-            final_status = "rejected"
-        elif warnings:
-            final_status = "needs_human_review"
-        else:
-            final_status = "approved"
-
-        result = {
-            "final_status": final_status,
-            "bank_decision": sample_audit.get("bank_decision", "needs_human_review"),
-            "label_count": len(label_embedding.get("labels", [])),
-            "warnings": warnings,
-            "metric_delta": delta,
-            "failure_mode": failure,
-            "confidence_consistency": confidence,
-            "mask_sanity": sanity,
-            "regression": regression,
-            "exemplar_effect": exemplar_effect,
-            "continual_bank_item": continual,
+        _ = sample
+        agent_outputs = {
+            "segmentation_preprocess_agent": preprocess,
+            "sample_audit_agent": sample_audit,
+            "report_generation_agent": report,
+            "label_embedding_agent": label_embedding,
         }
+        agent_run_dicts = [run.to_dict() for run in upstream_agent_runs]
+        review_package = self.registry.call(
+            "CollectAgentOutputs",
+            agent_outputs=agent_outputs,
+            agent_runs=agent_run_dicts,
+        )
+        completeness = review_package["completeness"]
+        preprocess_audit = self.registry.call("AuditPreprocessResult", preprocess=preprocess)
+        sample_audit_review = self.registry.call("AuditSampleAuditResult", sample_audit=sample_audit)
+        report_audit = self.registry.call("AuditReportResult", report=report)
+        term_audit = self.registry.call("AuditTermResult", term_payload=label_embedding)
+
+        named_audits = {
+            "workflow": completeness,
+            "preprocess": preprocess_audit,
+            "sampleAudit": sample_audit_review,
+            "report": report_audit,
+            "terms": term_audit,
+        }
+        blocking: list[str] = []
+        passed_count = 0
+        for audit_name, audit_result in named_audits.items():
+            passed = bool(audit_result.get("passed", audit_result.get("complete", False)))
+            if passed:
+                passed_count += 1
+                continue
+            issues = [
+                *audit_result.get("issues", []),
+                *audit_result.get("missing_agents", []),
+                *audit_result.get("missing_outputs", []),
+            ]
+            blocking.extend(f"{audit_name}:{issue}" for issue in (issues or ["failed_audit"]))
+
+        quality = {
+            "qualityScore": round(passed_count / max(len(named_audits), 1), 4),
+            "blockingIssues": sorted(set(blocking)),
+            "warnings": [],
+        }
+
+        if not completeness.get("complete"):
+            final_status = "needs_human_review"
+        elif not preprocess_audit.get("passed"):
+            final_status = "retry_preprocess"
+        elif not sample_audit_review.get("passed"):
+            final_status = "retry_sample_audit"
+        elif not report_audit.get("passed"):
+            final_status = "retry_report_generation"
+        elif not term_audit.get("passed"):
+            final_status = "retry_term_embedding"
+        elif quality["qualityScore"] >= 1.0:
+            final_status = "approved"
+        else:
+            final_status = "approved_with_warnings"
+
+        retry_targets = {
+            "retry_preprocess": "segmentation_preprocess_agent",
+            "retry_sample_audit": "sample_audit_agent",
+            "retry_report_generation": "report_generation_agent",
+            "retry_term_embedding": "label_embedding_agent",
+        }
+        route = {
+            "shouldRetry": final_status in retry_targets,
+            "targetAgent": retry_targets.get(final_status, ""),
+            "humanReviewRequired": final_status not in {"approved", "approved_with_warnings"},
+            "reason": "; ".join(quality["blockingIssues"][:3]),
+        }
+        if route["shouldRetry"]:
+            review_report = f"闭环复核未通过，建议重跑 {route['targetAgent']}。原因：{route['reason']}"
+        elif route["humanReviewRequired"]:
+            review_report = f"闭环复核需要人工确认。问题：{route['reason']}"
+        else:
+            review_report = f"闭环复核通过，最终决策为 {final_status}。"
+
+        warnings = list(quality.get("warnings", []))
+        warnings.extend(quality.get("blockingIssues", []))
+        result = self._annotate({
+            "final_status": final_status,
+            "finalDecision": final_status,
+            "bank_decision": sample_audit.get("bank_decision", "needs_human_review"),
+            "label_count": label_embedding.get("label_count", 0),
+            "term_count": label_embedding.get("term_count", 0),
+            "qualityScore": quality["qualityScore"],
+            "blockingIssues": quality["blockingIssues"],
+            "warnings": warnings,
+            "humanReviewRequired": route["humanReviewRequired"],
+            "retryPlan": route,
+            "reviewReport": review_report,
+            "audits": {
+                **named_audits,
+            },
+        })
         return result, self._finish(status="ok", decision=final_status, observations=result, warnings=warnings)
 
 
@@ -377,8 +489,8 @@ class MedicalClosedLoopOrchestrator:
         self.preprocess_agent = SegmentationPreprocessAgent(self.registry)
         self.sample_audit_agent = SampleAuditAgent(self.registry)
         self.report_agent = ReportGenerationAgent(self.registry, self.diagnosis_agent)
-        self.label_agent = LabelEmbeddingAgent(self.registry)
-        self.review_agent = ResultReviewAgent(self.registry)
+        self.label_agent = DatabaseTermAgent(self.registry)
+        self.review_agent = CrossAgentResultReviewAgent(self.registry)
 
     def run_sync(
         self,
@@ -403,8 +515,7 @@ class MedicalClosedLoopOrchestrator:
         label_embedding, run = self.label_agent.run(sample, report, annotations)
         runs.append(run)
 
-        prior_warnings = [warning for item in runs for warning in item.warnings]
-        review, run = self.review_agent.run(sample, sample_audit, report, label_embedding, prior_warnings)
+        review, run = self.review_agent.run(preprocess, sample, sample_audit, report, label_embedding, runs)
         runs.append(run)
 
         return ClosedLoopResult(

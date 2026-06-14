@@ -334,10 +334,42 @@ class AgentWorkflowService:
         if not closed_loop_result:
             return {}
         review = dict(closed_loop_result.get("review", {}) or {})
+        agent_details: list[dict[str, object]] = []
+        main_tool_chains: dict[str, object] = {}
+        for item in closed_loop_result.get("agent_runs", []) or []:
+            observations = dict(item.get("observations", {}) or {})
+            agent_name = str(item.get("agent_name", ""))
+            main_tool_chain = list(observations.get("mainToolChain", []) or [])
+            prompt_design = [str(prompt) for prompt in observations.get("promptDesign", []) or []]
+            main_tool_chains[agent_name] = main_tool_chain
+            agent_details.append(
+                {
+                    "agentName": agent_name,
+                    "displayName": str(item.get("display_name", "")),
+                    "detail": str(observations.get("agentDetail", "")),
+                    "promptDesign": prompt_design,
+                    "goal": str(item.get("goal", "")),
+                    "status": str(item.get("status", "")),
+                    "decision": str(item.get("decision", "")),
+                    "mainToolChain": main_tool_chain,
+                    "warnings": [str(warning) for warning in item.get("warnings", []) or []],
+                    "keyOutputs": {
+                        key: value
+                        for key, value in observations.items()
+                        if key not in {"agentDetail", "promptDesign", "mainToolChain"}
+                    },
+                }
+            )
         return {
             "finalStatus": review.get("final_status", ""),
+            "finalDecision": review.get("finalDecision", review.get("final_status", "")),
             "bankDecision": review.get("bank_decision", ""),
             "labelCount": review.get("label_count", 0),
+            "termCount": review.get("term_count", 0),
+            "databaseRecordCount": len((closed_loop_result.get("label_embedding", {}) or {}).get("dbRecords", []) or []),
+            "qualityScore": review.get("qualityScore", 0.0),
+            "agentDetails": agent_details,
+            "mainToolChains": main_tool_chains,
             "warnings": review.get("warnings", []),
         }
 

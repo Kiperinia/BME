@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { AgentWorkflowSummary } from '@/types/eis'
+import type { AgentDetailSummary, AgentMainTool, AgentRun, AgentWorkflowSummary } from '@/types/eis'
 
 const props = defineProps<{
   workflow: AgentWorkflowSummary | null
@@ -28,7 +28,76 @@ const workflowGeneratedAt = computed(() => {
   }).format(new Date(props.workflow.generatedAt))
 })
 
+const asMainToolChain = (value: unknown): AgentMainTool[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+    .map((item) => ({
+      name: String(item.name ?? ''),
+      description: String(item.description ?? ''),
+    }))
+    .filter((item) => item.name)
+}
+
+const agentDetails = computed<AgentDetailSummary[]>(() => {
+  const closedLoopDetails = props.workflow?.closedLoopSummary?.agentDetails
+  if (closedLoopDetails?.length) {
+    return closedLoopDetails
+  }
+
+  return (props.workflow?.agentRuns ?? []).map((run: AgentRun) => {
+    const observations = run.observations ?? {}
+    const mainToolChain = asMainToolChain(observations.mainToolChain)
+    return {
+      agentName: run.agentName,
+      displayName: run.displayName || run.agentName,
+      detail: String(observations.agentDetail ?? run.goal),
+      promptDesign: Array.isArray(observations.promptDesign)
+        ? observations.promptDesign.map((item) => String(item))
+        : [],
+      goal: run.goal,
+      status: run.status,
+      decision: run.decision,
+      mainToolChain: mainToolChain.length
+        ? mainToolChain
+        : run.toolCalls.map((call) => ({
+            name: call.tool_name,
+            description: call.status,
+          })),
+      warnings: run.warnings,
+      keyOutputs: observations,
+    }
+  })
+})
+
 const formatDisposition = (value: string) => value.replaceAll('_', ' ')
+
+const compactOutput = (value: unknown) => {
+  if (value === null || value === undefined || value === '') {
+    return '无'
+  }
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  if (Array.isArray(value)) {
+    return `${value.length} 项`
+  }
+  try {
+    const text = JSON.stringify(value)
+    return text.length > 120 ? `${text.slice(0, 120)}...` : text
+  } catch {
+    return String(value)
+  }
+}
+
+const keyOutputEntries = (outputs: Record<string, unknown>) => {
+  return Object.entries(outputs)
+    .filter(([key]) => !['agentDetail', 'promptDesign', 'mainToolChain', 'diagnosis'].includes(key))
+    .slice(0, 5)
+}
 </script>
 
 <template>
@@ -37,7 +106,7 @@ const formatDisposition = (value: string) => value.replaceAll('_', ' ')
       <div>
         <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100">Agent 工作流输出</h3>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 md:text-sm">
-          展示 Agent 主流程、SAM3 分割接入结果与病灶级推理摘要。
+          展示分割预处理、样本审核、报告生成、标签嵌入和结果复核的主工具链。
         </p>
       </div>
       <span class="surface-badge bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
@@ -46,7 +115,7 @@ const formatDisposition = (value: string) => value.replaceAll('_', ' ')
     </div>
 
     <div v-if="!workflow" class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-      尚未触发 Agent 工作流。生成草稿或标签后，这里会展示分割、分型、风险和主病灶摘要。
+      尚未触发 Agent 工作流。
     </div>
 
     <template v-else>
@@ -57,8 +126,10 @@ const formatDisposition = (value: string) => value.replaceAll('_', ' ')
         </article>
 
         <article class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
-          <p class="text-xs text-slate-500 dark:text-slate-400">主病灶</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{{ workflow.highestRiskLesionId ?? '待确认' }}</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">最终复核</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+            {{ workflow.closedLoopSummary?.finalDecision ?? workflow.closedLoopSummary?.finalStatus ?? '待确认' }}
+          </p>
         </article>
 
         <article class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
@@ -71,6 +142,73 @@ const formatDisposition = (value: string) => value.replaceAll('_', ' ')
         <p class="font-medium text-slate-900 dark:text-white">{{ workflow.agentName }}</p>
         <p class="mt-1">{{ workflow.pipeline }}</p>
         <p class="mt-1">模型版本：{{ workflow.modelVersion }}</p>
+        <p v-if="workflow.closedLoopSummary" class="mt-1">
+          质量分：{{ Number(workflow.closedLoopSummary.qualityScore ?? 0).toFixed(2) }}
+          / 数据库词条：{{ workflow.closedLoopSummary.databaseRecordCount ?? 0 }}
+        </p>
+      </div>
+
+      <div v-if="agentDetails.length" class="mt-4">
+        <h4 class="text-sm font-semibold text-slate-900 dark:text-white">智能体细节讲解与主工具链</h4>
+        <div class="mt-2 grid gap-3">
+          <article
+            v-for="agent in agentDetails"
+            :key="agent.agentName"
+            class="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h5 class="text-sm font-semibold text-slate-900 dark:text-white">{{ agent.displayName }}</h5>
+                <p class="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400 md:text-sm">{{ agent.detail }}</p>
+              </div>
+              <span class="surface-badge bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200">
+                {{ agent.decision || agent.status }}
+              </span>
+            </div>
+
+            <div v-if="agent.promptDesign.length" class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-950">
+              <p class="text-xs font-semibold text-slate-900 dark:text-white">Prompt 设计</p>
+              <ul class="mt-2 grid gap-1 text-xs leading-5 text-slate-600 dark:text-slate-300 md:text-sm">
+                <li
+                  v-for="prompt in agent.promptDesign"
+                  :key="`${agent.agentName}-${prompt}`"
+                >
+                  {{ prompt }}
+                </li>
+              </ul>
+            </div>
+
+            <div class="mt-3 grid gap-2">
+              <div
+                v-for="tool in agent.mainToolChain"
+                :key="`${agent.agentName}-${tool.name}`"
+                class="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:bg-slate-950 dark:text-slate-300 md:text-sm"
+              >
+                <span class="font-semibold text-slate-900 dark:text-white">{{ tool.name }}</span>
+                <span v-if="tool.description">：{{ tool.description }}</span>
+              </div>
+            </div>
+
+            <div v-if="keyOutputEntries(agent.keyOutputs).length" class="mt-3 grid gap-1 text-xs text-slate-500 dark:text-slate-400 md:text-sm">
+              <p
+                v-for="[key, value] in keyOutputEntries(agent.keyOutputs)"
+                :key="`${agent.agentName}-${key}`"
+              >
+                <span class="font-medium text-slate-700 dark:text-slate-200">{{ key }}</span>：{{ compactOutput(value) }}
+              </p>
+            </div>
+
+            <div v-if="agent.warnings.length" class="mt-3 grid gap-1">
+              <p
+                v-for="warning in agent.warnings"
+                :key="warning"
+                class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200 md:text-sm"
+              >
+                {{ warning }}
+              </p>
+            </div>
+          </article>
+        </div>
       </div>
 
       <div class="mt-4">
@@ -110,7 +248,7 @@ const formatDisposition = (value: string) => value.replaceAll('_', ' ')
             <div class="flex items-center justify-between gap-3">
               <div>
                 <h5 class="text-sm font-semibold text-slate-900 dark:text-white">{{ lesion.lesionId }}</h5>
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ lesion.sourceLabel }} · {{ lesion.label }}</p>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ lesion.sourceLabel }} / {{ lesion.label }}</p>
               </div>
               <span class="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700 dark:bg-sky-950/70 dark:text-sky-200">
                 {{ (lesion.confidence * 100).toFixed(0) }}%
