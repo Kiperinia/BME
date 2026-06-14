@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import cv2
@@ -48,6 +49,12 @@ def load_case(image_path: Path | None, mask_path: Path | None) -> tuple[np.ndarr
 
 
 def main() -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
     parser = build_parser()
     args = parser.parse_args()
 

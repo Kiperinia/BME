@@ -137,6 +137,56 @@ export interface AgentWorkflowLesion {
   usedLlm: boolean
 }
 
+export interface AgentToolCall {
+  tool_name: string
+  status: string
+  duration_ms: number
+  output_preview: string
+  error_message?: string
+}
+
+export interface AgentMainTool {
+  name: string
+  description: string
+}
+
+export interface AgentRun {
+  agentName: string
+  displayName: string
+  goal: string
+  status: string
+  decision: string
+  toolCalls: AgentToolCall[]
+  observations: Record<string, unknown>
+  warnings: string[]
+}
+
+export interface AgentDetailSummary {
+  agentName: string
+  displayName: string
+  detail: string
+  promptDesign: string[]
+  goal: string
+  status: string
+  decision: string
+  mainToolChain: AgentMainTool[]
+  warnings: string[]
+  keyOutputs: Record<string, unknown>
+}
+
+export interface ClosedLoopSummary {
+  finalStatus?: string
+  finalDecision?: string
+  bankDecision?: string
+  labelCount?: number
+  termCount?: number
+  databaseRecordCount?: number
+  qualityScore?: number
+  agentDetails?: AgentDetailSummary[]
+  mainToolChains?: Record<string, AgentMainTool[]>
+  warnings?: string[]
+}
+
 export interface AgentWorkflowSummary {
   agentName: string
   description: string
@@ -150,6 +200,8 @@ export interface AgentWorkflowSummary {
   steps: string[]
   warnings: string[]
   lesions: AgentWorkflowLesion[]
+  agentRuns?: AgentRun[]
+  closedLoopSummary?: ClosedLoopSummary
 }
 
 export interface SegmentFrameResponse {

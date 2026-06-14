@@ -8,6 +8,7 @@ from hello_agents.core.agent import Agent
 
 from agents.diagnosis_agent import DiagnosisAgent
 from agents.exemplar_bank_agent import ExemplarBankAgent
+from agents.medical_closed_loop_agents import MedicalClosedLoopOrchestrator
 
 
 def build_minimal_agent(
@@ -38,4 +39,25 @@ def build_exemplar_bank_agent(
     )
 
 
-__all__ = ["Agent", "DiagnosisAgent", "ExemplarBankAgent", "build_minimal_agent", "build_exemplar_bank_agent"]
+def build_medical_closed_loop_agent(
+    *,
+    diagnosis_agent: DiagnosisAgent | None = None,
+    pixel_size_mm: float | None = 0.15,
+    **kwargs: Any,
+) -> MedicalClosedLoopOrchestrator:
+    return MedicalClosedLoopOrchestrator(
+        diagnosis_agent=diagnosis_agent,
+        pixel_size_mm=pixel_size_mm,
+        **kwargs,
+    )
+
+
+__all__ = [
+    "Agent",
+    "DiagnosisAgent",
+    "ExemplarBankAgent",
+    "MedicalClosedLoopOrchestrator",
+    "build_minimal_agent",
+    "build_exemplar_bank_agent",
+    "build_medical_closed_loop_agent",
+]

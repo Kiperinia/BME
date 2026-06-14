@@ -20,5 +20,35 @@
     "failure_mode": "false_negative",
     "next_state": "aged",
     "quality": 0.4999
+  },
+  {
+    "bank_id": "default-bank",
+    "event": "ingest",
+    "exemplar_id": "positive-1",
+    "state": "aged",
+    "quality": 0.4859
+  },
+  {
+    "bank_id": "default-bank",
+    "event": "feedback",
+    "exemplar_id": "positive-1",
+    "failure_mode": "false_negative",
+    "next_state": "aged",
+    "quality": 0.5099
+  },
+  {
+    "bank_id": "default-bank",
+    "event": "ingest",
+    "exemplar_id": "positive-1",
+    "state": "aged",
+    "quality": 0.4859
+  },
+  {
+    "bank_id": "default-bank",
+    "event": "feedback",
+    "exemplar_id": "positive-1",
+    "failure_mode": "false_negative",
+    "next_state": "aged",
+    "quality": 0.5199
   }
 ]
