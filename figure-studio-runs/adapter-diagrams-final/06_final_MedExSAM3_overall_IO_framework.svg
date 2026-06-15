@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3200" height="1980" viewBox="0 0 3200 1980" role="img">
+<title>MedExSAM3 Overall Framework</title>
+<defs>
+<marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0068b7"/></marker>
+<marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5b61"/></marker>
+<marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#00a95b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7a3bd1"/></marker>
+<marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ff9a16"/></marker>
+<marker id="arrow-black" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#111111"/></marker>
+</defs>
+
+    <style>
+      svg { background: white; }
+      text { font-family: Arial, Helvetica, sans-serif; }
+      .title { font-size: 36px; font-weight: 800; }
+      .subtitle { font-size: 20px; font-weight: 700; fill: #0068b7; }
+      .section-title { font-size: 24px; font-weight: 800; }
+      .label { font-size: 14px; }
+      .note { font-size: 16px; font-weight: 700; fill: #0068b7; }
+      .small { font-size: 12px; }
+      .tiny { font-size: 10px; }
+      .box-text { font-size: 15px; font-weight: 700; }
+    </style>
+
+<text x="55.0" y="80.0" text-anchor="start" font-size="54" font-weight="800" fill="#111111"><tspan x="55.0" y="80.0">MedExSAM3 Overall Framework</tspan></text>
+<text x="58.0" y="120.0" text-anchor="start" font-size="25" font-weight="800" fill="#0068b7"><tspan x="58.0" y="120.0">Inputs, outputs, and insertion points of LoRA, ExemplarPromptAdapter, RSS-DA, MedicalImageAdapter, BoundaryAwareAdapter, and refine_head</tspan></text>
+<text x="58.0" y="142.0" text-anchor="start" font-size="15" font-weight="800" fill="#0068b7"><tspan x="58.0" y="142.0">Base path, optional wrapper adapters, and independent retrieval/prompt branches are separated by colored regions.</tspan></text>
+<rect x="70.0" y="150.0" width="950.0" height="640.0" rx="18.0" fill="#f2fbff" stroke="#111111" stroke-width="2" stroke-dasharray="18 10"/>
+<text x="92.0" y="182.0" text-anchor="start" font-size="24" font-weight="800" fill="#111111"><tspan x="92.0" y="182.0">(A) Prompt Inputs and Prompt Tokens</tspan></text>
+<rect x="256.0" y="241.0" width="220.0" height="80.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="250.0" y="235.0" width="220.0" height="80.0" rx="9.0" fill="#fff9ee" stroke="#ff9a16" stroke-width="2"/>
+<text x="360.0" y="275.0" text-anchor="middle" font-size="22" font-weight="700" fill="#111111"><tspan x="360.0" y="262.0">Text / Point / Box</tspan><tspan x="360.0" y="288.0">Prompt</tspan></text>
+<rect x="540.0" y="260.0" width="18.0" height="18.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="562.0" y="260.0" width="18.0" height="18.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="584.0" y="260.0" width="18.0" height="18.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="606.0" y="260.0" width="18.0" height="18.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="628.0" y="260.0" width="18.0" height="18.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="650.0" y="260.0" width="18.0" height="18.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="672.0" y="260.0" width="18.0" height="18.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="694.0" y="260.0" width="18.0" height="18.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<text x="626.0" y="284.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="626.0" y="284.0">text + geometry tokens</tspan></text>
+<path d="M 470.0 275.0 L 540.0 275.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="311.0" y="426.0" width="305.0" height="125.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="305.0" y="420.0" width="305.0" height="125.0" rx="9.0" fill="#eee4ff" stroke="#7a3bd1" stroke-width="2"/>
+<text x="457.5" y="482.5" text-anchor="middle" font-size="17" font-weight="700" fill="#111111"><tspan x="457.5" y="462.4">ExemplarPromptAdapter</tspan><tspan x="457.5" y="482.5">in: exemplar image + annotation</tspan><tspan x="457.5" y="502.6">out: visual prompt tokens</tspan></text>
+<rect x="145.0" y="540.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="163.0" y="540.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="181.0" y="540.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="199.0" y="540.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="145.0" y="558.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="163.0" y="558.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="181.0" y="558.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="199.0" y="558.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="145.0" y="576.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="163.0" y="576.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="181.0" y="576.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="199.0" y="576.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<text x="181.0" y="594.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="181.0" y="594.0">region annotation</tspan></text>
+<rect x="690.0" y="465.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="714.0" y="465.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="738.0" y="465.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="762.0" y="465.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="786.0" y="465.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="810.0" y="465.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="834.0" y="465.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="858.0" y="465.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="882.0" y="465.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<text x="796.0" y="489.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="796.0" y="489.0">visual_prompt_embed [B,Nv,C]</tspan></text>
+<path d="M 230.0 445.0 L 305.0 462.0" fill="none" stroke="#7a3bd1" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-purple)"/>
+<path d="M 230.0 575.0 L 305.0 510.0" fill="none" stroke="#7a3bd1" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-purple)"/>
+<path d="M 610.0 482.0 L 690.0 482.0" fill="none" stroke="#7a3bd1" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-purple)"/>
+<rect x="735.0" y="625.0" width="210.0" height="74.0" rx="9.0" fill="#fff" stroke="#0068b7" stroke-width="2"/>
+<text x="840.0" y="662.0" text-anchor="middle" font-size="16" font-weight="700" fill="#111111"><tspan x="840.0" y="652.6">prompt token set</tspan><tspan x="840.0" y="671.4">for Encode Prompt</tspan></text>
+<path d="M 800.0 485.0 L 820.0 625.0" fill="none" stroke="#7a3bd1" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-purple)"/>
+<path d="M 725.0 275.0 L 970.0 275.0 L 970.0 650.0 L 945.0 650.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<text x="118.0" y="730.0" text-anchor="start" font-size="16" font-weight="800" fill="#7a3bd1"><tspan x="118.0" y="730.0">output: prompt tokens and visual_prompt_embed</tspan></text>
+<text x="118.0" y="755.0" text-anchor="start" font-size="14" font-weight="800" fill="#7a3bd1"><tspan x="118.0" y="755.0">visual prompt includes positive, boundary, and negative prototype tokens</tspan></text>
+<rect x="70.0" y="835.0" width="950.0" height="360.0" rx="18.0" fill="#f2fbff" stroke="#111111" stroke-width="2" stroke-dasharray="18 10"/>
+<text x="92.0" y="867.0" text-anchor="start" font-size="24" font-weight="800" fill="#111111"><tspan x="92.0" y="867.0">(B) Image Encoder</tspan></text>
+<rect x="145.0" y="975.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="163.0" y="975.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="181.0" y="975.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="199.0" y="975.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="145.0" y="993.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="163.0" y="993.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="181.0" y="993.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="199.0" y="993.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="145.0" y="1011.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="163.0" y="1011.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="181.0" y="1011.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="199.0" y="1011.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<text x="181.0" y="1029.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="181.0" y="1021.9">image</tspan><tspan x="181.0" y="1036.1">[B,3,H,W]</tspan></text>
+<rect x="306.0" y="936.0" width="220.0" height="105.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="300.0" y="930.0" width="220.0" height="105.0" rx="9.0" fill="#eeeeee" stroke="#111111" stroke-width="2"/>
+<text x="410.0" y="982.5" text-anchor="middle" font-size="22" font-weight="700" fill="#111111"><tspan x="410.0" y="982.5">Preprocess</tspan></text>
+<rect x="596.0" y="936.0" width="225.0" height="105.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="590.0" y="930.0" width="225.0" height="105.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="702.5" y="982.5" text-anchor="middle" font-size="22" font-weight="700" fill="#111111"><tspan x="702.5" y="969.5">Forward Image</tspan><tspan x="702.5" y="995.5">Backbone</tspan></text>
+<rect x="640.0" y="860.0" width="135.0" height="45.0" rx="9.0" fill="#fff000" stroke="#c49a00" stroke-width="2"/>
+<text x="707.5" y="882.5" text-anchor="middle" font-size="17" font-weight="700" fill="#111111"><tspan x="707.5" y="882.5">LoRA</tspan></text>
+<rect x="860.0" y="965.0" width="18.0" height="18.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="882.0" y="965.0" width="18.0" height="18.0" rx="0.0" fill="#1685c7" stroke="#111111" stroke-width="1"/>
+<rect x="904.0" y="965.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="926.0" y="965.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#111111" stroke-width="1"/>
+<rect x="948.0" y="965.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#111111" stroke-width="1"/>
+<rect x="970.0" y="965.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="992.0" y="965.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="1014.0" y="965.0" width="18.0" height="18.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="1036.0" y="965.0" width="18.0" height="18.0" rx="0.0" fill="#1685c7" stroke="#111111" stroke-width="1"/>
+<text x="957.0" y="989.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="957.0" y="981.9">image_embeddings</tspan><tspan x="957.0" y="996.1">[B,C,h,w]</tspan></text>
+<rect x="695.0" y="1090.0" width="255.0" height="70.0" rx="9.0" fill="#fff" stroke="#0068b7" stroke-width="2"/>
+<text x="822.5" y="1125.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="822.5" y="1116.2">output: image features</tspan><tspan x="822.5" y="1133.9">used by SAM3 and wrapper</tspan></text>
+<path d="M 225.0 980.0 L 300.0 980.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 520.0 980.0 L 590.0 980.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 815.0 980.0 L 860.0 980.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 708.0 905.0 L 708.0 930.0" fill="none" stroke="#c49a00" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 900.0 1000.0 L 900.0 1090.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<text x="118.0" y="1172.0" text-anchor="start" font-size="16" font-weight="800" fill="#0068b7"><tspan x="118.0" y="1172.0">output: image_embeddings for SAM3 decoder and MedEx wrapper</tspan></text>
+<text x="118.0" y="1192.0" text-anchor="start" font-size="14" font-weight="800" fill="#0068b7"><tspan x="118.0" y="1192.0">LoRA is inside frozen SAM3; wrapper refine_head remains trainable</tspan></text>
+<rect x="1080.0" y="150.0" width="665.0" height="640.0" rx="18.0" fill="#f2fbff" stroke="#111111" stroke-width="2" stroke-dasharray="18 10"/>
+<text x="1102.0" y="182.0" text-anchor="start" font-size="24" font-weight="800" fill="#111111"><tspan x="1102.0" y="182.0">(C) Prompt-Image Fusion / Memory</tspan></text>
+<rect x="1156.0" y="271.0" width="225.0" height="90.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="1150.0" y="265.0" width="225.0" height="90.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="1262.5" y="310.0" text-anchor="middle" font-size="22" font-weight="700" fill="#111111"><tspan x="1262.5" y="310.0">Encode Prompt</tspan></text>
+<rect x="1191.0" y="496.0" width="240.0" height="100.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="1185.0" y="490.0" width="240.0" height="100.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="1305.0" y="540.0" text-anchor="middle" font-size="22" font-weight="700" fill="#111111"><tspan x="1305.0" y="540.0">Run Encoder</tspan></text>
+<rect x="1425.0" y="292.0" width="18.0" height="18.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="1447.0" y="292.0" width="18.0" height="18.0" rx="0.0" fill="#1685c7" stroke="#111111" stroke-width="1"/>
+<rect x="1469.0" y="292.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1491.0" y="292.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#111111" stroke-width="1"/>
+<rect x="1513.0" y="292.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#111111" stroke-width="1"/>
+<rect x="1535.0" y="292.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="1557.0" y="292.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<text x="1500.0" y="316.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1500.0" y="316.0">prompt embeddings</tspan></text>
+<rect x="1450.0" y="530.0" width="18.0" height="18.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="1472.0" y="530.0" width="18.0" height="18.0" rx="0.0" fill="#1685c7" stroke="#111111" stroke-width="1"/>
+<rect x="1494.0" y="530.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<text x="1481.0" y="554.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1481.0" y="554.0">memory</tspan></text>
+<rect x="1541.0" y="504.0" width="165.0" height="130.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="1535.0" y="498.0" width="165.0" height="130.0" rx="9.0" fill="#ffe7e7" stroke="#ff5b61" stroke-width="2"/>
+<text x="1617.5" y="563.0" text-anchor="middle" font-size="16" font-weight="700" fill="#111111"><tspan x="1617.5" y="534.7">Apply RSS-DA</tspan><tspan x="1617.5" y="553.6">Prior to Memory</tspan><tspan x="1617.5" y="572.4">in: retrieval_prior</tspan><tspan x="1617.5" y="591.3">out: biased memory</tspan></text>
+<rect x="1200.0" y="662.0" width="445.0" height="74.0" rx="9.0" fill="#ffe7e7" stroke="#ff5b61" stroke-width="2"/>
+<text x="1422.5" y="699.0" text-anchor="middle" font-size="16" font-weight="700" fill="#111111"><tspan x="1422.5" y="689.6">RSS-DA Adapter side signal: retrieval_prior</tspan><tspan x="1422.5" y="708.4">in: query/image features    out: memory/logit bias maps</tspan></text>
+<path d="M 945.0 650.0 L 1080.0 650.0 L 1080.0 310.0 L 1150.0 310.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 900.0 1160.0 L 900.0 1330.0 L 1045.0 1330.0 L 1045.0 540.0 L 1185.0 540.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 1375.0 310.0 L 1510.0 310.0 L 1510.0 470.0 L 1285.0 470.0 L 1285.0 490.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 1425.0 540.0 L 1535.0 540.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 1535.0 628.0 L 1535.0 662.0" fill="none" stroke="#ff5b61" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" stroke-dasharray="12 8" marker-end="url(#arrow-red)"/>
+<rect x="1810.0" y="150.0" width="1280.0" height="640.0" rx="18.0" fill="#f2fbff" stroke="#111111" stroke-width="2" stroke-dasharray="18 10"/>
+<text x="1832.0" y="182.0" text-anchor="start" font-size="24" font-weight="800" fill="#111111"><tspan x="1832.0" y="182.0">(D) SAM3 Decoder and Mask Output</tspan></text>
+<text x="1865.0" y="230.0" text-anchor="start" font-size="16" font-weight="800" fill="#0068b7"><tspan x="1865.0" y="230.0">input: prior-biased memory + prompt embeddings</tspan></text>
+<rect x="1915.0" y="405.0" width="180.0" height="80.0" rx="9.0" fill="#fff000" stroke="#c49a00" stroke-width="2"/>
+<text x="2005.0" y="445.0" text-anchor="middle" font-size="17" font-weight="700" fill="#111111"><tspan x="2005.0" y="445.0">LoRA</tspan></text>
+<rect x="1881.0" y="491.0" width="220.0" height="105.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="1875.0" y="485.0" width="220.0" height="105.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="1985.0" y="537.5" text-anchor="middle" font-size="22" font-weight="700" fill="#111111"><tspan x="1985.0" y="537.5">Run Decoder</tspan></text>
+<rect x="2176.0" y="491.0" width="280.0" height="105.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="2170.0" y="485.0" width="280.0" height="105.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="2310.0" y="537.5" text-anchor="middle" font-size="22" font-weight="700" fill="#111111"><tspan x="2310.0" y="524.5">Run Segmentation</tspan><tspan x="2310.0" y="550.5">Heads</tspan></text>
+<rect x="2495.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2513.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2531.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2549.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2567.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2495.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2513.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2531.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2549.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2567.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2495.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2513.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2531.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2549.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2567.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<text x="2540.0" y="559.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2540.0" y="551.9">SAM3 mask_logits</tspan><tspan x="2540.0" y="566.1">[B,1,H,W]</tspan></text>
+<rect x="2696.0" y="491.0" width="280.0" height="105.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="2690.0" y="485.0" width="280.0" height="105.0" rx="9.0" fill="#ffe7e7" stroke="#ff5b61" stroke-width="2"/>
+<text x="2830.0" y="537.5" text-anchor="middle" font-size="17" font-weight="700" fill="#111111"><tspan x="2830.0" y="507.4">Apply RSS-DA</tspan><tspan x="2830.0" y="527.5">Logit Bias</tspan><tspan x="2830.0" y="547.5">in: mask_logits + bias</tspan><tspan x="2830.0" y="567.6">out: conditioned logits</tspan></text>
+<rect x="3000.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3018.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3036.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3054.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3072.0" y="505.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3000.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3018.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3036.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3054.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3072.0" y="523.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3000.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3018.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3036.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3054.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="3072.0" y="541.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<text x="3045.0" y="559.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="3045.0" y="551.9">conditioned</tspan><tspan x="3045.0" y="566.1">mask_logits</tspan></text>
+<path d="M 1700.0 560.0 L 1875.0 540.0" fill="none" stroke="#ff5b61" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-red)"/>
+<path d="M 2095.0 540.0 L 2170.0 540.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 2450.0 540.0 L 2495.0 540.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 2605.0 540.0 L 2690.0 540.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 2970.0 540.0 L 3000.0 540.0" fill="none" stroke="#ff5b61" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-red)"/>
+<path d="M 2820.0 1230.0 L 2820.0 590.0" fill="none" stroke="#ff5b61" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" stroke-dasharray="12 8" marker-end="url(#arrow-red)"/>
+<text x="2385.0" y="725.0" text-anchor="start" font-size="16" font-weight="800" fill="#ff5b61"><tspan x="2385.0" y="725.0">output: conditioned_mask_logits</tspan></text>
+<rect x="70.0" y="1260.0" width="3040.0" height="560.0" rx="18.0" fill="#e4f8ea" stroke="#00a95b" stroke-width="2" stroke-dasharray="18 10"/>
+<text x="92.0" y="1292.0" text-anchor="start" font-size="24" font-weight="800" fill="#00a95b"><tspan x="92.0" y="1292.0">(E) MedEx Wrapper Refinement after SAM3 Forward</tspan></text>
+<rect x="185.0" y="1465.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="203.0" y="1465.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="221.0" y="1465.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="239.0" y="1465.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="257.0" y="1465.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="185.0" y="1483.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="203.0" y="1483.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="221.0" y="1483.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="239.0" y="1483.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="257.0" y="1483.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="185.0" y="1501.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="203.0" y="1501.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="221.0" y="1501.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="239.0" y="1501.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="257.0" y="1501.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<text x="230.0" y="1519.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="230.0" y="1511.9">image_embeddings</tspan><tspan x="230.0" y="1526.1">feature_map</tspan></text>
+<rect x="371.0" y="1446.0" width="190.0" height="95.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="365.0" y="1440.0" width="190.0" height="95.0" rx="9.0" fill="#fff" stroke="#111111" stroke-width="2"/>
+<text x="460.0" y="1487.5" text-anchor="middle" font-size="20" font-weight="700" fill="#111111"><tspan x="460.0" y="1475.7">Resolve</tspan><tspan x="460.0" y="1499.3">Feature Map</tspan></text>
+<rect x="656.0" y="1426.0" width="255.0" height="115.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="650.0" y="1420.0" width="255.0" height="115.0" rx="9.0" fill="#e4f8ea" stroke="#00a95b" stroke-width="2"/>
+<text x="777.5" y="1477.5" text-anchor="middle" font-size="16" font-weight="700" fill="#111111"><tspan x="777.5" y="1458.6">MedicalImageAdapter</tspan><tspan x="777.5" y="1477.5">in: feature_map</tspan><tspan x="777.5" y="1496.4">out: adapted features</tspan></text>
+<rect x="1006.0" y="1426.0" width="305.0" height="115.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="1000.0" y="1420.0" width="305.0" height="115.0" rx="9.0" fill="#e4f8ea" stroke="#00a95b" stroke-width="2"/>
+<text x="1152.5" y="1477.5" text-anchor="middle" font-size="16" font-weight="700" fill="#111111"><tspan x="1152.5" y="1458.6">BoundaryAwareAdapter</tspan><tspan x="1152.5" y="1477.5">in: features + coarse mask</tspan><tspan x="1152.5" y="1496.4">out: boundary-aware features</tspan></text>
+<rect x="1421.0" y="1436.0" width="185.0" height="95.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="1415.0" y="1430.0" width="185.0" height="95.0" rx="9.0" fill="#e4f8ea" stroke="#00a95b" stroke-width="2"/>
+<text x="1507.5" y="1477.5" text-anchor="middle" font-size="16" font-weight="700" fill="#111111"><tspan x="1507.5" y="1458.6">refine_head</tspan><tspan x="1507.5" y="1477.5">in: refined features</tspan><tspan x="1507.5" y="1496.4">out: delta logits</tspan></text>
+<rect x="1650.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1668.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1686.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1704.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1722.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1650.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1668.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1686.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1704.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1722.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1650.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1668.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1686.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1704.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1722.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<text x="1695.0" y="1514.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1695.0" y="1506.9">delta</tspan><tspan x="1695.0" y="1521.1">[B,1,H,W]</tspan></text>
+<rect x="1836.0" y="1446.0" width="145.0" height="95.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="1830.0" y="1440.0" width="145.0" height="95.0" rx="9.0" fill="#fff" stroke="#111111" stroke-width="2"/>
+<text x="1902.5" y="1487.5" text-anchor="middle" font-size="20" font-weight="700" fill="#111111"><tspan x="1902.5" y="1475.7">scale</tspan><tspan x="1902.5" y="1499.3">0.1</tspan></text>
+<circle cx="2135.0" cy="1490.0" r="48.0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="2135.0" y="1491.0" text-anchor="middle" font-size="36" font-weight="800" fill="#111111"><tspan x="2135.0" y="1491.0">+</tspan></text>
+<rect x="2280.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2298.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2316.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2334.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2352.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2280.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2298.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2316.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2334.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2352.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2280.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2298.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2316.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2334.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2352.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<text x="2325.0" y="1514.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2325.0" y="1506.9">final_mask_logits</tspan><tspan x="2325.0" y="1521.1">= mask_logits + 0.1*delta</tspan></text>
+<rect x="2531.0" y="1446.0" width="150.0" height="95.0" rx="9.0" fill="#cfcfcf" stroke="none" stroke-width="0"/>
+<rect x="2525.0" y="1440.0" width="150.0" height="95.0" rx="9.0" fill="#fff" stroke="#111111" stroke-width="2"/>
+<text x="2600.0" y="1487.5" text-anchor="middle" font-size="22" font-weight="700" fill="#111111"><tspan x="2600.0" y="1487.5">Sigmoid</tspan></text>
+<rect x="2790.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2808.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2826.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2844.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2862.0" y="1460.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2790.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2808.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2826.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2844.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2862.0" y="1478.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2790.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2808.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2826.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2844.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2862.0" y="1496.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<text x="2835.0" y="1514.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2835.0" y="1506.9">Final Mask</tspan><tspan x="2835.0" y="1521.1">[B,1,H,W]</tspan></text>
+<path d="M 275.0 1490.0 L 365.0 1490.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 555.0 1490.0 L 650.0 1490.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 905.0 1490.0 L 1000.0 1490.0" fill="none" stroke="#00a95b" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-green)"/>
+<path d="M 1305.0 1490.0 L 1415.0 1490.0" fill="none" stroke="#00a95b" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-green)"/>
+<path d="M 1600.0 1490.0 L 1650.0 1490.0" fill="none" stroke="#00a95b" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-green)"/>
+<path d="M 1745.0 1490.0 L 1830.0 1490.0" fill="none" stroke="#00a95b" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-green)"/>
+<path d="M 1975.0 1490.0 L 2090.0 1490.0" fill="none" stroke="#00a95b" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-green)"/>
+<path d="M 2183.0 1490.0 L 2280.0 1490.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 2395.0 1490.0 L 2525.0 1490.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 2675.0 1490.0 L 2790.0 1490.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 3070.0 560.0 L 3070.0 1220.0 L 2050.0 1220.0 L 2050.0 1445.0" fill="none" stroke="#00a95b" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" stroke-dasharray="12 8" marker-end="url(#arrow-green)"/>
+<rect x="2005.0" y="1300.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2023.0" y="1300.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2041.0" y="1300.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2059.0" y="1300.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2005.0" y="1318.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2023.0" y="1318.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2041.0" y="1318.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2059.0" y="1318.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2005.0" y="1336.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2023.0" y="1336.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2041.0" y="1336.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2059.0" y="1336.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<text x="2041.0" y="1354.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2041.0" y="1346.9">conditioned</tspan><tspan x="2041.0" y="1361.1">mask_logits</tspan></text>
+<rect x="1095.0" y="1680.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1113.0" y="1680.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1131.0" y="1680.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1149.0" y="1680.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1095.0" y="1698.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1113.0" y="1698.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1131.0" y="1698.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1149.0" y="1698.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1095.0" y="1716.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1113.0" y="1716.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1131.0" y="1716.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="1149.0" y="1716.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<text x="1131.0" y="1734.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1131.0" y="1726.9">coarse mask logits</tspan><tspan x="1131.0" y="1741.1">(+ GT mask train only)</tspan></text>
+<path d="M 1130.0 1680.0 L 1130.0 1580.0 L 1130.0 1535.0" fill="none" stroke="#00a95b" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" stroke-dasharray="12 8" marker-end="url(#arrow-green)"/>
+<text x="1170.0" y="1625.0" text-anchor="start" font-size="15" font-weight="400" fill="#00a95b"><tspan x="1170.0" y="1625.0">side input</tspan></text>
+<text x="1450.0" y="1850.0" text-anchor="start" font-size="16" font-weight="800" fill="#00a95b"><tspan x="1450.0" y="1850.0">output: final binary mask</tspan></text>
+<text x="78.0" y="1930.0" text-anchor="start" font-size="26" font-weight="800" fill="#0068b7"><tspan x="78.0" y="1930.0">Key route: Image/Prompt inputs -&gt; SAM3 encoder/decoder -&gt; conditioned mask_logits -&gt; MedEx wrapper refinement -&gt; final mask.</tspan></text>
+</svg>

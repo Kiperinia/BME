@@ -1,0 +1,94 @@
+{
+  "count": 1537,
+  "definitions": {
+    "hard_case_dice_gain@tau": "mean(result Dice - baseline Dice) on cases with baseline Dice < tau",
+    "low_dice_error_reduction": "mean((result Dice - baseline Dice) / (1 - baseline Dice)) on the subset",
+    "rescue_rate": "fraction of subset crossing Dice >= 0.5",
+    "meaningful_gain_rate": "fraction of subset with delta Dice >= 0.03",
+    "severe_harm_rate": "fraction of subset with delta Dice <= -0.03",
+    "weighted_hard_case_gain": "delta Dice weighted by (1 - baseline Dice)^2.0"
+  },
+  "overall": {
+    "count": 1537,
+    "baseline_dice_mean": 0.542200985679117,
+    "result_dice_mean": 0.6288079062189823,
+    "mean_delta_dice": 0.08660692053986536,
+    "median_delta_dice": 0.0,
+    "positive_delta_rate": 0.43331164606376055,
+    "negative_delta_rate": 0.21860767729342875,
+    "rescue_rate": 0.10605074821080027,
+    "meaningful_gain_rate": 0.22966818477553677,
+    "low_dice_error_reduction": 0.056552086095043336,
+    "severe_harm_rate": 0.04294079375406636
+  },
+  "weighted_hard_case_gain": 0.2041325701135744,
+  "threshold_subsets": {
+    "baseline_dice<0.3": {
+      "count": 575,
+      "baseline_dice_mean": 0.044372602613778976,
+      "result_dice_mean": 0.26566136995964507,
+      "mean_delta_dice": 0.22128876734586606,
+      "median_delta_dice": 0.00145784392952919,
+      "positive_delta_rate": 0.6730434782608695,
+      "negative_delta_rate": 0.2782608695652174,
+      "rescue_rate": 0.24,
+      "meaningful_gain_rate": 0.42086956521739133,
+      "low_dice_error_reduction": 0.23364204594942956,
+      "severe_harm_rate": 0.03130434782608696
+    },
+    "baseline_dice<0.5": {
+      "count": 651,
+      "baseline_dice_mean": 0.0861387874634019,
+      "result_dice_mean": 0.2906320608574592,
+      "mean_delta_dice": 0.20449327339405723,
+      "median_delta_dice": 0.00145784392952919,
+      "positive_delta_rate": 0.6543778801843319,
+      "negative_delta_rate": 0.2780337941628264,
+      "rescue_rate": 0.250384024577573,
+      "meaningful_gain_rate": 0.42242703533026116,
+      "low_dice_error_reduction": 0.2213684888460324,
+      "severe_harm_rate": 0.0445468509984639
+    },
+    "baseline_dice<0.7": {
+      "count": 760,
+      "baseline_dice_mean": 0.1589649544073392,
+      "result_dice_mean": 0.3382566822926434,
+      "mean_delta_dice": 0.17929172788530418,
+      "median_delta_dice": 0.0011382222778751686,
+      "positive_delta_rate": 0.6328947368421053,
+      "negative_delta_rate": 0.275,
+      "rescue_rate": 0.21447368421052632,
+      "meaningful_gain_rate": 0.4052631578947368,
+      "low_dice_error_reduction": 0.20031905768786984,
+      "severe_harm_rate": 0.05394736842105263
+    }
+  },
+  "quantile_subsets": {
+    "bottom_10pct_by_baseline_dice": {
+      "count": 154,
+      "baseline_dice_mean": 2.0339001974325996e-10,
+      "result_dice_mean": 0.08236234074335812,
+      "mean_delta_dice": 0.0823623405399681,
+      "median_delta_dice": 1.4031168588113374e-11,
+      "positive_delta_rate": 0.6363636363636364,
+      "negative_delta_rate": 0.2922077922077922,
+      "rescue_rate": 0.07142857142857142,
+      "meaningful_gain_rate": 0.14935064935064934,
+      "low_dice_error_reduction": 0.08236234056332294,
+      "severe_harm_rate": 0.0
+    },
+    "bottom_20pct_by_baseline_dice": {
+      "count": 307,
+      "baseline_dice_mean": 1.6275429165346308e-09,
+      "result_dice_mean": 0.1793388684320106,
+      "mean_delta_dice": 0.17933886680446767,
+      "median_delta_dice": 2.705489998700017e-11,
+      "positive_delta_rate": 0.6221498371335505,
+      "negative_delta_rate": 0.32247557003257327,
+      "rescue_rate": 0.18892508143322476,
+      "meaningful_gain_rate": 0.2899022801302932,
+      "low_dice_error_reduction": 0.17933886714794384,
+      "severe_harm_rate": 0.0
+    }
+  }
+}

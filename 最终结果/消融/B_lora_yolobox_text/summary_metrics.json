@@ -1,0 +1,19 @@
+{
+  "Dice": 0.5334071047709206,
+  "IoU": 0.4776952562254736,
+  "Precision": 0.5505729343648783,
+  "Recall": 0.7148989701342829,
+  "Boundary F1": 0.37876603655548813,
+  "HD95": 29.175485627055554,
+  "ASSD": 14.099323231231534,
+  "False Positive Rate": 0.13559927534256322,
+  "False Negative Rate": 0.285101030445805,
+  "mean confidence": 0.6647159752603268,
+  "Prompt Sensitivity": 0.0,
+  "baseline_Dice": 0.5334071047709206,
+  "delta_Dice": 0.0,
+  "hard_case_gate_enabled": false,
+  "hard_case_gate_used_count": 1537,
+  "hard_case_gate_preserved_count": 0,
+  "hard_case_gate_used_ratio": 1.0
+}
