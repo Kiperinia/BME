@@ -1,0 +1,333 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="1850" viewBox="0 0 3000 1850">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#0a65a8"/>
+    </marker>
+    <marker id="arrowDark" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#063f73"/>
+    </marker>
+    <style>
+      .bg { fill: #eef9ff; }
+      .title { font: 800 44px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #064574; }
+      .subtitle { font: 500 19px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #2b6b96; }
+      .panel { fill: #e5f6ff; stroke: #0878c9; stroke-width: 3; rx: 22; }
+      .panel-title { font: 800 29px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #064574; }
+      .panel-sub { font: 700 15px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #2e78a8; }
+      .card { fill: #f8fdff; stroke: #88c8ed; stroke-width: 2; rx: 14; }
+      .card-strong { fill: #d7f0ff; stroke: #0f86d9; stroke-width: 2.6; rx: 16; }
+      .hub { fill: #0e5fa9; stroke: #063f73; stroke-width: 2.6; rx: 16; }
+      .hub-text { font: 800 21px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #ffffff; }
+      .h2 { font: 800 21px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #074a7a; }
+      .h3 { font: 800 17px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #07588d; }
+      .body { font: 500 15px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #245c82; }
+      .small { font: 500 13px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #2d668b; }
+      .tiny { font: 500 11.8px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #2b668b; }
+      .chip { fill: #d9f2ff; stroke: #61b3e1; stroke-width: 1.6; rx: 13; }
+      .chip-text { font: 800 12px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #075487; }
+      .node { fill: #d5f0ff; stroke: #0f86d9; stroke-width: 2.3; rx: 12; }
+      .node-dark { fill: #0e5fa9; stroke: #063f73; stroke-width: 2.3; rx: 12; }
+      .node-text { font: 800 15px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #064574; }
+      .node-sub { font: 500 11.5px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #2c6e99; }
+      .node-dark-text { font: 800 15px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #ffffff; }
+      .lane { fill: none; stroke: #0a65a8; stroke-width: 4; marker-end: url(#arrow); }
+      .lane-left { fill: none; stroke: #0a65a8; stroke-width: 4; marker-end: url(#arrow); }
+      .lane-dash { fill: none; stroke: #0a65a8; stroke-width: 3.4; stroke-dasharray: 11 10; marker-end: url(#arrow); }
+      .thin { fill: none; stroke: #0a65a8; stroke-width: 2.8; marker-end: url(#arrow); }
+      .thin-dash { fill: none; stroke: #0a65a8; stroke-width: 2.5; stroke-dasharray: 9 8; marker-end: url(#arrow); }
+      .flow-label { font: 800 14px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #064574; }
+      .legend { font: 500 13px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #2b668b; }
+      .icon { fill: none; stroke: #0e5fa9; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="3000" height="1850"/>
+
+  <text class="title" x="60" y="72">BME 产品与科研系统框架</text>
+  <text class="subtitle" x="60" y="104">从影像工作台出发，串联分割推理、报告生成、样本库沉淀和人审反馈，形成可持续优化的医学科研闭环。</text>
+
+  <g transform="translate(60 124)">
+    <rect class="chip" x="0" y="0" width="150" height="30"/><text class="chip-text" x="75" y="20" text-anchor="middle">前台操作</text>
+    <path class="thin" d="M162 15 L216 15"/>
+    <rect class="chip" x="230" y="0" width="150" height="30"/><text class="chip-text" x="305" y="20" text-anchor="middle">服务编排</text>
+    <path class="thin" d="M392 15 L446 15"/>
+    <rect class="chip" x="460" y="0" width="150" height="30"/><text class="chip-text" x="535" y="20" text-anchor="middle">模型推理</text>
+    <path class="thin" d="M622 15 L676 15"/>
+    <rect class="chip" x="690" y="0" width="150" height="30"/><text class="chip-text" x="765" y="20" text-anchor="middle">Agent 诊断</text>
+    <path class="thin" d="M852 15 L906 15"/>
+    <rect class="chip" x="920" y="0" width="150" height="30"/><text class="chip-text" x="995" y="20" text-anchor="middle">反馈沉淀</text>
+  </g>
+
+  <!-- Product frontend -->
+  <rect class="panel" x="60" y="180" width="620" height="1290"/>
+  <text class="panel-title" x="92" y="226">前端产品体验</text>
+  <text class="panel-sub" x="92" y="252">Vue 3 + Vite + TypeScript + Pinia + Tailwind + Axios</text>
+  <g transform="translate(92 274)">
+    <rect class="chip" x="0" y="0" width="76" height="28"/><text class="chip-text" x="38" y="19" text-anchor="middle">Workspace</text>
+    <rect class="chip" x="88" y="0" width="74" height="28"/><text class="chip-text" x="125" y="19" text-anchor="middle">Patients</text>
+    <rect class="chip" x="174" y="0" width="72" height="28"/><text class="chip-text" x="210" y="19" text-anchor="middle">Settings</text>
+    <rect class="chip" x="258" y="0" width="86" height="28"/><text class="chip-text" x="301" y="19" text-anchor="middle">可视化反馈</text>
+  </g>
+
+  <rect class="card-strong" x="92" y="330" width="556" height="260"/>
+  <text class="h2" x="124" y="372">影像工作台</text>
+  <text class="body" x="124" y="408">• 导入影像与分割参考，集中完成一次诊断任务</text>
+  <text class="body" x="124" y="440">• 设置专家条件：Paris 分型、病理类型、专家备注</text>
+  <text class="body" x="124" y="472">• 查看分割覆盖、边界、面积和不确定性提示</text>
+  <text class="body" x="124" y="504">• 同屏完成报告生成、样本检索和反馈记录</text>
+
+  <rect class="card" x="92" y="624" width="260" height="180"/>
+  <text class="h2" x="124" y="666">病例库</text>
+  <text class="body" x="124" y="702">• 按标签筛选病例</text>
+  <text class="body" x="124" y="734">• 回看诊断记录</text>
+  <text class="body" x="124" y="766">• 对比报告与结果</text>
+
+  <rect class="card" x="388" y="624" width="260" height="180"/>
+  <text class="h2" x="420" y="666">系统配置</text>
+  <text class="body" x="420" y="702">• 模型模式与权重</text>
+  <text class="body" x="420" y="734">• LLM 与报告策略</text>
+  <text class="body" x="420" y="766">• 反思阈值与运行参数</text>
+
+  <rect class="card-strong" x="92" y="842" width="556" height="246"/>
+  <text class="h2" x="124" y="884">科研闭环入口</text>
+  <g transform="translate(124 920)">
+    <rect class="node" x="0" y="0" width="112" height="58"/><text class="node-text" x="56" y="27" text-anchor="middle">人审样本</text><text class="node-sub" x="56" y="45" text-anchor="middle">可信输入</text>
+    <path class="thin" d="M112 29 L154 29"/>
+    <rect class="node" x="166" y="0" width="112" height="58"/><text class="node-text" x="222" y="27" text-anchor="middle">质量评估</text><text class="node-sub" x="222" y="45" text-anchor="middle">可入库性</text>
+    <path class="thin" d="M278 29 L320 29"/>
+    <rect class="node" x="332" y="0" width="112" height="58"/><text class="node-text" x="388" y="27" text-anchor="middle">检索先验</text><text class="node-sub" x="388" y="45" text-anchor="middle">辅助推理</text>
+  </g>
+  <text class="body" x="124" y="1018">• 将医生反馈转化为样本库演化线索</text>
+  <text class="body" x="124" y="1050">• 支持 hard case 发现、复核和继续训练数据准备</text>
+
+  <rect class="card" x="92" y="1128" width="556" height="234"/>
+  <text class="h2" x="124" y="1170">面向用户的价值</text>
+  <text class="body" x="124" y="1208">• 分割结果可视、可解释、可反馈</text>
+  <text class="body" x="124" y="1240">• 诊断报告结构统一，便于病例沉淀</text>
+  <text class="body" x="124" y="1272">• 样本越用越丰富，支撑后续科研迭代</text>
+  <text class="body" x="124" y="1304">• 配置集中管理，降低模型和 agent 接入成本</text>
+
+  <!-- Backend -->
+  <rect class="panel" x="760" y="180" width="780" height="650"/>
+  <text class="panel-title" x="792" y="226">后端业务中台</text>
+  <text class="panel-sub" x="792" y="252">FastAPI + Pydantic + SQLAlchemy Async + Celery + Redis + Torch Runtime</text>
+  <g transform="translate(792 274)">
+    <rect class="chip" x="0" y="0" width="78" height="28"/><text class="chip-text" x="39" y="19" text-anchor="middle">FastAPI</text>
+    <rect class="chip" x="90" y="0" width="82" height="28"/><text class="chip-text" x="131" y="19" text-anchor="middle">Async DB</text>
+    <rect class="chip" x="184" y="0" width="96" height="28"/><text class="chip-text" x="232" y="19" text-anchor="middle">Celery/Redis</text>
+    <rect class="chip" x="292" y="0" width="72" height="28"/><text class="chip-text" x="328" y="19" text-anchor="middle">Torch</text>
+    <rect class="chip" x="376" y="0" width="92" height="28"/><text class="chip-text" x="422" y="19" text-anchor="middle">OpenCV</text>
+  </g>
+
+  <rect class="hub" x="792" y="330" width="716" height="72"/>
+  <text class="hub-text" x="1150" y="374" text-anchor="middle">统一业务编排：把用户任务拆给模型、Agent 和数据层</text>
+
+  <rect class="card-strong" x="792" y="434" width="336" height="156"/>
+  <text class="h2" x="820" y="474">分割服务</text>
+  <text class="body" x="820" y="510">• 接收影像与专家条件</text>
+  <text class="body" x="820" y="540">• 调度 SAM3 / MedEx-SAM3</text>
+  <text class="body" x="820" y="570">• 回传 mask、面积、边界与置信线索</text>
+
+  <rect class="card" x="1172" y="434" width="336" height="156"/>
+  <text class="h2" x="1200" y="474">报告服务</text>
+  <text class="body" x="1200" y="510">• 汇总图像、分割、专家上下文</text>
+  <text class="body" x="1200" y="540">• 请求诊断 agent 生成报告</text>
+  <text class="body" x="1200" y="570">• 输出结构化结论与风险提示</text>
+
+  <rect class="card" x="792" y="620" width="336" height="156"/>
+  <text class="h2" x="820" y="660">样本库服务</text>
+  <text class="body" x="820" y="696">• 评估样本是否可沉淀</text>
+  <text class="body" x="820" y="726">• 检索相似病例形成先验</text>
+  <text class="body" x="820" y="756">• 接收反馈并更新样本质量</text>
+
+  <rect class="card" x="1172" y="620" width="336" height="156"/>
+  <text class="h2" x="1200" y="660">运行与数据治理</text>
+  <text class="body" x="1200" y="696">• 模型预热、模式切换、任务队列</text>
+  <text class="body" x="1200" y="726">• 保存病例、任务、报告和审计轨迹</text>
+  <text class="body" x="1200" y="756">• Windows worker 固定单进程稳定运行</text>
+
+  <!-- Model -->
+  <rect class="panel" x="760" y="900" width="780" height="570"/>
+  <text class="panel-title" x="792" y="946">模型引擎 MedicalSAM3 / MedEx-SAM3</text>
+  <text class="panel-sub" x="792" y="972">官方 SAM3 主干 + 可插拔医学增强分支；按实验配置独立启用，不默认一次性全开。</text>
+
+  <rect class="card-strong" x="792" y="1010" width="716" height="164"/>
+  <text class="h2" x="820" y="1048">SAM3 主路径</text>
+  <g transform="translate(820 1070)">
+    <rect class="node" x="0" y="0" width="92" height="54"/><text class="node-text" x="46" y="25" text-anchor="middle">影像</text><text class="node-sub" x="46" y="43" text-anchor="middle">提示</text>
+    <path class="thin" d="M92 27 L120 27"/>
+    <rect class="node" x="132" y="0" width="92" height="54"/><text class="node-text" x="178" y="25" text-anchor="middle">骨干</text><text class="node-sub" x="178" y="43" text-anchor="middle">特征</text>
+    <path class="thin" d="M224 27 L252 27"/>
+    <rect class="node" x="264" y="0" width="92" height="54"/><text class="node-text" x="310" y="25" text-anchor="middle">提示</text><text class="node-sub" x="310" y="43" text-anchor="middle">编码</text>
+    <path class="thin" d="M356 27 L384 27"/>
+    <rect class="node" x="396" y="0" width="92" height="54"/><text class="node-text" x="442" y="25" text-anchor="middle">编码器</text>
+    <path class="thin" d="M488 27 L516 27"/>
+    <rect class="node" x="528" y="0" width="92" height="54"/><text class="node-text" x="574" y="25" text-anchor="middle">解码器</text>
+    <path class="thin" d="M620 27 L648 27"/>
+    <rect class="node-dark" x="660" y="0" width="86" height="54"/><text class="node-dark-text" x="703" y="25" text-anchor="middle">Mask</text><text class="node-dark-text" x="703" y="43" text-anchor="middle">输出</text>
+  </g>
+
+  <rect class="card" x="792" y="1210" width="160" height="170"/>
+  <text class="h3" x="820" y="1244">LoRA 微调</text>
+  <text class="small" x="820" y="1274">插入位置：</text>
+  <text class="small" x="820" y="1300">视觉骨干后段</text>
+  <text class="small" x="820" y="1324">解码器注意力层</text>
+  <text class="small" x="820" y="1352">用于医学域适配</text>
+  <path class="thin-dash" d="M872 1210 L994 1132"/>
+
+  <rect class="card" x="980" y="1210" width="160" height="170"/>
+  <text class="h3" x="1008" y="1244">样本提示</text>
+  <text class="small" x="1008" y="1274">插入位置：</text>
+  <text class="small" x="1008" y="1300">提示编码之前</text>
+  <text class="small" x="1008" y="1324">正/负/边界原型</text>
+  <text class="small" x="1008" y="1352">增强提示表达</text>
+  <path class="thin-dash" d="M1060 1210 L1130 1132"/>
+
+  <rect class="card" x="1168" y="1210" width="160" height="170"/>
+  <text class="h3" x="1196" y="1244">空间语义先验</text>
+  <text class="small" x="1196" y="1274">插入位置：</text>
+  <text class="small" x="1196" y="1300">编码器记忆</text>
+  <text class="small" x="1196" y="1324">Mask logits 偏置</text>
+  <text class="small" x="1196" y="1352">来自样本检索</text>
+  <path class="thin-dash" d="M1248 1210 L1262 1132"/>
+  <path class="thin-dash" d="M1288 1210 L1484 1132"/>
+
+  <rect class="card" x="1356" y="1210" width="152" height="170"/>
+  <text class="h3" x="1384" y="1244">Wrapper 精修</text>
+  <text class="small" x="1384" y="1274">插入位置：</text>
+  <text class="small" x="1384" y="1300">SAM3 输出之后</text>
+  <text class="small" x="1384" y="1324">纹理/边界适配</text>
+  <text class="small" x="1384" y="1352">提升边缘质量</text>
+  <path class="thin-dash" d="M1432 1210 L1484 1132"/>
+
+  <rect class="card" x="792" y="1404" width="716" height="44"/>
+  <text class="small" x="820" y="1432">科研记录建议：清楚标注数据划分、模型权重、框选来源、是否启用样本检索与 hard-case 审核。</text>
+
+  <!-- Agents -->
+  <rect class="panel" x="1620" y="180" width="1320" height="1290"/>
+  <text class="panel-title" x="1652" y="226">Agent 智能体协作</text>
+  <text class="panel-sub" x="1652" y="252">严格按仓库中的报告流程、闭环编排和样本库流程组织；支持 RuleOnly 与 LLM 反思两种模式。</text>
+  <g transform="translate(1652 274)">
+    <rect class="chip" x="0" y="0" width="96" height="28"/><text class="chip-text" x="48" y="19" text-anchor="middle">hello_agents</text>
+    <rect class="chip" x="108" y="0" width="92" height="28"/><text class="chip-text" x="154" y="19" text-anchor="middle">RuleOnly</text>
+    <rect class="chip" x="212" y="0" width="98" height="28"/><text class="chip-text" x="261" y="19" text-anchor="middle">LLM 反思</text>
+    <rect class="chip" x="322" y="0" width="96" height="28"/><text class="chip-text" x="370" y="19" text-anchor="middle">样本库闭环</text>
+  </g>
+
+  <rect class="card-strong" x="1652" y="330" width="1256" height="250"/>
+  <text class="h2" x="1684" y="370">A. DiagnosisAgent：主诊断链</text>
+  <g transform="translate(1684 398)">
+    <rect class="node" x="0" y="0" width="132" height="58"/><text class="node-text" x="66" y="34" text-anchor="middle">影像 + Mask</text>
+    <path class="thin" d="M132 29 L174 29"/>
+    <rect class="node" x="186" y="0" width="150" height="58"/><text class="node-text" x="261" y="26" text-anchor="middle">Feature</text><text class="node-sub" x="261" y="45" text-anchor="middle">特征提取</text>
+    <path class="thin" d="M336 29 L378 29"/>
+    <rect class="node" x="390" y="0" width="150" height="58"/><text class="node-text" x="465" y="26" text-anchor="middle">Morphology</text><text class="node-sub" x="465" y="45" text-anchor="middle">形态分类</text>
+    <path class="thin" d="M540 29 L582 29"/>
+    <rect class="node" x="594" y="0" width="150" height="58"/><text class="node-text" x="669" y="26" text-anchor="middle">Paris</text><text class="node-sub" x="669" y="45" text-anchor="middle">分型判断</text>
+    <path class="thin" d="M744 29 L786 29"/>
+    <rect class="node" x="798" y="0" width="150" height="58"/><text class="node-text" x="873" y="34" text-anchor="middle">风险评估</text>
+    <path class="thin" d="M948 29 L990 29"/>
+    <rect class="node-dark" x="1002" y="0" width="190" height="58"/><text class="node-dark-text" x="1097" y="34" text-anchor="middle">报告生成</text>
+  </g>
+  <rect class="card" x="1684" y="488" width="370" height="66"/>
+  <text class="small" x="1712" y="516">报告工具：发现描述、结论组织、版式建议、关键词</text>
+  <text class="small" x="1712" y="540">可选反思：分析、改写、评分，低质量时再次优化</text>
+  <rect class="card" x="2090" y="488" width="370" height="66"/>
+  <text class="small" x="2118" y="516">输入：影像特征、分割结果、专家配置和相似样本</text>
+  <text class="small" x="2118" y="540">输出：诊断描述、Paris 类型、风险和报告草稿</text>
+
+  <rect class="card-strong" x="1652" y="620" width="730" height="460"/>
+  <text class="h2" x="1684" y="660">B. Medical Closed Loop Orchestrator</text>
+  <text class="body" x="1684" y="692">五个智能体按固定顺序协作，最终给出可追踪的复核建议。</text>
+  <g transform="translate(1684 724)">
+    <rect class="node" x="0" y="0" width="190" height="64"/><text class="node-text" x="95" y="28" text-anchor="middle">Segmentation</text><text class="node-sub" x="95" y="48" text-anchor="middle">预处理 / bbox / prompts</text>
+    <path class="thin" d="M190 32 L242 32"/>
+    <rect class="node" x="254" y="0" width="190" height="64"/><text class="node-text" x="349" y="28" text-anchor="middle">SampleAudit</text><text class="node-sub" x="349" y="48" text-anchor="middle">身份 / 质量 / hard case</text>
+    <path class="thin" d="M444 32 L496 32"/>
+    <rect class="node" x="508" y="0" width="190" height="64"/><text class="node-text" x="603" y="28" text-anchor="middle">Report</text><text class="node-sub" x="603" y="48" text-anchor="middle">报告上下文 / evidence</text>
+    <path class="thin" d="M603 64 L603 106"/>
+    <rect class="node" x="508" y="118" width="190" height="64"/><text class="node-text" x="603" y="146" text-anchor="middle">Terms</text><text class="node-sub" x="603" y="166" text-anchor="middle">词条 / 标签 / 索引</text>
+    <path class="thin" d="M508 150 L266 150"/>
+    <rect class="node-dark" x="0" y="118" width="254" height="64"/><text class="node-dark-text" x="127" y="144" text-anchor="middle">CrossAgent Review</text><text class="node-dark-text" x="127" y="166" text-anchor="middle">一致性 / 冲突 / 质量评分</text>
+    <rect class="card" x="0" y="222" width="698" height="82"/>
+    <text class="small" x="28" y="252">最终动作：approve / review / retry</text>
+    <text class="small" x="28" y="282">同时输出工作流步骤、审计日志、warning 和复核报告。</text>
+  </g>
+
+  <rect class="card-strong" x="2410" y="620" width="498" height="460"/>
+  <text class="h2" x="2442" y="660">C. ExemplarBankAgent：样本库闭环</text>
+  <text class="body" x="2442" y="692">管理 positive / negative / boundary 样本，给模型提供可解释先验。</text>
+  <g transform="translate(2442 724)">
+    <rect class="node" x="0" y="0" width="124" height="58"/><text class="node-text" x="62" y="28" text-anchor="middle">ingest</text><text class="node-sub" x="62" y="46" text-anchor="middle">评估入库</text>
+    <path class="thin" d="M124 29 L166 29"/>
+    <rect class="node" x="178" y="0" width="124" height="58"/><text class="node-text" x="240" y="28" text-anchor="middle">retrieve</text><text class="node-sub" x="240" y="46" text-anchor="middle">检索先验</text>
+    <path class="thin" d="M302 29 L344 29"/>
+    <rect class="node" x="356" y="0" width="110" height="58"/><text class="node-text" x="411" y="28" text-anchor="middle">feedback</text><text class="node-sub" x="411" y="46" text-anchor="middle">演化</text>
+  </g>
+  <rect class="card" x="2442" y="820" width="198" height="128"/>
+  <text class="h3" x="2470" y="856">Memory Layer</text>
+  <text class="small" x="2470" y="886">• 正样本 / 负样本</text>
+  <text class="small" x="2470" y="914">• 边界样本</text>
+  <text class="small" x="2470" y="942">• 快照与审计</text>
+  <rect class="card" x="2676" y="820" width="198" height="128"/>
+  <text class="h3" x="2704" y="856">给模型的先验</text>
+  <text class="small" x="2704" y="886">• 提示 tokens</text>
+  <text class="small" x="2704" y="914">• 语义原型</text>
+  <text class="small" x="2704" y="942">• 空间偏置</text>
+
+  <rect class="card-strong" x="1652" y="1120" width="1256" height="250"/>
+  <text class="h2" x="1684" y="1160">D. Agent 输出回系统</text>
+  <g transform="translate(1684 1194)">
+    <rect class="card" x="0" y="0" width="260" height="128"/>
+    <path class="icon" d="M38 44 h52 m-26 -26 v52 M114 25 h82 v82 h-82z M130 48 h48 M130 72 h48"/>
+    <text class="h3" x="24" y="105">诊断结果</text>
+    <rect class="card" x="300" y="0" width="260" height="128"/>
+    <path class="icon" d="M330 30 h84 l28 28 v54 h-112z M414 30 v28 h28 M350 82 h70"/>
+    <text class="h3" x="324" y="105">工作区报告</text>
+    <rect class="card" x="600" y="0" width="260" height="128"/>
+    <path class="icon" d="M654 30 h80 v82 h-80z M674 54 h40 M674 76 h52"/>
+    <text class="h3" x="624" y="105">病例记录</text>
+    <rect class="node-dark" x="900" y="0" width="300" height="128"/>
+    <text class="node-dark-text" x="1050" y="54" text-anchor="middle">人审反馈</text>
+    <text class="node-dark-text" x="1050" y="84" text-anchor="middle">样本入库 / 复核 / 继续训练</text>
+  </g>
+
+  <!-- External lanes: kept in gutters to avoid crossing modules -->
+  <path class="lane" d="M680 520 L760 520"/>
+  <text class="flow-label" x="698" y="500">用户任务</text>
+
+  <path class="lane-left" d="M760 730 L680 730"/>
+  <text class="flow-label" x="686" y="710">产品结果</text>
+
+  <path class="lane" d="M1540 420 L1620 420"/>
+  <text class="flow-label" x="1548" y="400">诊断上下文</text>
+
+  <path class="lane-left" d="M1620 730 L1540 730"/>
+  <text class="flow-label" x="1548" y="710">报告与复核建议</text>
+
+  <path class="lane" d="M1130 830 L1130 900"/>
+  <text class="flow-label" x="1144" y="872">请求推理</text>
+
+  <path class="lane" d="M1348 900 L1348 830"/>
+  <text class="flow-label" x="1362" y="872">结果回传</text>
+
+  <path class="lane-dash" d="M1620 1220 L1560 1220 L1560 1298 L1540 1298"/>
+  <text class="flow-label" x="1568" y="1210">样本先验</text>
+
+  <!-- Footer -->
+  <rect class="card" x="60" y="1518" width="2880" height="220"/>
+  <text class="h2" x="92" y="1562">读图方式</text>
+  <text class="body" x="92" y="1600">1. 外部箭头只走面板之间的空白通道，表示跨层调用；面板内部箭头表示模块内固定流程。</text>
+  <text class="body" x="92" y="1632">2. 前端以“用户能完成什么”为主，后端以“中台如何编排”为主，模型以“增强模块插入 SAM3 的位置”为主。</text>
+  <text class="body" x="92" y="1664">3. Agent 部分保留仓库中的三条核心信息：主诊断链、医学闭环编排、样本库闭环。</text>
+  <text class="body" x="92" y="1696">4. 浅蓝代表常规能力模块，深蓝代表聚合入口、最终输出或决策节点，虚线表示可选增强或侧向注入。</text>
+  <text class="legend" x="92" y="1728">依据：Frontend/src、Backend/app、MedicalSAM3/adapters 与 scripts、agent 报告流程/闭环流程文档、现有 MedEx-SAM3 架构图。</text>
+
+  <g transform="translate(2040 1580)">
+    <rect class="node" x="0" y="0" width="120" height="40"/><text class="node-text" x="60" y="25" text-anchor="middle">能力模块</text>
+    <rect class="node-dark" x="160" y="0" width="120" height="40"/><text class="node-dark-text" x="220" y="25" text-anchor="middle">关键决策</text>
+    <path class="lane" d="M320 20 L440 20"/>
+    <text class="legend" x="456" y="25">主调用</text>
+    <path class="lane-dash" d="M560 20 L680 20"/>
+    <text class="legend" x="696" y="25">可选先验</text>
+  </g>
+</svg>

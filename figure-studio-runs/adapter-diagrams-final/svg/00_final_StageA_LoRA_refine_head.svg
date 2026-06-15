@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="960" viewBox="0 0 3000 960" role="img">
+<title>Stage-A LoRA + refine_head</title>
+<defs>
+<marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0068b7"/></marker>
+<marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5b61"/></marker>
+<marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#00a95b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7a3bd1"/></marker>
+<marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ff9a16"/></marker>
+<marker id="arrow-black" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#111111"/></marker>
+</defs>
+
+    <style>
+      svg { background: white; }
+      text { font-family: Arial, Helvetica, sans-serif; }
+      .title { font-size: 36px; font-weight: 800; }
+      .subtitle { font-size: 20px; font-weight: 700; fill: #0068b7; }
+      .section-title { font-size: 24px; font-weight: 800; }
+      .label { font-size: 14px; }
+      .note { font-size: 16px; font-weight: 700; fill: #0068b7; }
+      .small { font-size: 12px; }
+      .tiny { font-size: 10px; }
+      .box-text { font-size: 15px; font-weight: 700; }
+    </style>
+
+<text x="32.0" y="42.0" text-anchor="start" font-size="36" font-weight="800" fill="#111111"><tspan x="32.0" y="42.0">(b) Stage-A LoRA + refine_head</tspan></text>
+<text x="350.0" y="104.0" text-anchor="start" font-size="26" font-weight="800" fill="#111111"><tspan x="350.0" y="104.0">LoRA injection path inside frozen SAM3</tspan></text>
+<text x="1140.0" y="80.0" text-anchor="start" font-size="16" font-weight="800" fill="#0068b7"><tspan x="1140.0" y="80.0">Stage-A target scopes: vision_encoder + mask_decoder</tspan></text>
+<text x="350.0" y="132.0" text-anchor="start" font-size="15" font-weight="800" fill="#0068b7"><tspan x="350.0" y="132.0">Base LoRA branch: SAM3 base is frozen; only LoRA A/B plus the outer refine_head are trainable</tspan></text>
+<rect x="60.0" y="200.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="78.0" y="200.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="96.0" y="200.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="114.0" y="200.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="60.0" y="218.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="78.0" y="218.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="96.0" y="218.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="114.0" y="218.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="60.0" y="236.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="78.0" y="236.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="96.0" y="236.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="114.0" y="236.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="60.0" y="254.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="78.0" y="254.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="96.0" y="254.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="114.0" y="254.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<text x="96.0" y="298.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="96.0" y="290.9">input image</tspan><tspan x="96.0" y="305.1">[B,3,H,W]</tspan></text>
+<rect x="250.0" y="180.0" width="190.0" height="115.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="345.0" y="237.5" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="345.0" y="219.8">Official SAM3</tspan><tspan x="345.0" y="237.5">image model</tspan><tspan x="345.0" y="255.2">(frozen)</tspan></text>
+<path d="M 150.0 236.0 L 250.0 236.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 440.0 236.0 L 525.0 236.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="530.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#858585" stroke="#111111" stroke-width="1"/>
+<rect x="574.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#858585" stroke="#111111" stroke-width="1"/>
+<rect x="618.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#858585" stroke="#111111" stroke-width="1"/>
+<rect x="662.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#858585" stroke="#111111" stroke-width="1"/>
+<rect x="706.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#858585" stroke="#111111" stroke-width="1"/>
+<rect x="750.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#858585" stroke="#111111" stroke-width="1"/>
+<rect x="794.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#858585" stroke="#111111" stroke-width="1"/>
+<rect x="838.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#858585" stroke="#111111" stroke-width="1"/>
+<rect x="882.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="926.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="970.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1014.0" y="208.0" width="36.0" height="54.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<text x="635.0" y="182.0" text-anchor="middle" font-size="18" font-weight="800" fill="#111111"><tspan x="635.0" y="182.0">vision_encoder blocks</tspan></text>
+<text x="885.0" y="184.0" text-anchor="middle" font-size="14" font-weight="800" fill="#0068b7"><tspan x="885.0" y="184.0">late 1/3 blocks</tspan></text>
+<text x="546.0" y="282.0" text-anchor="middle" font-size="11" font-weight="400" fill="#111111"><tspan x="546.0" y="282.0">0</tspan></text>
+<text x="850.0" y="282.0" text-anchor="middle" font-size="11" font-weight="400" fill="#111111"><tspan x="850.0" y="282.0">8</tspan></text>
+<text x="990.0" y="282.0" text-anchor="middle" font-size="11" font-weight="400" fill="#111111"><tspan x="990.0" y="282.0">11</tspan></text>
+<path d="M 900.0 170.0 L 900.0 150.0 L 1060.0 150.0 L 1060.0 170.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 1020.0 236.0 L 1140.0 236.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1140.0" y="120.0" width="220.0" height="235.0" rx="9.0" fill="#fff000" stroke="#111111" stroke-width="2"/>
+<text x="1250.0" y="237.5" text-anchor="middle" font-size="18" font-weight="700" fill="#111111"><tspan x="1250.0" y="184.4">q_proj + LoRA</tspan><tspan x="1250.0" y="205.6">v_proj + LoRA</tspan><tspan x="1250.0" y="226.9">qkv + LoRA</tspan><tspan x="1250.0" y="248.1">attn.proj + LoRA</tspan><tspan x="1250.0" y="269.4">out_proj + LoRA</tspan><tspan x="1250.0" y="290.6">.proj + LoRA</tspan></text>
+<path d="M 1360.0 236.0 L 1445.0 236.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1140.0" y="370.0" width="220.0" height="90.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="1250.0" y="415.0" text-anchor="middle" font-size="19" font-weight="700" fill="#111111"><tspan x="1250.0" y="403.8">mask_decoder</tspan><tspan x="1250.0" y="426.2">Transformer</tspan></text>
+<path d="M 440.0 258.0 L 480.0 258.0 L 480.0 405.0 L 1140.0 405.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1440.0" y="345.0" width="230.0" height="100.0" rx="9.0" fill="#fff000" stroke="#111111" stroke-width="2"/>
+<text x="1555.0" y="395.0" text-anchor="middle" font-size="18" font-weight="700" fill="#111111"><tspan x="1555.0" y="373.8">attention/proj</tspan><tspan x="1555.0" y="395.0">Linear layers</tspan><tspan x="1555.0" y="416.2">+ LoRA</tspan></text>
+<path d="M 1360.0 405.0 L 1440.0 395.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 1670.0 395.0 L 1755.0 395.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1760.0" y="386.0" width="18.0" height="18.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="1782.0" y="386.0" width="18.0" height="18.0" rx="0.0" fill="#1685c7" stroke="#111111" stroke-width="1"/>
+<rect x="1804.0" y="386.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1826.0" y="386.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#111111" stroke-width="1"/>
+<rect x="1848.0" y="386.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#111111" stroke-width="1"/>
+<rect x="1870.0" y="386.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="1892.0" y="386.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="1914.0" y="386.0" width="18.0" height="18.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="1936.0" y="386.0" width="18.0" height="18.0" rx="0.0" fill="#1685c7" stroke="#111111" stroke-width="1"/>
+<text x="1857.0" y="410.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1857.0" y="410.0">decoder tokens</tspan></text>
+<path d="M 1960.0 395.0 L 2050.0 395.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2050.0" y="360.0" width="190.0" height="90.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="2145.0" y="405.0" text-anchor="middle" font-size="18" font-weight="700" fill="#111111"><tspan x="2145.0" y="394.4">mask logits</tspan><tspan x="2145.0" y="415.6">from SAM3</tspan></text>
+<text x="1445.0" y="136.0" text-anchor="start" font-size="20" font-weight="800" fill="#111111"><tspan x="1445.0" y="136.0">LoRALinear internals</tspan></text>
+<rect x="1450.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#1f83c4" stroke="#111111" stroke-width="1"/>
+<rect x="1472.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#1f83c4" stroke="#111111" stroke-width="1"/>
+<rect x="1494.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#1f83c4" stroke="#111111" stroke-width="1"/>
+<rect x="1516.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#1f83c4" stroke="#111111" stroke-width="1"/>
+<rect x="1538.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#1f83c4" stroke="#111111" stroke-width="1"/>
+<rect x="1560.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#1f83c4" stroke="#111111" stroke-width="1"/>
+<rect x="1582.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#1f83c4" stroke="#111111" stroke-width="1"/>
+<text x="1525.0" y="199.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1525.0" y="199.0">x</tspan></text>
+<path d="M 1615.0 184.0 L 1680.0 184.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1680.0" y="148.0" width="105.0" height="70.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1732.5" y="183.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="1732.5" y="174.7">frozen</tspan><tspan x="1732.5" y="191.3">Linear</tspan></text>
+<path d="M 1785.0 184.0 L 1880.0 184.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1885.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="1907.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="1929.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="1951.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="1973.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="1995.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="2017.0" y="175.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<text x="1960.0" y="199.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1960.0" y="199.0">base</tspan></text>
+<path d="M 1615.0 225.0 L 1640.0 225.0 L 1640.0 300.0 L 1680.0 300.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1680.0" y="270.0" width="105.0" height="60.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1732.5" y="300.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="1732.5" y="300.0">Dropout</tspan></text>
+<path d="M 1785.0 300.0 L 1840.0 300.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1840.0" y="270.0" width="105.0" height="60.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1892.5" y="300.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="1892.5" y="291.7">LoRA A</tspan><tspan x="1892.5" y="308.3">C-&gt;r</tspan></text>
+<path d="M 1945.0 300.0 L 2025.0 300.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2028.0" y="286.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#111111" stroke-width="1"/>
+<rect x="2050.0" y="286.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#111111" stroke-width="1"/>
+<rect x="2072.0" y="286.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#111111" stroke-width="1"/>
+<rect x="2094.0" y="286.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#111111" stroke-width="1"/>
+<text x="2070.0" y="310.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2070.0" y="310.0">rank r</tspan></text>
+<path d="M 2130.0 300.0 L 2170.0 300.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2170.0" y="270.0" width="115.0" height="60.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="2227.5" y="300.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="2227.5" y="291.7">LoRA B</tspan><tspan x="2227.5" y="308.3">r-&gt;C</tspan></text>
+<path d="M 2285.0 300.0 L 2350.0 300.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2350.0" y="270.0" width="110.0" height="60.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="2405.0" y="300.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="2405.0" y="291.7">scale</tspan><tspan x="2405.0" y="308.3">alpha/r</tspan></text>
+<circle cx="2525.0" cy="235.0" r="34.0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="2525.0" y="236.0" text-anchor="middle" font-size="22" font-weight="800" fill="#111111"><tspan x="2525.0" y="236.0">+</tspan></text>
+<path d="M 2025.0 184.0 L 2525.0 184.0 L 2525.0 201.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 2460.0 300.0 L 2525.0 300.0 L 2525.0 269.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 2559.0 235.0 L 2635.0 235.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2640.0" y="226.0" width="18.0" height="18.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="2662.0" y="226.0" width="18.0" height="18.0" rx="0.0" fill="#1685c7" stroke="#111111" stroke-width="1"/>
+<rect x="2684.0" y="226.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="2706.0" y="226.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#111111" stroke-width="1"/>
+<rect x="2728.0" y="226.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#111111" stroke-width="1"/>
+<rect x="2750.0" y="226.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="2772.0" y="226.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="2794.0" y="226.0" width="18.0" height="18.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="2816.0" y="226.0" width="18.0" height="18.0" rx="0.0" fill="#1685c7" stroke="#111111" stroke-width="1"/>
+<text x="2737.0" y="250.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2737.0" y="242.9">LoRA-adapted</tspan><tspan x="2737.0" y="257.1">projection</tspan></text>
+<text x="2010.0" y="410.0" text-anchor="middle" font-size="15" font-weight="800" fill="#0068b7"><tspan x="2010.0" y="410.0">base weights frozen; only LoRA A/B are trainable</tspan></text>
+<text x="350.0" y="620.0" text-anchor="start" font-size="25" font-weight="800" fill="#111111"><tspan x="350.0" y="620.0">refine_head residual mask refinement</tspan></text>
+<path d="M 480.0 258.0 L 480.0 690.0 L 560.0 690.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="575.0" y="648.0" width="22.0" height="22.0" rx="0.0" fill="#079aa9" stroke="#111111" stroke-width="1"/>
+<rect x="601.0" y="648.0" width="22.0" height="22.0" rx="0.0" fill="#2487c7" stroke="#111111" stroke-width="1"/>
+<rect x="627.0" y="648.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="653.0" y="648.0" width="22.0" height="22.0" rx="0.0" fill="#f5d90a" stroke="#111111" stroke-width="1"/>
+<rect x="679.0" y="648.0" width="22.0" height="22.0" rx="0.0" fill="#ff9a16" stroke="#111111" stroke-width="1"/>
+<rect x="705.0" y="648.0" width="22.0" height="22.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<text x="651.0" y="718.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="651.0" y="710.9">image_embeddings</tspan><tspan x="651.0" y="725.1">feature_map [B,C,h,w]</tspan></text>
+<path d="M 730.0 690.0 L 825.0 690.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="825.0" y="650.0" width="165.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="907.5" y="690.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="907.5" y="681.7">resolve</tspan><tspan x="907.5" y="698.3">feature_map</tspan></text>
+<path d="M 990.0 690.0 L 1080.0 690.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1080.0" y="650.0" width="145.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1152.5" y="690.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="1152.5" y="681.7">refine_head</tspan><tspan x="1152.5" y="698.3">Conv 1x1</tspan></text>
+<path d="M 1225.0 690.0 L 1310.0 690.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1315.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#eaf3f7" stroke="#111111" stroke-width="1"/>
+<rect x="1337.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#ffc564" stroke="#111111" stroke-width="1"/>
+<rect x="1359.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#eaf3f7" stroke="#111111" stroke-width="1"/>
+<rect x="1381.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#ffc564" stroke="#111111" stroke-width="1"/>
+<rect x="1403.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#eaf3f7" stroke="#111111" stroke-width="1"/>
+<rect x="1425.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#ffc564" stroke="#111111" stroke-width="1"/>
+<rect x="1447.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#eaf3f7" stroke="#111111" stroke-width="1"/>
+<rect x="1469.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#ffc564" stroke="#111111" stroke-width="1"/>
+<text x="1401.0" y="701.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1401.0" y="701.0">delta [B,1,h,w]</tspan></text>
+<path d="M 1510.0 690.0 L 1570.0 690.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1570.0" y="650.0" width="155.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1647.5" y="690.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="1647.5" y="681.7">bilinear</tspan><tspan x="1647.5" y="698.3">interpolate</tspan></text>
+<path d="M 1725.0 690.0 L 1810.0 690.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1815.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#eaf3f7" stroke="#111111" stroke-width="1"/>
+<rect x="1837.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#ffc564" stroke="#111111" stroke-width="1"/>
+<rect x="1859.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#eaf3f7" stroke="#111111" stroke-width="1"/>
+<rect x="1881.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#ffc564" stroke="#111111" stroke-width="1"/>
+<rect x="1903.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#eaf3f7" stroke="#111111" stroke-width="1"/>
+<rect x="1925.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#ffc564" stroke="#111111" stroke-width="1"/>
+<rect x="1947.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#eaf3f7" stroke="#111111" stroke-width="1"/>
+<rect x="1969.0" y="677.0" width="18.0" height="18.0" rx="0.0" fill="#ffc564" stroke="#111111" stroke-width="1"/>
+<text x="1901.0" y="701.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1901.0" y="701.0">delta [B,1,H,W]</tspan></text>
+<path d="M 2010.0 690.0 L 2080.0 690.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2080.0" y="650.0" width="115.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="2137.5" y="690.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="2137.5" y="681.7">scale</tspan><tspan x="2137.5" y="698.3">0.1</tspan></text>
+<path d="M 2195.0 690.0 L 2355.0 690.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<circle cx="2385.0" cy="670.0" r="34.0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="2385.0" y="671.0" text-anchor="middle" font-size="22" font-weight="800" fill="#111111"><tspan x="2385.0" y="671.0">+</tspan></text>
+<path d="M 2240.0 405.0 L 2325.0 405.0 L 2325.0 650.0 L 2355.0 650.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2385.0" y="608.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2403.0" y="608.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2421.0" y="608.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2439.0" y="608.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2457.0" y="608.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2385.0" y="626.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2403.0" y="626.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2421.0" y="626.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2439.0" y="626.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2457.0" y="626.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2385.0" y="644.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2403.0" y="644.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2421.0" y="644.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2439.0" y="644.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2457.0" y="644.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2385.0" y="662.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2403.0" y="662.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2421.0" y="662.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2439.0" y="662.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2457.0" y="662.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<text x="2430.0" y="700.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2430.0" y="692.9">SAM3</tspan><tspan x="2430.0" y="707.1">mask_logits</tspan></text>
+<path d="M 2419.0 670.0 L 2520.0 670.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2530.0" y="642.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2548.0" y="642.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2566.0" y="642.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2584.0" y="642.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2602.0" y="642.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2620.0" y="642.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2638.0" y="642.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2530.0" y="660.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2548.0" y="660.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2566.0" y="660.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2584.0" y="660.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2602.0" y="660.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2620.0" y="660.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2638.0" y="660.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2530.0" y="678.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2548.0" y="678.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2566.0" y="678.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2584.0" y="678.0" width="18.0" height="18.0" rx="0.0" fill="#ff6a7a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2602.0" y="678.0" width="18.0" height="18.0" rx="0.0" fill="#f2f2f2" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2620.0" y="678.0" width="18.0" height="18.0" rx="0.0" fill="#ffffff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2638.0" y="678.0" width="18.0" height="18.0" rx="0.0" fill="#a9cfe8" stroke="#bfc7ce" stroke-width="1"/>
+<text x="2593.0" y="716.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2593.0" y="708.9">final mask_logits</tspan><tspan x="2593.0" y="723.1">+ 0.1 * delta</tspan></text>
+<path d="M 2660.0 670.0 L 2765.0 670.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2765.0" y="650.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="2820.0" y="690.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="2820.0" y="690.0">sigmoid</tspan></text>
+<path d="M 2875.0 670.0 L 2930.0 670.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2935.0" y="634.0" width="20.0" height="20.0" rx="0.0" fill="#111" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2955.0" y="634.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2975.0" y="634.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2995.0" y="634.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2935.0" y="654.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2955.0" y="654.0" width="20.0" height="20.0" rx="0.0" fill="#111" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2975.0" y="654.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2995.0" y="654.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2935.0" y="674.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2955.0" y="674.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2975.0" y="674.0" width="20.0" height="20.0" rx="0.0" fill="#111" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2995.0" y="674.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2935.0" y="694.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2955.0" y="694.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2975.0" y="694.0" width="20.0" height="20.0" rx="0.0" fill="#fff" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="2995.0" y="694.0" width="20.0" height="20.0" rx="0.0" fill="#111" stroke="#bfc7ce" stroke-width="1"/>
+<text x="2975.0" y="742.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2975.0" y="734.9">Mask</tspan><tspan x="2975.0" y="749.1">[B,1,H,W]</tspan></text>
+<text x="1170.0" y="765.0" text-anchor="middle" font-size="15" font-weight="800" fill="#0068b7"><tspan x="1170.0" y="765.0">refine_head is trainable in the MedEx wrapper and adds a residual correction to SAM3 mask logits</tspan></text>
+<text x="1170.0" y="790.0" text-anchor="middle" font-size="15" font-weight="800" fill="#0068b7"><tspan x="1170.0" y="790.0">final_mask_logits = sam3_mask_logits + 0.1 * refine_delta</tspan></text>
+</svg>

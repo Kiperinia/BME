@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="2400" viewBox="0 0 760 2400" role="img">
+<title>MedicalImageAdapter detailed</title>
+<defs>
+<marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0068b7"/></marker>
+<marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5b61"/></marker>
+<marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#00a95b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7a3bd1"/></marker>
+<marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ff9a16"/></marker>
+<marker id="arrow-black" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#111111"/></marker>
+</defs>
+
+    <style>
+      svg { background: white; }
+      text { font-family: Arial, Helvetica, sans-serif; }
+      .title { font-size: 36px; font-weight: 800; }
+      .subtitle { font-size: 20px; font-weight: 700; fill: #0068b7; }
+      .section-title { font-size: 24px; font-weight: 800; }
+      .label { font-size: 14px; }
+      .note { font-size: 16px; font-weight: 700; fill: #0068b7; }
+      .small { font-size: 12px; }
+      .tiny { font-size: 10px; }
+      .box-text { font-size: 15px; font-weight: 700; }
+    </style>
+
+<text x="38.0" y="50.0" text-anchor="start" font-size="34" font-weight="800" fill="#111111"><tspan x="38.0" y="50.0">(c) MedicalImageAdapter</tspan></text>
+<text x="38.0" y="88.0" text-anchor="start" font-size="14" font-weight="800" fill="#0068b7"><tspan x="38.0" y="88.0">Optional wrapper module: enabled by config enable_medical_adapter; not part of the default LoRA branch</tspan></text>
+<rect x="335.0" y="110.0" width="22.0" height="22.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="357.0" y="110.0" width="22.0" height="22.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="379.0" y="110.0" width="22.0" height="22.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="401.0" y="110.0" width="22.0" height="22.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="335.0" y="132.0" width="22.0" height="22.0" rx="0.0" fill="#7a35c5" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="357.0" y="132.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="379.0" y="132.0" width="22.0" height="22.0" rx="0.0" fill="#7a35c5" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="401.0" y="132.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="335.0" y="154.0" width="22.0" height="22.0" rx="0.0" fill="#ff9a16" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="357.0" y="154.0" width="22.0" height="22.0" rx="0.0" fill="#2487c7" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="379.0" y="154.0" width="22.0" height="22.0" rx="0.0" fill="#ff9a16" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="401.0" y="154.0" width="22.0" height="22.0" rx="0.0" fill="#2487c7" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="335.0" y="176.0" width="22.0" height="22.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="357.0" y="176.0" width="22.0" height="22.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="379.0" y="176.0" width="22.0" height="22.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="401.0" y="176.0" width="22.0" height="22.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<text x="379.0" y="232.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="379.0" y="224.9">feature_map X</tspan><tspan x="379.0" y="239.1">[B,C,H,W]</tspan></text>
+<text x="165.0" y="275.0" text-anchor="start" font-size="22" font-weight="800" fill="#111111"><tspan x="165.0" y="262.0">B. Texture conv path</tspan><tspan x="165.0" y="288.0">(depthwise separable conv)</tspan></text>
+<text x="485.0" y="275.0" text-anchor="start" font-size="22" font-weight="800" fill="#111111"><tspan x="485.0" y="262.0">A. Bottleneck residual path</tspan><tspan x="485.0" y="288.0">(MLP adapter)</tspan></text>
+<path d="M 380.0 205.0 L 380.0 305.0 L 180.0 305.0 L 180.0 360.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 380.0 205.0 L 380.0 305.0 L 520.0 305.0 L 520.0 360.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="125.0" y="360.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="180.0" y="400.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="180.0" y="382.3">Depthwise</tspan><tspan x="180.0" y="400.0">Conv 3x3</tspan><tspan x="180.0" y="417.7">groups=C</tspan></text>
+<rect x="125.0" y="540.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="180.0" y="580.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="180.0" y="580.0">GELU</tspan></text>
+<rect x="125.0" y="700.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="180.0" y="740.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="180.0" y="731.1">Pointwise</tspan><tspan x="180.0" y="748.9">Conv 1x1</tspan></text>
+<path d="M 180.0 440.0 L 180.0 540.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="135.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="153.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="171.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="189.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="135.0" y="478.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="153.0" y="478.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="171.0" y="478.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="189.0" y="478.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="135.0" y="496.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="153.0" y="496.0" width="18.0" height="18.0" rx="0.0" fill="#2487c7" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="171.0" y="496.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="189.0" y="496.0" width="18.0" height="18.0" rx="0.0" fill="#2487c7" stroke="#bfc7ce" stroke-width="1"/>
+<text x="171.0" y="532.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="171.0" y="532.0">[B,C,H,W]</tspan></text>
+<path d="M 180.0 620.0 L 180.0 700.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 180.0 780.0 L 180.0 980.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="130.0" y="815.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="148.0" y="815.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="166.0" y="815.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="184.0" y="815.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="130.0" y="833.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="148.0" y="833.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="166.0" y="833.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="184.0" y="833.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="130.0" y="851.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="148.0" y="851.0" width="18.0" height="18.0" rx="0.0" fill="#2487c7" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="166.0" y="851.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="184.0" y="851.0" width="18.0" height="18.0" rx="0.0" fill="#2487c7" stroke="#bfc7ce" stroke-width="1"/>
+<text x="166.0" y="893.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="166.0" y="885.9">texture_update</tspan><tspan x="166.0" y="900.1">[B,C,H,W]</tspan></text>
+<rect x="465.0" y="360.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="520.0" y="400.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="520.0" y="391.1">permute</tspan><tspan x="520.0" y="408.8">[B,H,W,C]</tspan></text>
+<rect x="465.0" y="550.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="520.0" y="590.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="520.0" y="590.0">LayerNorm(C)</tspan></text>
+<rect x="465.0" y="730.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="520.0" y="770.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="520.0" y="761.1">Linear</tspan><tspan x="520.0" y="778.9">C-&gt;C/4</tspan></text>
+<rect x="465.0" y="900.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="520.0" y="940.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="520.0" y="940.0">GELU</tspan></text>
+<rect x="465.0" y="1060.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="520.0" y="1100.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="520.0" y="1100.0">Dropout</tspan></text>
+<rect x="465.0" y="1220.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="520.0" y="1260.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="520.0" y="1251.2">Linear</tspan><tspan x="520.0" y="1268.9">C/4-&gt;C</tspan></text>
+<rect x="465.0" y="1380.0" width="110.0" height="80.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="520.0" y="1420.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="520.0" y="1411.2">scale</tspan><tspan x="520.0" y="1428.9">gamma</tspan></text>
+<path d="M 520.0 440.0 L 520.0 550.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 520.0 630.0 L 520.0 730.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 520.0 810.0 L 520.0 900.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 520.0 980.0 L 520.0 1060.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 520.0 1140.0 L 520.0 1220.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 520.0 1300.0 L 520.0 1380.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="475.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="493.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="511.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="529.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="547.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="565.0" y="460.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<text x="529.0" y="500.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="529.0" y="492.9">tokens</tspan><tspan x="529.0" y="507.1">[B,H*W,C]</tspan></text>
+<rect x="475.0" y="1320.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="493.0" y="1320.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="511.0" y="1320.0" width="18.0" height="18.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="529.0" y="1320.0" width="18.0" height="18.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="475.0" y="1338.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="493.0" y="1338.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="511.0" y="1338.0" width="18.0" height="18.0" rx="0.0" fill="#7a35c5" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="529.0" y="1338.0" width="18.0" height="18.0" rx="0.0" fill="#00b366" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="475.0" y="1356.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="493.0" y="1356.0" width="18.0" height="18.0" rx="0.0" fill="#2487c7" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="511.0" y="1356.0" width="18.0" height="18.0" rx="0.0" fill="#ff9a16" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="529.0" y="1356.0" width="18.0" height="18.0" rx="0.0" fill="#2487c7" stroke="#bfc7ce" stroke-width="1"/>
+<text x="511.0" y="1398.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="511.0" y="1390.9">adapter_update</tspan><tspan x="511.0" y="1405.1">[B,H,W,C]</tspan></text>
+<circle cx="380.0" cy="1620.0" r="34.0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="380.0" y="1621.0" text-anchor="middle" font-size="22" font-weight="800" fill="#111111"><tspan x="380.0" y="1621.0">+</tspan></text>
+<path d="M 180.0 980.0 L 180.0 1620.0 L 346.0 1620.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 520.0 1460.0 L 520.0 1540.0 L 414.0 1540.0 L 414.0 1588.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 380.0 205.0 L 650.0 205.0 L 650.0 1588.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 380.0 1654.0 L 380.0 1760.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="330.0" y="1765.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="350.0" y="1765.0" width="20.0" height="20.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="370.0" y="1765.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="390.0" y="1765.0" width="20.0" height="20.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="410.0" y="1765.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="330.0" y="1785.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="350.0" y="1785.0" width="20.0" height="20.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="370.0" y="1785.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="390.0" y="1785.0" width="20.0" height="20.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="410.0" y="1785.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="330.0" y="1805.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="350.0" y="1805.0" width="20.0" height="20.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="370.0" y="1805.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="390.0" y="1805.0" width="20.0" height="20.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="410.0" y="1805.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="330.0" y="1825.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="350.0" y="1825.0" width="20.0" height="20.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="370.0" y="1825.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="390.0" y="1825.0" width="20.0" height="20.0" rx="0.0" fill="#f5d90a" stroke="#bfc7ce" stroke-width="1"/>
+<rect x="410.0" y="1825.0" width="20.0" height="20.0" rx="0.0" fill="#079aa9" stroke="#bfc7ce" stroke-width="1"/>
+<text x="380.0" y="1873.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="380.0" y="1858.8">adapted</tspan><tspan x="380.0" y="1873.0">feature_map</tspan><tspan x="380.0" y="1887.2">[B,C,H,W]</tspan></text>
+<path d="M 380.0 1900.0 L 380.0 2030.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="290.0" y="2030.0" width="180.0" height="110.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="380.0" y="2085.0" text-anchor="middle" font-size="18" font-weight="700" fill="#111111"><tspan x="380.0" y="2063.8">refine_head /</tspan><tspan x="380.0" y="2085.0">downstream</tspan><tspan x="380.0" y="2106.2">mask</tspan></text>
+</svg>

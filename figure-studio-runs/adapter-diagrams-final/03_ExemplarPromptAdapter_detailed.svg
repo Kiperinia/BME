@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="980" viewBox="0 0 3000 980" role="img">
+<title>ExemplarPromptAdapter</title>
+<defs>
+<marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0068b7"/></marker>
+<marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5b61"/></marker>
+<marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#00a95b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7a3bd1"/></marker>
+<marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ff9a16"/></marker>
+<marker id="arrow-black" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#111111"/></marker>
+</defs>
+
+    <style>
+      svg { background: white; }
+      text { font-family: Arial, Helvetica, sans-serif; }
+      .title { font-size: 36px; font-weight: 800; }
+      .subtitle { font-size: 20px; font-weight: 700; fill: #0068b7; }
+      .section-title { font-size: 24px; font-weight: 800; }
+      .label { font-size: 14px; }
+      .note { font-size: 16px; font-weight: 700; fill: #0068b7; }
+      .small { font-size: 12px; }
+      .tiny { font-size: 10px; }
+      .box-text { font-size: 15px; font-weight: 700; }
+    </style>
+
+<text x="25.0" y="50.0" text-anchor="start" font-size="36" font-weight="800" fill="#111111"><tspan x="25.0" y="50.0">(e) ExemplarPromptAdapter</tspan></text>
+<text x="500.0" y="82.0" text-anchor="start" font-size="16" font-weight="800" fill="#0068b7"><tspan x="500.0" y="82.0">Independent prompt branch: positive + boundary + negative tokens all enter visual_prompt_embed</tspan></text>
+<text x="820.0" y="105.0" text-anchor="start" font-size="26" font-weight="800" fill="#111111"><tspan x="820.0" y="105.0">Summary / Gate branch</tspan></text>
+<text x="30.0" y="141.0" text-anchor="start" font-size="16" font-weight="800" fill="#111111"><tspan x="30.0" y="131.6">query_feat</tspan><tspan x="30.0" y="150.4">[B,C]</tspan></text>
+<rect x="190.0" y="123.0" width="23.0" height="23.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="217.0" y="123.0" width="23.0" height="23.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="244.0" y="123.0" width="23.0" height="23.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="271.0" y="123.0" width="23.0" height="23.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="298.0" y="123.0" width="23.0" height="23.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="325.0" y="123.0" width="23.0" height="23.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<path d="M 410.0 135.0 L 700.0 135.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="710.0" y="124.0" width="20.0" height="20.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="734.0" y="124.0" width="20.0" height="20.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="758.0" y="124.0" width="20.0" height="20.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="782.0" y="124.0" width="20.0" height="20.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="806.0" y="124.0" width="20.0" height="20.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="830.0" y="124.0" width="20.0" height="20.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="854.0" y="124.0" width="20.0" height="20.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="878.0" y="124.0" width="20.0" height="20.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<rect x="902.0" y="124.0" width="20.0" height="20.0" rx="0.0" fill="#0d83bd" stroke="#111111" stroke-width="1"/>
+<text x="816.0" y="166.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="816.0" y="158.9">query_summary</tspan><tspan x="816.0" y="173.1">[B,C]</tspan></text>
+<path d="M 900.0 135.0 L 1000.0 135.0 L 1000.0 305.0 L 1045.0 305.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+<text x="30.0" y="256.0" text-anchor="start" font-size="16" font-weight="800" fill="#111111"><tspan x="30.0" y="246.6">positive_proto</tspan><tspan x="30.0" y="265.4">[B,Kp,C]</tspan></text>
+<rect x="190.0" y="238.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="217.0" y="238.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="244.0" y="238.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="271.0" y="238.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="298.0" y="238.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="325.0" y="238.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<path d="M 355.0 250.0 L 485.0 250.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="485.0" y="220.0" width="100.0" height="60.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="535.0" y="250.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="535.0" y="241.7">reduce</tspan><tspan x="535.0" y="258.3">mean</tspan></text>
+<path d="M 585.0 250.0 L 700.0 250.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="710.0" y="239.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="734.0" y="239.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="758.0" y="239.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="782.0" y="239.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="806.0" y="239.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="830.0" y="239.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="854.0" y="239.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="878.0" y="239.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="902.0" y="239.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<text x="816.0" y="281.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="816.0" y="273.9">positive_summary</tspan><tspan x="816.0" y="288.1">[B,C]</tspan></text>
+<path d="M 900.0 250.0 L 1000.0 250.0 L 1000.0 305.0 L 1045.0 305.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+<text x="30.0" y="376.0" text-anchor="start" font-size="16" font-weight="800" fill="#111111"><tspan x="30.0" y="366.6">boundary_proto</tspan><tspan x="30.0" y="385.4">[B,Kb,C]</tspan></text>
+<rect x="190.0" y="358.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="217.0" y="358.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="244.0" y="358.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="271.0" y="358.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="298.0" y="358.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="325.0" y="358.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<path d="M 355.0 370.0 L 485.0 370.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="485.0" y="340.0" width="100.0" height="60.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="535.0" y="370.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="535.0" y="361.7">reduce</tspan><tspan x="535.0" y="378.3">mean</tspan></text>
+<path d="M 585.0 370.0 L 700.0 370.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="710.0" y="359.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="734.0" y="359.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="758.0" y="359.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="782.0" y="359.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="806.0" y="359.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="830.0" y="359.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="854.0" y="359.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="878.0" y="359.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="902.0" y="359.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<text x="816.0" y="401.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="816.0" y="393.9">boundary_summary</tspan><tspan x="816.0" y="408.1">[B,C]</tspan></text>
+<path d="M 900.0 370.0 L 1000.0 370.0 L 1000.0 305.0 L 1045.0 305.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+<text x="30.0" y="496.0" text-anchor="start" font-size="16" font-weight="800" fill="#111111"><tspan x="30.0" y="486.6">negative_proto</tspan><tspan x="30.0" y="505.4">[B,Kn,C]</tspan></text>
+<rect x="190.0" y="478.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="217.0" y="478.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="244.0" y="478.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="271.0" y="478.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="298.0" y="478.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="325.0" y="478.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<path d="M 355.0 490.0 L 485.0 490.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="485.0" y="460.0" width="100.0" height="60.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="535.0" y="490.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="535.0" y="481.7">reduce</tspan><tspan x="535.0" y="498.3">mean</tspan></text>
+<path d="M 585.0 490.0 L 700.0 490.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="710.0" y="479.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="734.0" y="479.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="758.0" y="479.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="782.0" y="479.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="806.0" y="479.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="830.0" y="479.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="854.0" y="479.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="878.0" y="479.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="902.0" y="479.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<text x="816.0" y="521.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="816.0" y="513.9">negative_summary</tspan><tspan x="816.0" y="528.1">[B,C]</tspan></text>
+<path d="M 900.0 490.0 L 1000.0 490.0 L 1000.0 305.0 L 1045.0 305.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<circle cx="1100.0" cy="305.0" r="42.0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="1100.0" y="306.0" text-anchor="middle" font-size="18" font-weight="800" fill="#111111"><tspan x="1100.0" y="295.4">concat</tspan><tspan x="1100.0" y="316.6">4C</tspan></text>
+<path d="M 1142.0 305.0 L 1215.0 305.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1215.0" y="270.0" width="125.0" height="70.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1277.5" y="305.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="1277.5" y="296.7">Linear</tspan><tspan x="1277.5" y="313.3">4C-&gt;C</tspan></text>
+<path d="M 1340.0 305.0 L 1405.0 305.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1405.0" y="270.0" width="100.0" height="70.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1455.0" y="305.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="1455.0" y="305.0">GELU</tspan></text>
+<path d="M 1505.0 305.0 L 1570.0 305.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1570.0" y="270.0" width="125.0" height="70.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1632.5" y="305.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="1632.5" y="296.7">Linear</tspan><tspan x="1632.5" y="313.3">C-&gt;4</tspan></text>
+<path d="M 1695.0 305.0 L 1765.0 305.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1765.0" y="288.0" width="35.0" height="35.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<text x="1782.0" y="270.0" text-anchor="middle" font-size="11" font-weight="400" fill="#111111"><tspan x="1782.0" y="270.0">g_pos</tspan></text>
+<path d="M 1782.0 323.0 L 1782.0 580.0 L 1738.0 615.0" fill="none" stroke="#00b366" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1840.0" y="288.0" width="35.0" height="35.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<text x="1857.0" y="270.0" text-anchor="middle" font-size="11" font-weight="400" fill="#111111"><tspan x="1857.0" y="270.0">g_neg</tspan></text>
+<path d="M 1857.0 323.0 L 1857.0 700.0 L 1738.0 735.0" fill="none" stroke="#7a35c5" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1915.0" y="288.0" width="35.0" height="35.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<text x="1932.0" y="270.0" text-anchor="middle" font-size="11" font-weight="400" fill="#111111"><tspan x="1932.0" y="270.0">g_bnd</tspan></text>
+<path d="M 1932.0 323.0 L 1932.0 820.0 L 1738.0 855.0" fill="none" stroke="#ff9412" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1990.0" y="288.0" width="35.0" height="35.0" rx="0.0" fill="#0060a8" stroke="#111111" stroke-width="1"/>
+<text x="2007.0" y="270.0" text-anchor="middle" font-size="11" font-weight="400" fill="#111111"><tspan x="2007.0" y="270.0">g_sup</tspan></text>
+<path d="M 1990.0 305.0 L 2060.0 305.0 L 2060.0 305.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" stroke-dasharray="12 9" marker-end="url(#arrow-blue)"/>
+<text x="2070.0" y="305.0" text-anchor="start" font-size="18" font-weight="800" fill="#111111"><tspan x="2070.0" y="305.0">suppression_gate</tspan></text>
+<text x="30.0" y="622.0" text-anchor="start" font-size="16" font-weight="800" fill="#111111"><tspan x="30.0" y="612.6">positive_proto</tspan><tspan x="30.0" y="631.4">[B,Kp,C]</tspan></text>
+<rect x="190.0" y="608.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="217.0" y="608.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="244.0" y="608.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="271.0" y="608.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="298.0" y="608.0" width="23.0" height="23.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<path d="M 330.0 620.0 L 405.0 620.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="405.0" y="588.0" width="110.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="460.0" y="620.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="460.0" y="612.3">Linear</tspan><tspan x="460.0" y="627.7">C-&gt;C</tspan></text>
+<path d="M 515.0 620.0 L 575.0 620.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="580.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="604.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="628.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="652.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="676.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<path d="M 700.0 620.0 L 760.0 620.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="760.0" y="588.0" width="90.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="805.0" y="620.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="805.0" y="620.0">GELU</tspan></text>
+<path d="M 850.0 620.0 L 915.0 620.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="915.0" y="588.0" width="120.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="975.0" y="620.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="975.0" y="612.3">Linear</tspan><tspan x="975.0" y="627.7">C-&gt;4C</tspan></text>
+<path d="M 1035.0 620.0 L 1110.0 620.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1115.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1139.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1163.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1187.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1211.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<path d="M 1230.0 620.0 L 1295.0 620.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1295.0" y="588.0" width="100.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1345.0" y="620.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="1345.0" y="620.0">reshape</tspan></text>
+<path d="M 1395.0 620.0 L 1460.0 620.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1465.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1489.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1513.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="1537.0" y="610.0" width="20.0" height="20.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<text x="1511.0" y="652.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1511.0" y="644.9">positive tokens x4</tspan><tspan x="1511.0" y="659.1">[B,4,C]</tspan></text>
+<circle cx="1730.0" cy="620.0" r="32.0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="1730.0" y="621.0" text-anchor="middle" font-size="20" font-weight="800" fill="#111111"><tspan x="1730.0" y="621.0">x</tspan></text>
+<path d="M 1545.0 620.0 L 1698.0 620.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 1760.0 620.0 L 1865.0 770.0 L 1930.0 770.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<text x="30.0" y="742.0" text-anchor="start" font-size="16" font-weight="800" fill="#111111"><tspan x="30.0" y="732.6">boundary_proto</tspan><tspan x="30.0" y="751.4">[B,Kb,C]</tspan></text>
+<rect x="190.0" y="728.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="217.0" y="728.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="244.0" y="728.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="271.0" y="728.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="298.0" y="728.0" width="23.0" height="23.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<path d="M 330.0 740.0 L 405.0 740.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="405.0" y="708.0" width="110.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="460.0" y="740.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="460.0" y="732.3">Linear</tspan><tspan x="460.0" y="747.7">C-&gt;C</tspan></text>
+<path d="M 515.0 740.0 L 575.0 740.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="580.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="604.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="628.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="652.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="676.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<path d="M 700.0 740.0 L 760.0 740.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="760.0" y="708.0" width="90.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="805.0" y="740.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="805.0" y="740.0">GELU</tspan></text>
+<path d="M 850.0 740.0 L 915.0 740.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="915.0" y="708.0" width="120.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="975.0" y="740.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="975.0" y="732.3">Linear</tspan><tspan x="975.0" y="747.7">C-&gt;2C</tspan></text>
+<path d="M 1035.0 740.0 L 1110.0 740.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1115.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="1139.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="1163.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="1187.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="1211.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<path d="M 1230.0 740.0 L 1295.0 740.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1295.0" y="708.0" width="100.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1345.0" y="740.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="1345.0" y="740.0">reshape</tspan></text>
+<path d="M 1395.0 740.0 L 1460.0 740.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1465.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="1489.0" y="730.0" width="20.0" height="20.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<text x="1487.0" y="772.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1487.0" y="764.9">boundary tokens x2</tspan><tspan x="1487.0" y="779.1">[B,2,C]</tspan></text>
+<circle cx="1730.0" cy="740.0" r="32.0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="1730.0" y="741.0" text-anchor="middle" font-size="20" font-weight="800" fill="#111111"><tspan x="1730.0" y="741.0">x</tspan></text>
+<path d="M 1545.0 740.0 L 1698.0 740.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 1760.0 740.0 L 1865.0 770.0 L 1930.0 770.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<text x="30.0" y="862.0" text-anchor="start" font-size="16" font-weight="800" fill="#111111"><tspan x="30.0" y="852.6">negative_proto</tspan><tspan x="30.0" y="871.4">[B,Kn,C]</tspan></text>
+<rect x="190.0" y="848.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="217.0" y="848.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="244.0" y="848.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="271.0" y="848.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="298.0" y="848.0" width="23.0" height="23.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<path d="M 330.0 860.0 L 405.0 860.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="405.0" y="828.0" width="110.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="460.0" y="860.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="460.0" y="852.3">Linear</tspan><tspan x="460.0" y="867.7">C-&gt;C</tspan></text>
+<path d="M 515.0 860.0 L 575.0 860.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="580.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="604.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="628.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="652.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="676.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<path d="M 700.0 860.0 L 760.0 860.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="760.0" y="828.0" width="90.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="805.0" y="860.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="805.0" y="860.0">GELU</tspan></text>
+<path d="M 850.0 860.0 L 915.0 860.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="915.0" y="828.0" width="120.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="975.0" y="860.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="975.0" y="852.3">Linear</tspan><tspan x="975.0" y="867.7">C-&gt;2C</tspan></text>
+<path d="M 1035.0 860.0 L 1110.0 860.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1115.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="1139.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="1163.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="1187.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="1211.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<path d="M 1230.0 860.0 L 1295.0 860.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1295.0" y="828.0" width="100.0" height="64.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="1345.0" y="860.0" text-anchor="middle" font-size="13" font-weight="700" fill="#111111"><tspan x="1345.0" y="860.0">reshape</tspan></text>
+<path d="M 1395.0 860.0 L 1460.0 860.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="1465.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="1489.0" y="850.0" width="20.0" height="20.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<text x="1487.0" y="892.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="1487.0" y="884.9">negative tokens x2</tspan><tspan x="1487.0" y="899.1">[B,2,C]</tspan></text>
+<circle cx="1730.0" cy="860.0" r="32.0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="1730.0" y="861.0" text-anchor="middle" font-size="20" font-weight="800" fill="#111111"><tspan x="1730.0" y="861.0">x</tspan></text>
+<path d="M 1545.0 860.0 L 1698.0 860.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<path d="M 1760.0 860.0 L 1865.0 770.0 L 1930.0 770.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<circle cx="1935.0" cy="770.0" r="55.0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="1935.0" y="771.0" text-anchor="middle" font-size="13" font-weight="800" fill="#111111"><tspan x="1935.0" y="763.3">concat:</tspan><tspan x="1935.0" y="778.7">pos | bnd | neg</tspan></text>
+<path d="M 1990.0 770.0 L 2095.0 770.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2100.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="2126.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="2152.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="2178.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="2204.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="2230.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="2256.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="2282.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="2308.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<text x="2215.0" y="803.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2215.0" y="803.0">prompt_tokens [B,8,C]</tspan></text>
+<text x="2100.0" y="835.0" text-anchor="start" font-size="13" font-weight="800" fill="#0068b7"><tspan x="2100.0" y="835.0">token order: positive x4 + boundary x2 + negative x2</tspan></text>
+<path d="M 2310.0 770.0 L 2385.0 770.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2385.0" y="735.0" width="115.0" height="70.0" rx="9.0" fill="#fff45a" stroke="#111111" stroke-width="2"/>
+<text x="2442.5" y="770.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111111"><tspan x="2442.5" y="770.0">LayerNorm</tspan></text>
+<path d="M 2500.0 770.0 L 2585.0 770.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2590.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="2616.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="2642.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#00b366" stroke="#111111" stroke-width="1"/>
+<rect x="2668.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="2694.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#ff9412" stroke="#111111" stroke-width="1"/>
+<rect x="2720.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="2746.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<rect x="2772.0" y="758.0" width="22.0" height="22.0" rx="0.0" fill="#7a35c5" stroke="#111111" stroke-width="1"/>
+<text x="2692.0" y="803.0" text-anchor="middle" font-size="12" font-weight="400" fill="#111111"><tspan x="2692.0" y="795.9">visual prompt embeddings</tspan><tspan x="2692.0" y="810.1">[B,8,C]</tspan></text>
+<path d="M 2780.0 770.0 L 2820.0 770.0" fill="none" stroke="#0068b7" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter" marker-end="url(#arrow-blue)"/>
+<rect x="2820.0" y="708.0" width="95.0" height="124.0" rx="9.0" fill="#dff1ff" stroke="#0068b7" stroke-width="2"/>
+<text x="2867.5" y="770.0" text-anchor="middle" font-size="15" font-weight="700" fill="#111111"><tspan x="2867.5" y="752.3">SAM3</tspan><tspan x="2867.5" y="770.0">prompt</tspan><tspan x="2867.5" y="787.7">encoder</tspan></text>
+</svg>
