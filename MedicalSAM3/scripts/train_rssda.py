@@ -1,4 +1,4 @@
-"""Train retrieval-conditioned spatial-semantic domain adaptation for MedEx-SAM3."""
+"""训练 MedEx-SAM3 的检索条件空间-语义域自适应（RSS-DA）。"""
 
 from __future__ import annotations
 
@@ -40,6 +40,14 @@ from MedicalSAM3.yolo_adapter.cli import add_yolo_bbox_args, build_box_provider_
 
 
 def _resolve_hidden_dim(model: torch.nn.Module) -> int:
+    """从模型属性解析隐藏维度，回退到默认值 128。
+
+    参数：
+        - model: 模型模块
+
+    返回：
+        - 隐藏维度整数
+    """
     return int(getattr(model, "hidden_dim", getattr(model, "_medex_hidden_dim", getattr(model, "embed_dim", 128))))
 
 
@@ -50,6 +58,18 @@ def _cross_domain_consistency_loss(
     retrieved_entries: list[list[object]],
     records: list[dict[str, object]],
 ) -> torch.Tensor:
+    """计算跨域一致性损失，当检索正例来自不同域时施加惩罚。
+
+    参数：
+        - criterion: 跨域一致性损失函数
+        - query_global: 查询全局嵌入张量
+        - positive_prototype: 正例原型张量
+        - retrieved_entries: 每个样本检索到的条目列表
+        - records: 样本记录列表
+
+    返回：
+        - 跨域一致性损失张量
+    """
     penalties = []
     for batch_index, entries in enumerate(retrieved_entries):
         record_source = infer_source_domain(
@@ -71,6 +91,15 @@ def _cross_domain_consistency_loss(
 
 
 def _apply_retrieval_mode(retrieval: dict[str, object], mode: str) -> dict[str, object]:
+    """根据检索模式过滤或保留检索结果中的正例/负例部分。
+
+    参数：
+        - retrieval: 原始检索结果字典
+        - mode: 检索模式，可选 "joint"/"semantic"/"spatial"/"positive-only"/"negative-only"/"positive-negative"
+
+    返回：
+        - 处理后的检索结果字典
+    """
     if mode not in {"joint", "semantic", "spatial", "positive-only", "negative-only", "positive-negative"}:
         raise ValueError(f"Unsupported retrieval mode: {mode}")
     if mode in {"joint", "semantic", "spatial", "positive-negative"}:
@@ -96,6 +125,15 @@ def _apply_retrieval_mode(retrieval: dict[str, object], mode: str) -> dict[str, 
 
 
 def _load_checkpoint_payload(path: Path, device: str) -> object:
+    """从文件加载检查点负载。
+
+    参数：
+        - path: 检查点文件路径
+        - device: 目标设备
+
+    返回：
+        - 加载的检查点对象
+    """
     return torch.load(path, map_location=device, weights_only=False)
 
 
@@ -106,6 +144,18 @@ def _maybe_load_rssda_bundle(
     retriever: PrototypeRetriever,
     similarity_builder: SimilarityHeatmapBuilder,
 ) -> bool:
+    """尝试从检查点加载 RSS-DA 组件（适配器、检索器、相似度构建器）。
+
+    参数：
+        - path: 检查点文件路径
+        - device: 目标设备
+        - adapter: 检索空间-语义适配器
+        - retriever: 原型检索器
+        - similarity_builder: 相似度热图构建器
+
+    返回：
+        - 是否成功加载任意组件的布尔值
+    """
     payload = _load_checkpoint_payload(path, device)
     if not isinstance(payload, dict):
         return False
@@ -126,6 +176,14 @@ def _maybe_load_rssda_bundle(
 
 
 def main() -> int:
+    """脚本命令行入口，执行 RSS-DA 训练。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Train RSS-DA for MedEx-SAM3.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--memory-bank", default="MedicalSAM3/banks/train_bank")

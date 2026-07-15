@@ -1,4 +1,4 @@
-"""Region-level uncertainty maps for localized retrieval correction."""
+"""区域级不确定性图，用于局部检索校正。"""
 
 from __future__ import annotations
 
@@ -9,6 +9,14 @@ import torch.nn.functional as F
 
 
 def entropy_from_logits(mask_logits: torch.Tensor) -> torch.Tensor:
+    """从 logits 计算预测熵。
+
+    参数：
+        - mask_logits: 模型输出的原始 logits。
+
+    返回：
+        - 与输入形状相同的熵图。
+    """
     probability = torch.sigmoid(mask_logits)
     safe_probability = probability.clamp(1e-6, 1.0 - 1e-6)
     entropy = -(
@@ -19,11 +27,28 @@ def entropy_from_logits(mask_logits: torch.Tensor) -> torch.Tensor:
 
 
 def confidence_from_logits(mask_logits: torch.Tensor) -> torch.Tensor:
+    """从 logits 计算置信度图。
+
+    参数：
+        - mask_logits: 模型输出的原始 logits。
+
+    返回：
+        - 置信度图，值域为 [0, 1]。
+    """
     probability = torch.sigmoid(mask_logits)
     return (probability - 0.5).abs() * 2.0
 
 
 def boundary_uncertainty_from_logits(mask_logits: torch.Tensor, kernel_size: int = 5) -> torch.Tensor:
+    """从 logits 计算边界不确定性图。
+
+    参数：
+        - mask_logits: 模型输出的原始 logits。
+        - kernel_size: 平均池化的核大小，默认为 5。
+
+    返回：
+        - 边界不确定性图，值域为 [0, 1]。
+    """
     probability = torch.sigmoid(mask_logits)
     pooled = F.avg_pool2d(probability, kernel_size=kernel_size, stride=1, padding=kernel_size // 2)
     boundary_residual = (probability - pooled).abs()
@@ -31,6 +56,15 @@ def boundary_uncertainty_from_logits(mask_logits: torch.Tensor, kernel_size: int
 
 
 def low_confidence_lesion_from_logits(mask_logits: torch.Tensor, confidence_threshold: float = 0.85) -> torch.Tensor:
+    """从 logits 计算低置信度病变区域图。
+
+    参数：
+        - mask_logits: 模型输出的原始 logits。
+        - confidence_threshold: 置信度阈值，默认为 0.85。
+
+    返回：
+        - 低置信度病变区域图。
+    """
     probability = torch.sigmoid(mask_logits)
     confidence = confidence_from_logits(mask_logits)
     lesion_region = (probability >= 0.5).to(dtype=mask_logits.dtype)
@@ -39,6 +73,15 @@ def low_confidence_lesion_from_logits(mask_logits: torch.Tensor, confidence_thre
 
 
 def build_region_uncertainty_maps(mask_logits: torch.Tensor, confidence_threshold: float = 0.85) -> dict[str, torch.Tensor]:
+    """构建区域不确定性图集合，包括概率图、置信度图、熵图和边界不确定性图等。
+
+    参数：
+        - mask_logits: 模型输出的原始 logits。
+        - confidence_threshold: 置信度阈值，默认为 0.85。
+
+    返回：
+        - 包含各个不确定性相关图的字典。
+    """
     confidence_map = confidence_from_logits(mask_logits)
     entropy_map = entropy_from_logits(mask_logits)
     boundary_uncertainty_map = boundary_uncertainty_from_logits(mask_logits)

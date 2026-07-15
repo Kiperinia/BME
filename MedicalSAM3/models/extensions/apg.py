@@ -11,14 +11,29 @@ import torch.nn.functional as F
 
 
 class AdaptivePromptGenerator(nn.Module):
-    """
-    Adaptive Prompt Generator (APG)
+    """自适应提示生成器，从图像特征预测候选框与点提示。
 
-    从图像特征自动推断候选 bounding box 和关键点，减少对外部 prompt 的依赖。
+    参数：
+        - in_channels: 输入特征通道数。
+        - num_queries: 点提示查询数量。
+        - embed_dim: 嵌入维度。
+
+    返回：
+        - 构建可用的自适应提示生成模块实例。
     """
 
     def __init__(self, in_channels: int = 256, num_queries: int = 8,
                  embed_dim: int = 256):
+        """初始化自适应提示生成器的各预测分支。
+
+        参数：
+            - in_channels: 输入特征通道数。
+            - num_queries: 点提示查询数量。
+            - embed_dim: 嵌入维度。
+
+        返回：
+            - 无返回值，完成子模块与可学习参数的构建。
+        """
         super().__init__()
         self.num_queries = num_queries
         self.embed_dim = embed_dim
@@ -40,7 +55,16 @@ class AdaptivePromptGenerator(nn.Module):
     def forward(self, features: torch.Tensor,
                 gt_bbox: Optional[torch.Tensor] = None
                 ) -> Dict[str, torch.Tensor]:
-        """从特征图中预测 bbox、关键点和可选监督损失。"""
+        """根据图像特征生成候选框、点提示及可选的边界框损失。
+
+        参数：
+            - features: 形状为 [B, C, H, W] 的图像特征张量。
+            - gt_bbox: 可选的真值归一化边界框，用于计算 bbox_loss。
+
+        返回：
+            - 包含 pred_bbox、pred_points、point_scores、cls_map 的字典；
+              提供 gt_bbox 时额外返回 bbox_loss。
+        """
 
         B, C, H, W = features.shape
         rpn_feat = self.rpn_conv(features)

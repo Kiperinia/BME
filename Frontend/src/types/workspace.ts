@@ -304,25 +304,115 @@ export const PARIS_SUBTYPE_OPTIONS: Record<ParisMorphologyGroup, ParisSubtypeOpt
   ],
 }
 
+/**
+ * brief:
+ *   Build paris classification.
+ *
+ * parameter:
+ *   - detail: Input value for detail.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const buildParisClassification = (detail: DetailedParisConfiguration) => {
   return `${PARIS_GROUP_LABELS[detail.morphologyGroup]} / ${detail.subtypeCode} ${detail.displayLabel}：${detail.featureSummary}`
 }
 
+/**
+ * brief:
+ *   Create formal patient id.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const createFormalPatientId = () => {
+  /**
+   * brief:
+   *   Handle now.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const now = new Date()
+  /**
+   * brief:
+   *   Handle yyyy.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const yyyy = now.getFullYear()
+  /**
+   * brief:
+   *   Handle mm.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const mm = String(now.getMonth() + 1).padStart(2, '0')
+  /**
+   * brief:
+   *   Handle dd.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const dd = String(now.getDate()).padStart(2, '0')
+  /**
+   * brief:
+   *   Handle suffix.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const suffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
   return `PAT-${yyyy}${mm}${dd}-${suffix}`
 }
 
+/**
+ * brief:
+ *   Create default patient.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const createDefaultPatient = (): WorkspacePatient => ({
   patientId: createFormalPatientId(),
   patientName: '',
   examDate: '',
 })
 
+/**
+ * brief:
+ *   Create default paris detail.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const createDefaultParisDetail = (): DetailedParisConfiguration => {
   const fallbackOption: ParisSubtypeOption = {
     code: '0-IIb',
@@ -330,6 +420,16 @@ export const createDefaultParisDetail = (): DetailedParisConfiguration => {
     summary: '完全平坦，与周围黏膜齐平。',
     featureReference: '病灶与周围黏膜基本齐平，常依赖色泽、腺管和血管纹理变化进行识别。',
   }
+  /**
+   * brief:
+   *   Handle default option.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const defaultOption = PARIS_SUBTYPE_OPTIONS.flat[2] ?? fallbackOption
 
   return {
@@ -342,7 +442,27 @@ export const createDefaultParisDetail = (): DetailedParisConfiguration => {
   }
 }
 
+/**
+ * brief:
+ *   Create default expert configuration.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const createDefaultExpertConfiguration = (): ExpertConfiguration => {
+  /**
+   * brief:
+   *   Handle paris detail.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const parisDetail = createDefaultParisDetail()
 
   return {
@@ -355,11 +475,42 @@ export const createDefaultExpertConfiguration = (): ExpertConfiguration => {
   }
 }
 
+/**
+ * brief:
+ *   Create paris detail from selection.
+ *
+ * parameter:
+ *   - morphologyGroup: Input value for morphologyGroup.
+ *   - selectedSubtypeIndex: Input value for selectedSubtypeIndex.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const createParisDetailFromSelection = (
   morphologyGroup: ParisMorphologyGroup,
   selectedSubtypeIndex: number,
 ): DetailedParisConfiguration => {
+  /**
+   * brief:
+   *   Handle options.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const options = PARIS_SUBTYPE_OPTIONS[morphologyGroup]
+  /**
+   * brief:
+   *   Handle safe index.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const safeIndex = Math.min(Math.max(selectedSubtypeIndex, 0), options.length - 1)
   const fallbackOption: ParisSubtypeOption = {
     code: '0-IIb',
@@ -367,6 +518,16 @@ export const createParisDetailFromSelection = (
     summary: '完全平坦，与周围黏膜齐平。',
     featureReference: '病灶与周围黏膜基本齐平，常依赖色泽、腺管和血管纹理变化进行识别。',
   }
+  /**
+   * brief:
+   *   Handle option.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const option = options[safeIndex] ?? options[0] ?? fallbackOption
 
   return {
@@ -379,6 +540,16 @@ export const createParisDetailFromSelection = (
   }
 }
 
+/**
+ * brief:
+ *   Format paris classification.
+ *
+ * parameter:
+ *   - detail: Input value for detail.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const formatParisClassification = (detail: DetailedParisConfiguration) => {
   return buildParisClassification(detail)
 }

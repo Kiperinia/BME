@@ -6,6 +6,15 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class LlmProfileSchema(BaseModel):
+    """brief:
+        Represent LlmProfileSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     profileId: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9._-]+$")
     providerKind: Literal["openai_compatible", "modelscope"] = "openai_compatible"
     defaultProvider: str = Field(default="openai", min_length=1, max_length=64)
@@ -16,11 +25,29 @@ class LlmProfileSchema(BaseModel):
 
 
 class LlmSettingsSchema(BaseModel):
+    """brief:
+        Represent LlmSettingsSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     activeProfile: str = Field(default="openai_compatible", min_length=1, max_length=128)
     profiles: list[LlmProfileSchema] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_profiles(self) -> "LlmSettingsSchema":
+        """brief:
+            Validate profiles.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not self.profiles:
             raise ValueError("at least one LLM profile is required")
 
@@ -35,6 +62,15 @@ class LlmSettingsSchema(BaseModel):
 
 
 class AgentSettingsSchema(BaseModel):
+    """brief:
+        Represent AgentSettingsSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     enableLlm: bool = True
     enableLlmReport: bool = True
     pixelSizeMm: float = Field(default=0.15, gt=0.0, le=10.0)
@@ -46,6 +82,15 @@ class AgentSettingsSchema(BaseModel):
 
 
 class Sam3SettingsSchema(BaseModel):
+    """brief:
+        Represent Sam3SettingsSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     loadMode: Literal["mock", "sam3"] = "mock"
     device: str = Field(default="cuda", min_length=1, max_length=32)
     checkpointPath: str = Field(default="")
@@ -58,12 +103,30 @@ class Sam3SettingsSchema(BaseModel):
 
 
 class RuntimeSettingsSchema(BaseModel):
+    """brief:
+        Represent RuntimeSettingsSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     inferenceTimeoutSeconds: int = Field(default=20, ge=1, le=300)
     maxUploadSizeMb: int = Field(default=20, ge=1, le=200)
     mockDelayMs: int = Field(default=0, ge=0, le=10000)
 
 
 class SystemSettingsPayloadSchema(BaseModel):
+    """brief:
+        Represent SystemSettingsPayloadSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     llm: LlmSettingsSchema = Field(default_factory=LlmSettingsSchema)
     agent: AgentSettingsSchema = Field(default_factory=AgentSettingsSchema)
     sam3: Sam3SettingsSchema = Field(default_factory=Sam3SettingsSchema)
@@ -71,6 +134,15 @@ class SystemSettingsPayloadSchema(BaseModel):
 
 
 class SystemSettingsStatusSchema(BaseModel):
+    """brief:
+        Represent SystemSettingsStatusSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     llmReady: bool
     sam3Ready: bool
     sam3RuntimeMode: Literal["mock", "sam3"]
@@ -81,5 +153,14 @@ class SystemSettingsStatusSchema(BaseModel):
 
 
 class SystemSettingsResponseSchema(BaseModel):
+    """brief:
+        Represent SystemSettingsResponseSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     settings: SystemSettingsPayloadSchema
     status: SystemSettingsStatusSchema

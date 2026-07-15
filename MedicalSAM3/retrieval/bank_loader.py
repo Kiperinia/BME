@@ -1,4 +1,4 @@
-"""Filesystem-backed positive/negative retrieval bank loader."""
+"""基于文件系统的正/负样本检索库加载器。"""
 
 from __future__ import annotations
 
@@ -24,6 +24,15 @@ STRICT_PROTOCOL_PURPOSES = {"train", "validation", "external-eval"}
 
 
 def _match_feature_dim(features: torch.Tensor, target_dim: int) -> torch.Tensor:
+    """调整特征张量的最后一维以匹配目标维度（截断或填充）。
+
+    参数：
+        - features: 输入特征张量。
+        - target_dim: 目标维度。
+
+    返回：
+        - 调整后的特征张量。
+    """
     if features.shape[-1] == target_dim:
         return features
     if features.shape[-1] > target_dim:
@@ -33,6 +42,14 @@ def _match_feature_dim(features: torch.Tensor, target_dim: int) -> torch.Tensor:
 
 @dataclass
 class LoadedBankContext:
+    """已加载银行库的上下文数据类，包含银行对象、解析路径、来源和统计信息。
+
+    参数：
+        - 无。
+
+    返回：
+        - 用于下游工作流的已加载银行上下文实例。
+    """
     bank: RSSDABank
     resolved_path: Path
     source: str
@@ -42,20 +59,53 @@ class LoadedBankContext:
 
 
 def _resolve_runtime_device(requested_device: str) -> str:
+    """解析运行时的计算设备（CPU/CUDA）。
+
+    参数：
+        - requested_device: 请求的设备名称。
+
+    返回：
+        - 解析后的设备名称。
+    """
     return resolve_runtime_device(requested_device)
 
 
 def _looks_like_directory_bank(path: Path) -> bool:
+    """检查路径是否看起来是目录结构的银行库（包含 positive/negative 子目录）。
+
+    参数：
+        - path: 待检查的路径。
+
+    返回：
+        - 是否为目录格式的银行库。
+    """
     return (path / "positive").is_dir() and (path / "negative").is_dir()
 
 
 def _looks_like_metadata_bank(path: Path) -> bool:
+    """检查路径是否看起来是元数据格式的银行库（JSON 文件或包含 metadata.json）。
+
+    参数：
+        - path: 待检查的路径。
+
+    返回：
+        - 是否为元数据格式的银行库。
+    """
     if path.is_file():
         return path.suffix == ".json"
     return (path / "metadata.json").exists() or (path / "positive_bank").is_dir() or (path / "negative_bank").is_dir()
 
 
 def resolve_protocol_bank_path(bank_path: str | Path, purpose: str = "train") -> Path:
+    """根据协议目的解析银行路径，校验 strict 协议下的路径合法性。
+
+    参数：
+        - bank_path: 银行路径。
+        - purpose: 使用目的，如 "train"、"validation"、"external-eval"。
+
+    返回：
+        - 解析后的银行路径。
+    """
     resolved = Path(bank_path)
     normalized_purpose = purpose.strip().lower()
     if (resolved / "train_bank").is_dir() and (resolved / "continual_bank").is_dir() and normalized_purpose in STRICT_PROTOCOL_PURPOSES:
@@ -80,6 +130,21 @@ def load_retrieval_bank(
     cache_dir: Optional[str | Path] = None,
     allow_dummy_fallback: bool = False,
 ) -> LoadedBankContext:
+    """加载检索银行库，支持元数据格式和目录格式，自动解析路径并返回上下文。
+
+    参数：
+        - bank_path: 银行路径。
+        - purpose: 使用目的。
+        - checkpoint: 模型检查点路径。
+        - device: 计算设备。
+        - precision: 精度（如 "fp16"、"fp32"）。
+        - image_size: 图像尺寸。
+        - cache_dir: 缓存目录。
+        - allow_dummy_fallback: 是否允许使用虚拟数据回退。
+
+    返回：
+        - LoadedBankContext 实例，包含银行对象和加载信息。
+    """
     resolved_path = resolve_protocol_bank_path(bank_path, purpose=purpose)
     if _looks_like_metadata_bank(resolved_path):
         bank = RSSDABank.load(resolved_path)
@@ -102,6 +167,21 @@ def load_retrieval_bank(
 
 
 class DirectoryBankLoader:
+    """目录结构银行库加载器，从 positive/negative 图像目录加载并缓存特征。
+
+    参数：
+        - bank_root: 银行库根目录。
+        - checkpoint: 模型检查点路径。
+        - device: 计算设备。
+        - precision: 精度。
+        - image_size: 图像尺寸。
+        - cache_dir: 缓存目录。
+        - allow_dummy_fallback: 是否允许虚拟数据回退。
+        - default_top_k: 默认 top-k 数量。
+
+    返回：
+        - 用于构建和检索银行库的加载器实例。
+    """
     def __init__(
         self,
         bank_root: str | Path,
@@ -114,6 +194,18 @@ class DirectoryBankLoader:
         allow_dummy_fallback: bool = False,
         default_top_k: int = 1,
     ) -> None:
+        """初始化 DirectoryBankLoader，设置银行根目录和模型参数。
+
+        参数：
+            - bank_root: 银行库根目录。
+            - checkpoint: 模型检查点路径。
+            - device: 计算设备。
+            - precision: 精度。
+            - image_size: 图像尺寸。
+            - cache_dir: 缓存目录。
+            - allow_dummy_fallback: 是否允许虚拟数据回退。
+            - default_top_k: 默认 top-k 数量。
+        """
         self.bank_root = Path(bank_root)
         self.checkpoint = checkpoint
         self.device = _resolve_runtime_device(device)
@@ -130,13 +222,37 @@ class DirectoryBankLoader:
 
     @property
     def last_stats(self) -> dict[str, int]:
+        """返回最近一次构建的统计信息。
+
+        参数：
+            - 无。
+
+        返回：
+            - 包含正/负样本数、缓存命中/未命中次数的字典。
+        """
         return dict(self._stats)
 
     @property
     def last_warnings(self) -> list[str]:
+        """返回最近一次构建的警告信息列表。
+
+        参数：
+            - 无。
+
+        返回：
+            - 警告字符串列表。
+        """
         return list(self._warnings)
 
     def build_context(self) -> LoadedBankContext:
+        """构建完整的加载银行上下文，包含银行对象和统计信息。
+
+        参数：
+            - 无。
+
+        返回：
+            - LoadedBankContext 实例。
+        """
         bank = self.build_bank()
         return LoadedBankContext(
             bank=bank,
@@ -148,6 +264,14 @@ class DirectoryBankLoader:
         )
 
     def build_bank(self) -> RSSDABank:
+        """构建 RSSDA 银行库，扫描图像目录并提取特征，利用缓存加速。
+
+        参数：
+            - 无。
+
+        返回：
+            - 构建完成的 RSSDABank 实例。
+        """
         positive_paths = self._scan_images("positive")
         negative_paths = self._scan_images("negative")
         cache_hits = 0
@@ -194,6 +318,19 @@ class DirectoryBankLoader:
         query_source_datasets: Optional[list[str]] = None,
         prefer_cross_domain_positive: bool = False,
     ) -> dict[str, Any]:
+        """根据查询特征从银行库中检索 top-k 正/负样本原型。
+
+        参数：
+            - query_feature: 查询特征图。
+            - top_k: 全局 top-k 数量。
+            - top_k_positive: 正样本 top-k 数量。
+            - top_k_negative: 负样本 top-k 数量。
+            - query_source_datasets: 查询来源数据集列表，用于跨域偏好。
+            - prefer_cross_domain_positive: 是否优先选择跨域正样本。
+
+        返回：
+            - 包含检索结果（特征、权重、原型、条目、分数等）的字典。
+        """
         bank = self._bank or self.build_bank()
         query_global = F.normalize(F.adaptive_avg_pool2d(query_feature, 1).flatten(1), dim=1)
         positive_entries = bank.get_entries(polarity="positive", human_verified=True)
@@ -320,6 +457,16 @@ class DirectoryBankLoader:
         entries: list[PrototypeBankEntry],
         top_k: int,
     ) -> tuple[torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor, torch.Tensor]:
+        """单条查询的检索逻辑，计算相似度并返回 top-k 原型、条目和权重。
+
+        参数：
+            - query_global: 单个查询的全局特征向量。
+            - entries: 待检索的条目列表。
+            - top_k: 返回的 top-k 数量。
+
+        返回：
+            - (prototype, selected_entries, values, selected_features, weights) 五元组。
+        """
         dim = int(query_global.shape[-1])
         if not entries:
             return (
@@ -340,12 +487,29 @@ class DirectoryBankLoader:
         return prototype, selected_entries, values, selected_features, weights
 
     def _bank_features(self, entries: list[PrototypeBankEntry], device: str | torch.device) -> torch.Tensor:
+        """加载条目列表的特征，对齐维度后堆叠并归一化。
+
+        参数：
+            - entries: 原型银行条目列表。
+            - device: 目标计算设备。
+
+        返回：
+            - 归一化后的特征堆叠张量。
+        """
         features = [RSSDABank.load_feature(entry, device=device) for entry in entries]
         target_dim = max((int(feature.shape[-1]) for feature in features), default=0)
         aligned = [_match_feature_dim(feature, target_dim) for feature in features]
         return F.normalize(torch.stack(aligned, dim=0), dim=-1)
 
     def _scan_images(self, polarity: str) -> list[Path]:
+        """扫描指定极性的图像目录，支持 legacy 和 structured 两种布局。
+
+        参数：
+            - polarity: 极性（"positive" 或 "negative"）。
+
+        返回：
+            - 图像文件路径列表。
+        """
         root = self.bank_root / polarity
         if not root.exists():
             return []
@@ -382,6 +546,16 @@ class DirectoryBankLoader:
         return legacy_images
 
     def _build_entry(self, image_path: Path, cache_path: Path, polarity: str) -> PrototypeBankEntry:
+        """根据图像路径构建 PrototypeBankEntry 对象。
+
+        参数：
+            - image_path: 图像文件路径。
+            - cache_path: 特征缓存路径。
+            - polarity: 极性（"positive" 或 "negative"）。
+
+        返回：
+            - 构建的 PrototypeBankEntry 实例。
+        """
         dataset_name = infer_source_domain(
             dataset_name=image_path.parent.name,
             image_id=image_path.stem,
@@ -414,24 +588,59 @@ class DirectoryBankLoader:
         )
 
     def _prototype_id(self, image_path: Path, polarity: str) -> str:
+        """根据图像路径和极性生成唯一原型 ID。
+
+        参数：
+            - image_path: 图像文件路径。
+            - polarity: 极性。
+
+        返回：
+            - 原型 ID 字符串。
+        """
         relative_path = self._relative_bank_path(image_path)
         slug = re.sub(r"[^a-zA-Z0-9]+", "_", relative_path.rsplit(".", 1)[0]).strip("_").lower()
         digest = hashlib.sha1(relative_path.encode("utf-8")).hexdigest()[:12]
         return f"{polarity}_{slug}_{digest}"
 
     def _cache_path(self, image_path: Path, polarity: str) -> Path:
+        """根据图像路径和极性生成缓存文件路径。
+
+        参数：
+            - image_path: 图像文件路径。
+            - polarity: 极性。
+
+        返回：
+            - 缓存文件路径。
+        """
         prototype_id = self._prototype_id(image_path, polarity)
         target = self.cache_root / polarity
         target.mkdir(parents=True, exist_ok=True)
         return target / f"{prototype_id}.pt"
 
     def _relative_bank_path(self, image_path: Path) -> str:
+        """计算图像路径相对于银行根目录的 POSIX 风格路径。
+
+        参数：
+            - image_path: 图像文件路径。
+
+        返回：
+            - 相对路径字符串（POSIX 格式）。
+        """
         try:
             return image_path.relative_to(self.bank_root).as_posix()
         except ValueError:
             return image_path.name
 
     def _resolve_mask_path(self, image_path: Path, polarity: str) -> Path | None:
+        """解析与图像对应的掩码文件路径。
+
+        参数：
+            - image_path: 图像文件路径。
+            - polarity: 极性。
+
+        返回：
+            - 掩码文件路径，若不存在则返回 None。
+        """
         mask_root = self.bank_root / polarity / "masks"
         image_root = self.bank_root / polarity / "images"
         if image_root in image_path.parents and mask_root.exists():
@@ -448,6 +657,12 @@ class DirectoryBankLoader:
         return None
 
     def _validate_structured_pairing(self, *, polarity: str, image_paths: list[Path]) -> None:
+        """验证结构化银行布局中图像与掩码的配对完整性。
+
+        参数：
+            - polarity: 极性。
+            - image_paths: 图像路径列表。
+        """
         mask_root = self.bank_root / polarity / "masks"
         if not mask_root.exists():
             self._warn(
@@ -462,12 +677,26 @@ class DirectoryBankLoader:
             )
 
     def _warn(self, message: str) -> None:
+        """记录并发出警告消息，避免重复。
+
+        参数：
+            - message: 警告消息内容。
+        """
         if message in self._warnings:
             return
         self._warnings.append(message)
         warnings.warn(message, RuntimeWarning, stacklevel=2)
 
     def _is_cache_valid(self, image_path: Path, cache_path: Path) -> bool:
+        """检查缓存文件是否仍然有效（源文件未修改且参数匹配）。
+
+        参数：
+            - image_path: 源图像文件路径。
+            - cache_path: 缓存文件路径。
+
+        返回：
+            - 缓存是否有效。
+        """
         if not cache_path.exists():
             return False
         try:
@@ -488,6 +717,14 @@ class DirectoryBankLoader:
         )
 
     def _write_cache(self, image_path: Path, cache_path: Path, prototype: torch.Tensor, polarity: str) -> None:
+        """将提取的原型特征写入缓存文件，附带源文件元信息以验证有效性。
+
+        参数：
+            - image_path: 源图像文件路径。
+            - cache_path: 缓存文件路径。
+            - prototype: 原型特征张量。
+            - polarity: 极性。
+        """
         source_stat = image_path.stat()
         torch.save(
             {
@@ -502,6 +739,14 @@ class DirectoryBankLoader:
         )
 
     def _ensure_wrapper(self) -> Sam3TensorForwardWrapper:
+        """确保模型包装器已初始化（懒加载），加载 SAM3 模型并冻结。
+
+        参数：
+            - 无。
+
+        返回：
+            - Sam3TensorForwardWrapper 实例。
+        """
         if self._wrapper is None:
             model = build_official_sam3_image_model(
                 self.checkpoint,
@@ -518,6 +763,14 @@ class DirectoryBankLoader:
         return self._wrapper
 
     def _encode_image(self, image_path: Path) -> torch.Tensor:
+        """对单张图像进行编码，提取全局原型特征。
+
+        参数：
+            - image_path: 图像文件路径。
+
+        返回：
+            - 提取的归一化原型特征张量。
+        """
         wrapper = self._ensure_wrapper()
         image = Image.open(image_path).convert("RGB").resize((self.image_size, self.image_size))
         image_array = np.asarray(image).astype("float32") / 255.0

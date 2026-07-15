@@ -1,14 +1,47 @@
 <script setup lang="ts">
 import type { WorkspacePatient } from '@/types/workspace'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - field: Input value for field.
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   modelValue: WorkspacePatient
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - field: Input value for field.
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'update:modelValue', value: WorkspacePatient): void
 }>()
 
+/**
+ * brief:
+ *   Update field.
+ *
+ * parameter:
+ *   - field: Input value for field.
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const updateField = <K extends keyof WorkspacePatient>(field: K, value: WorkspacePatient[K]) => {
   emit('update:modelValue', {
     ...props.modelValue,

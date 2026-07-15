@@ -36,6 +36,18 @@ async def generate_report_draft(
     settings: Settings = Depends(get_settings),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[GenerateReportDraftResponseSchema]:
+    """brief:
+        Handle generate report draft.
+
+    parameter:
+        - payload: Input value for payload.
+        - engine: Input value for engine.
+        - settings: Input value for settings.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = AgentWorkflowService(settings=settings, sam3_engine=engine)
     try:
         result = await run_in_threadpool(service.generate_report_draft, payload)
@@ -61,6 +73,18 @@ async def infer_annotation_tags(
     settings: Settings = Depends(get_settings),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[FetchAnnotationTagsResponseSchema]:
+    """brief:
+        Infer annotation tags.
+
+    parameter:
+        - payload: Input value for payload.
+        - engine: Input value for engine.
+        - settings: Input value for settings.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = AgentWorkflowService(settings=settings, sam3_engine=engine)
     try:
         result = await run_in_threadpool(service.infer_annotation_tags, payload)
@@ -84,6 +108,16 @@ async def save_report_draft(
     payload: SaveReportDraftRequestSchema,
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[ReportDraftRecordSchema]:
+    """brief:
+        Save report draft.
+
+    parameter:
+        - payload: Input value for payload.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     try:
         return ApiResponse(
             data=ReportDraftRecordSchema(

@@ -53,11 +53,38 @@ logger = logging.getLogger(__name__)
 
 
 class ReportContextService:
+    """brief:
+        Represent ReportContextService state and behavior.
+
+    parameter:
+        - session: Input value for session.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self, session: AsyncSession | None = None):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - session: Input value for session.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.session = session
         self.repository = None if session is None else PatientRepository(session=session)
 
     async def list_patient_previews(self) -> list[PatientContextSchema]:
+        """brief:
+            List patient previews.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         patients = await self._list_patients()
         return [self._patient_to_schema(patient) for patient in patients]
 
@@ -66,6 +93,16 @@ class ReportContextService:
         report_id: str | None = None,
         patient_id: str | None = None,
     ) -> ReportContextSchema:
+        """brief:
+            Get report context.
+
+        parameter:
+            - report_id: Input value for report_id.
+            - patient_id: Input value for patient_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         patient = await self._resolve_patient(patient_id=patient_id)
         frame_id_seed = report_id or patient.patientId
         source_id = report_id or "scope-session-20260416-01"
@@ -135,6 +172,15 @@ class ReportContextService:
         )
 
     async def ensure_seed_data(self) -> None:
+        """brief:
+            Handle ensure seed data.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         if self.repository is None:
             return
 
@@ -152,6 +198,15 @@ class ReportContextService:
         await self.repository.upsert_many(seed_rows)
 
     async def _resolve_patient(self, patient_id: str | None) -> PatientContextSchema:
+        """brief:
+            Resolve patient.
+
+        parameter:
+            - patient_id: Input value for patient_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         patients = await self._list_patients()
         if not patients:
             raise AppException(404, 40421, "no patients were found")
@@ -166,6 +221,15 @@ class ReportContextService:
         return self._patient_to_schema(matched)
 
     async def _list_patients(self) -> list[Patient]:
+        """brief:
+            List patients.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if self.repository is not None:
             try:
                 patients = await self.repository.list_all()
@@ -188,6 +252,15 @@ class ReportContextService:
 
     @staticmethod
     def _patient_to_schema(patient: Patient) -> PatientContextSchema:
+        """brief:
+            Handle patient to schema.
+
+        parameter:
+            - patient: Input value for patient.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return PatientContextSchema(
             patientId=patient.patient_id,
             patientName=patient.patient_name,
@@ -198,6 +271,15 @@ class ReportContextService:
         )
 
     def _resolve_medex_visualization_assets(self) -> dict[str, str | list[str]] | None:
+        """brief:
+            Resolve medex visualization assets.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not MEDEX_VISUALIZATION_DIR.exists():
             return None
 
@@ -228,5 +310,14 @@ class ReportContextService:
 
     @staticmethod
     def _to_medex_asset_url(path: Path) -> str:
+        """brief:
+            Handle to medex asset url.
+
+        parameter:
+            - path: Input value for path.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         relative_path = path.relative_to(MEDICALSAM3_OUTPUTS_DIR).as_posix()
         return f"{MEDEX_ASSET_PREFIX}/{relative_path}"

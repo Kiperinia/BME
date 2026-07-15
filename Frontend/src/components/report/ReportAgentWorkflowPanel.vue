@@ -3,10 +3,30 @@ import { computed } from 'vue'
 
 import type { AgentDetailSummary, AgentMainTool, AgentRun, AgentWorkflowSummary } from '@/types/eis'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   workflow: AgentWorkflowSummary | null
 }>()
 
+/**
+ * brief:
+ *   Handle workflow state label.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const workflowStateLabel = computed(() => {
   if (!props.workflow) {
     return '待运行'
@@ -15,6 +35,16 @@ const workflowStateLabel = computed(() => {
   return props.workflow.workflowMode === 'llm' ? 'LLM Agent' : '规则 Agent'
 })
 
+/**
+ * brief:
+ *   Handle workflow generated at.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const workflowGeneratedAt = computed(() => {
   if (!props.workflow) {
     return '尚未运行'
@@ -28,6 +58,16 @@ const workflowGeneratedAt = computed(() => {
   }).format(new Date(props.workflow.generatedAt))
 })
 
+/**
+ * brief:
+ *   Handle as main tool chain.
+ *
+ * parameter:
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const asMainToolChain = (value: unknown): AgentMainTool[] => {
   if (!Array.isArray(value)) {
     return []
@@ -42,14 +82,54 @@ const asMainToolChain = (value: unknown): AgentMainTool[] => {
     .filter((item) => item.name)
 }
 
+/**
+ * brief:
+ *   Handle agent details.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const agentDetails = computed<AgentDetailSummary[]>(() => {
+  /**
+   * brief:
+   *   Handle closed loop details.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const closedLoopDetails = props.workflow?.closedLoopSummary?.agentDetails
   if (closedLoopDetails?.length) {
     return closedLoopDetails
   }
 
   return (props.workflow?.agentRuns ?? []).map((run: AgentRun) => {
+    /**
+     * brief:
+     *   Handle observations.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const observations = run.observations ?? {}
+    /**
+     * brief:
+     *   Handle main tool chain.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const mainToolChain = asMainToolChain(observations.mainToolChain)
     return {
       agentName: run.agentName,
@@ -73,8 +153,28 @@ const agentDetails = computed<AgentDetailSummary[]>(() => {
   })
 })
 
+/**
+ * brief:
+ *   Format disposition.
+ *
+ * parameter:
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const formatDisposition = (value: string) => value.replaceAll('_', ' ')
 
+/**
+ * brief:
+ *   Handle compact output.
+ *
+ * parameter:
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const compactOutput = (value: unknown) => {
   if (value === null || value === undefined || value === '') {
     return '无'
@@ -86,6 +186,16 @@ const compactOutput = (value: unknown) => {
     return `${value.length} 项`
   }
   try {
+    /**
+     * brief:
+     *   Handle text.
+     *
+     * parameter:
+     *   - outputs: Input value for outputs.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const text = JSON.stringify(value)
     return text.length > 120 ? `${text.slice(0, 120)}...` : text
   } catch {
@@ -93,6 +203,16 @@ const compactOutput = (value: unknown) => {
   }
 }
 
+/**
+ * brief:
+ *   Handle key output entries.
+ *
+ * parameter:
+ *   - outputs: Input value for outputs.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const keyOutputEntries = (outputs: Record<string, unknown>) => {
   return Object.entries(outputs)
     .filter(([key]) => !['agentDetail', 'promptDesign', 'mainToolChain', 'diagnosis'].includes(key))

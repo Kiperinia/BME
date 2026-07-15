@@ -13,6 +13,10 @@ import torch.nn.functional as F
 
 @dataclass
 class PrototypeBankEntry:
+    """原型库条目数据类。
+
+    存储每个原型的特征路径、极性、数据集来源、质量分数和元数据。
+    """
     prototype_id: str
     feature_path: str
     polarity: str
@@ -30,12 +34,33 @@ class PrototypeBankEntry:
 
 
 class RSSDABank:
+    """检索条件空间-语义适应（RSS-DA）原型库。
+
+    提供原型的增删查改、加载保存和特征堆叠功能。
+    """
     def __init__(self, entries: Optional[list[PrototypeBankEntry]] = None, version: str = "rssda_v0") -> None:
+        """初始化原型库。
+
+        参数：
+            - entries: 初始原型条目列表（可选）
+            - version: 版本标识（默认 "rssda_v0"）
+
+        返回：
+            - None
+        """
         self.entries = entries or []
         self.version = version
 
     @classmethod
     def load(cls, path: str | Path) -> "RSSDABank":
+        """从路径加载原型库，支持 JSON 元数据文件和分目录两种格式。
+
+        参数：
+            - path: 库路径或元数据文件路径
+
+        返回：
+            - RSSDABank 实例
+        """
         target = Path(path)
         if not target.exists():
             return cls()
@@ -54,6 +79,16 @@ class RSSDABank:
         return cls(entries=entries)
 
     def save(self, root: str | Path) -> Path:
+        """将原型库保存到指定根目录。
+
+        同时生成 metadata.json 和按极性组织的分目录 JSON 文件。
+
+        参数：
+            - root: 保存根目录路径
+
+        返回：
+            - 元数据文件的 Path 对象
+        """
         destination = Path(root)
         destination.mkdir(parents=True, exist_ok=True)
         (destination / "positive_bank").mkdir(parents=True, exist_ok=True)
@@ -70,6 +105,16 @@ class RSSDABank:
         return metadata_path
 
     def add_entry(self, entry: PrototypeBankEntry) -> None:
+        """添加或更新一个原型条目。
+
+        若条目 ID 已存在则替换。
+
+        参数：
+            - entry: 原型条目对象
+
+        返回：
+            - None
+        """
         if entry.polarity not in {"positive", "negative"}:
             raise ValueError(f"Unsupported polarity: {entry.polarity}")
         self.entries = [item for item in self.entries if item.prototype_id != entry.prototype_id]
@@ -81,6 +126,18 @@ class RSSDABank:
         source_dataset: Optional[str] = None,
         human_verified: Optional[bool] = None,
     ) -> list[PrototypeBankEntry]:
+        """根据条件筛选原型条目。
+
+        支持按极性、数据集来源和人工验证状态过滤。
+
+        参数：
+            - polarity: 极性过滤（"positive"/"negative"，可选）
+            - source_dataset: 数据集来源过滤（可选）
+            - human_verified: 人工验证状态过滤（可选）
+
+        返回：
+            - 符合条件的 PrototypeBankEntry 列表
+        """
         entries = self.entries
         if polarity is not None:
             entries = [entry for entry in entries if entry.polarity == polarity]
@@ -92,6 +149,17 @@ class RSSDABank:
 
     @staticmethod
     def load_feature(entry: PrototypeBankEntry, device: str | torch.device = "cpu") -> torch.Tensor:
+        """加载条目的特征张量到指定设备。
+
+        支持 .pt 文件中封装为字典或直接为张量的格式。
+
+        参数：
+            - entry: 原型条目对象
+            - device: 目标设备（默认 "cpu"）
+
+        返回：
+            - 浮点特征张量
+        """
         payload = torch.load(Path(entry.feature_path), map_location=device, weights_only=False)
         if isinstance(payload, dict):
             for key in ["prototype", "feature", "embedding"]:
@@ -107,6 +175,15 @@ class RSSDABank:
         entries: list[PrototypeBankEntry],
         device: str | torch.device = "cpu",
     ) -> torch.Tensor:
+        """将多个条目的特征堆叠为批处理张量，自动对齐特征维度。
+
+        参数：
+            - entries: 原型条目列表
+            - device: 目标设备（默认 "cpu"）
+
+        返回：
+            - 堆叠后的特征张量
+        """
         if not entries:
             return torch.empty(0, 0, device=device)
         features = [self.load_feature(entry, device=device) for entry in entries]

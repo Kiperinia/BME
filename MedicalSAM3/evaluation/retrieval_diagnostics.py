@@ -1,4 +1,4 @@
-"""Structured retrieval diagnostics export helpers."""
+"""结构化检索诊断导出辅助工具。"""
 
 from __future__ import annotations
 
@@ -12,18 +12,43 @@ from MedicalSAM3.exemplar_bank.bank import PrototypeBankEntry
 
 
 def _mean_scalar(value: Optional[torch.Tensor]) -> float:
+    """计算张量的均值并返回标量，无效输入返回 0.0。
+
+    参数：
+        - value: 输入张量。
+
+    返回：
+        - 均值标量值。
+    """
     if value is None or not isinstance(value, torch.Tensor) or value.numel() == 0:
         return 0.0
     return float(value.detach().float().mean().item())
 
 
 def _mean_abs_scalar(value: Optional[torch.Tensor]) -> float:
+    """计算张量的绝对值的均值，无效输入返回 0.0。
+
+    参数：
+        - value: 输入张量。
+
+    返回：
+        - 绝对值均值标量值。
+    """
     if value is None or not isinstance(value, torch.Tensor) or value.numel() == 0:
         return 0.0
     return float(value.detach().float().abs().mean().item())
 
 
 def _batch_scalar(value: Any, batch_index: int = 0) -> float:
+    """从批次张量中提取指定索引的均值标量。
+
+    参数：
+        - value: 批次张量或值。
+        - batch_index: 批次索引。
+
+    返回：
+        - 均值标量值。
+    """
     if isinstance(value, torch.Tensor) and value.numel() > 0:
         if value.dim() == 0:
             return float(value.detach().float().item())
@@ -33,6 +58,14 @@ def _batch_scalar(value: Any, batch_index: int = 0) -> float:
 
 
 def _score_list(value: Any) -> list[float]:
+    """将张量或嵌套列表转换为扁平化的浮点数列表。
+
+    参数：
+        - value: 输入张量或列表。
+
+    返回：
+        - 浮点数列表。
+    """
     if isinstance(value, torch.Tensor):
         return [float(item) for item in value.detach().cpu().flatten().tolist()]
     if isinstance(value, list):
@@ -51,6 +84,16 @@ def _serialize_entries(
     scores: list[float],
     weights: list[float],
 ) -> list[dict[str, Any]]:
+    """将原型银行条目序列化为可 JSON 序列化的字典列表。
+
+    参数：
+        - entries: 原型银行条目列表。
+        - scores: 相似度分数列表。
+        - weights: 检索权重列表。
+
+    返回：
+        - 序列化后的字典列表。
+    """
     serialized: list[dict[str, Any]] = []
     for index, entry in enumerate(entries):
         serialized.append(
@@ -67,6 +110,16 @@ def _serialize_entries(
 
 
 def _serialize_nested_topk(payload: dict[str, Any], polarity: str, batch_index: int) -> list[dict[str, Any]]:
+    """序列化嵌套在 multi_bank_fusion 中的 top-k 条目信息。
+
+    参数：
+        - payload: multi_bank_fusion 的 payload 字典。
+        - polarity: 极性（"positive" 或 "negative"）。
+        - batch_index: 批次索引。
+
+    返回：
+        - 序列化后的条目字典列表。
+    """
     entries = payload.get(f"{polarity}_entries", [])
     scores = payload.get(f"{polarity}_scores", [])
     weights = payload.get(f"{polarity}_weights")
@@ -77,6 +130,14 @@ def _serialize_nested_topk(payload: dict[str, Any], polarity: str, batch_index: 
 
 
 def _stats(values: list[float]) -> dict[str, float]:
+    """计算浮点数列表的基本统计量（均值、标准差、最小值、最大值）。
+
+    参数：
+        - values: 浮点数列表。
+
+    返回：
+        - 包含 mean、std、min、max 的字典。
+    """
     if not values:
         return {"mean": 0.0, "std": 0.0, "min": 0.0, "max": 0.0}
     tensor = torch.tensor(values, dtype=torch.float32)
@@ -89,6 +150,15 @@ def _stats(values: list[float]) -> dict[str, float]:
 
 
 def _histogram(values: list[float], bins: int = 10) -> dict[str, Any]:
+    """计算浮点数列表的直方图分布。
+
+    参数：
+        - values: 浮点数列表。
+        - bins: 柱数，默认为 10。
+
+    返回：
+        - 包含 min、max、edges、counts 的字典。
+    """
     if not values:
         return {"min": 0.0, "max": 0.0, "edges": [], "counts": []}
     tensor = torch.tensor(values, dtype=torch.float32)
@@ -108,6 +178,16 @@ def _histogram(values: list[float], bins: int = 10) -> dict[str, Any]:
 
 
 def _activation_curve(scores: list[float], weights: list[float], bins: int = 10) -> dict[str, Any]:
+    """计算分数-权重的激活曲线，按分数分箱统计平均权重。
+
+    参数：
+        - scores: 相似度分数列表。
+        - weights: 权重列表。
+        - bins: 柱数，默认为 10。
+
+    返回：
+        - 包含 edges、counts、mean_weight 的字典。
+    """
     pair_count = min(len(scores), len(weights))
     if pair_count == 0:
         return {"min": 0.0, "max": 0.0, "edges": [], "counts": [], "mean_weight": []}
@@ -141,6 +221,15 @@ def _activation_curve(scores: list[float], weights: list[float], bins: int = 10)
 
 
 def _collect_nested(rows: list[dict[str, Any]], *keys: str) -> list[float]:
+    """从嵌套字典列表中按键路径收集浮点数值。
+
+    参数：
+        - rows: 字典列表。
+        - *keys: 键路径（可变参数）。
+
+    返回：
+        - 收集到的浮点数列表。
+    """
     values: list[float] = []
     for row in rows:
         current: Any = row
@@ -167,6 +256,19 @@ def build_retrieval_diagnostics(
     batch_index: int = 0,
     sample_metadata: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
+    """构建检索诊断字典，包含 top-k 信息、相似度分数、门控诊断、多库融合等。
+
+    参数：
+        - image_id: 图像 ID。
+        - retrieval: 检索结果字典。
+        - adapter_aux: 适配器辅助输出。
+        - outputs: 模型输出字典。
+        - batch_index: 批次索引。
+        - sample_metadata: 样本元数据。
+
+    返回：
+        - 完整的检索诊断字典。
+    """
     positive_entries = retrieval.get("positive_entries", [[]])
     negative_entries = retrieval.get("negative_entries", [[]])
     positive_scores = retrieval.get("positive_scores", [])
@@ -286,6 +388,15 @@ def build_retrieval_diagnostics(
 
 
 def summarize_retrieval_diagnostics(rows: list[dict[str, Any]], bins: int = 10) -> dict[str, Any]:
+    """汇总检索诊断结果，计算相似度分布、门控分布、策略分布、校准权重分布等统计量。
+
+    参数：
+        - rows: 诊断行列表。
+        - bins: 直方图柱数，默认为 10。
+
+    返回：
+        - 汇总统计字典。
+    """
     positive_similarity = _collect_nested(rows, "similarity_score", "positive_mean")
     negative_similarity = _collect_nested(rows, "similarity_score", "negative_mean")
     similarity_margin = _collect_nested(rows, "similarity_score", "margin")
@@ -396,6 +507,15 @@ def summarize_retrieval_diagnostics(rows: list[dict[str, Any]], bins: int = 10) 
 
 
 def write_retrieval_diagnostics(path: str | Path, rows: list[dict[str, Any]]) -> Path:
+    """将检索诊断行写入文件（JSONL 或 JSON 格式）。
+
+    参数：
+        - path: 输出文件路径。
+        - rows: 诊断行列表。
+
+    返回：
+        - 写入的文件路径。
+    """
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.suffix.lower() == ".jsonl":
@@ -406,6 +526,16 @@ def write_retrieval_diagnostics(path: str | Path, rows: list[dict[str, Any]]) ->
 
 
 def write_retrieval_diagnostics_summary(path: str | Path, rows: list[dict[str, Any]], bins: int = 10) -> Path:
+    """生成并保存检索诊断汇总统计 JSON 文件。
+
+    参数：
+        - path: 输出文件路径。
+        - rows: 诊断行列表。
+        - bins: 直方图柱数。
+
+    返回：
+        - 写入的文件路径。
+    """
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(summarize_retrieval_diagnostics(rows, bins=bins), indent=2), encoding="utf-8")

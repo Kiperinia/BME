@@ -37,6 +37,18 @@ async def generate_workspace_report(
     settings: Settings = Depends(get_settings),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[WorkspaceReportResponseSchema]:
+    """brief:
+        Handle generate workspace report.
+
+    parameter:
+        - payload: Input value for payload.
+        - engine: Input value for engine.
+        - settings: Input value for settings.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = WorkspaceService(settings=settings, sam3_engine=engine)
     try:
         result = await run_in_threadpool(service.generate_report, payload)
@@ -60,6 +72,16 @@ async def evaluate_exemplar_candidate(
     payload: ExemplarBankRequestSchema,
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[ExemplarBankDecisionSchema]:
+    """brief:
+        Evaluate exemplar candidate.
+
+    parameter:
+        - payload: Input value for payload.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = ExemplarBankService()
     try:
         result = await run_in_threadpool(service.evaluate_and_store, payload)
@@ -83,6 +105,16 @@ async def retrieve_exemplar_prior(
     payload: ExemplarRetrievalRequestSchema,
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[ExemplarRetrievalResponseSchema]:
+    """brief:
+        Handle retrieve exemplar prior.
+
+    parameter:
+        - payload: Input value for payload.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = ExemplarBankService()
     try:
         result = await run_in_threadpool(service.retrieve_prior, payload)
@@ -106,6 +138,16 @@ async def update_exemplar_feedback(
     payload: ExemplarFeedbackRequestSchema,
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[ExemplarFeedbackResponseSchema]:
+    """brief:
+        Update exemplar feedback.
+
+    parameter:
+        - payload: Input value for payload.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = ExemplarBankService()
     try:
         result = await run_in_threadpool(service.apply_feedback, payload)

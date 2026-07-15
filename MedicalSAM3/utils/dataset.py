@@ -25,9 +25,17 @@ POLYPGEN_EXTERNAL_PREFIXES = ("C1", "C2", "C3", "C4", "C5", "C6")
 
 
 class MedicalSegDataset(Dataset):
-    """
-    通用医学图像分割数据集
-    支持 image + mask + bbox 的加载与增强。
+    """通用医学分割数据集类，支持图像-掩码对加载及边界框 Prompt。
+
+    参数：
+        - image_dir: 图像目录路径
+        - mask_dir: 掩码目录路径
+        - transform: 数据增强变换
+        - image_size: 图像缩放尺寸
+        - bbox_json: 预计算边界框 JSON 文件路径
+        - prompt_type: Prompt 类型（仅支持 "bbox"）
+        - jitter_bbox_ratio: 边界框扰动比例
+        - text_prompt: 文本提示词
     """
 
     def __init__(
@@ -41,16 +49,17 @@ class MedicalSegDataset(Dataset):
         jitter_bbox_ratio: float = 0.0,
         text_prompt: str = "",
     ):
-        """
-        Args:
-            image_dir: 图像目录路径
-            mask_dir: mask 目录路径
-            transform: albumentations 变换
-            image_size: 输出图像尺寸
-            bbox_json: (可选) bbox 标注 json 文件路径
-            prompt_type: 提示类型 (bbox / point)
-            jitter_bbox_ratio: bbox 扰动比例 (0 表示不扰动)
-            text_prompt: 文本提示词 (如 "polyp")
+        """初始化医学分割数据集。
+
+        参数：
+            - image_dir: 图像目录路径
+            - mask_dir: 掩码目录路径
+            - transform: 数据增强变换，可选
+            - image_size: 图像缩放尺寸，默认 1024
+            - bbox_json: 预计算边界框 JSON 文件，可选
+            - prompt_type: Prompt 类型，默认 "bbox"
+            - jitter_bbox_ratio: 边界框扰动比例，默认 0.0
+            - text_prompt: 文本提示词，默认空字符串
         """
         self.image_dir = image_dir
         self.mask_dir = mask_dir
@@ -70,7 +79,15 @@ class MedicalSegDataset(Dataset):
                 self.bboxes = json.load(f)
 
     def _collect_samples(self) -> List[Tuple[ImageSource, str]]:
-        """收集匹配的 image-mask 文件对"""
+        """brief:
+            Handle collect samples.
+
+        parameter:
+            - None.
+
+        返回：
+            - (图像路径, 掩码路径) 元组列表
+        """
         img_files = sorted(os.listdir(self.image_dir))
         mask_files = set(os.listdir(self.mask_dir))
 
@@ -101,7 +118,14 @@ class MedicalSegDataset(Dataset):
         return samples
 
     def _load_image(self, img_source: ImageSource) -> np.ndarray:
-        """读取单张图像或多通道拆分图像。"""
+        """加载图像，支持单路径或通道元组输入。
+
+        参数：
+            - img_source: 图像路径或（RGB 三通道路径）元组
+
+        返回：
+            - RGB 图像数组 (H, W, 3)
+        """
         if isinstance(img_source, (tuple, list)):
             channels: List[np.ndarray] = []
             for channel_path in img_source:
@@ -117,18 +141,49 @@ class MedicalSegDataset(Dataset):
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     def _get_primary_image_path(self, img_source: ImageSource) -> str:
+        """获取主图像路径（通道元组时返回第一个）。
+
+        参数：
+            - img_source: 图像路径或通道路径元组
+
+        返回：
+            - 主图像路径字符串
+        """
         if isinstance(img_source, (tuple, list)):
             return img_source[0]
         return img_source
 
     def _get_sample_stem(self, img_source: ImageSource) -> str:
+        """获取样本的文件名（不含后缀）。
+
+        参数：
+            - img_source: 图像路径或通道路径元组
+
+        返回：
+            - 文件名字符串
+        """
         primary_path = self._get_primary_image_path(img_source)
         return os.path.splitext(os.path.basename(primary_path))[0]
 
     def __len__(self) -> int:
+        """返回数据集中的样本总数。
+
+        返回：
+            - 样本数量
+        """
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+        """获取指定索引的样本。
+
+        加载图像和掩码，应用数据增强，生成边界框 Prompt，并转换为张量。
+
+        参数：
+            - idx: 样本索引
+
+        返回：
+            - 包含 image、mask、bbox、image_path、text_prompt 的字典
+        """
         img_source, mask_path = self.samples[idx]
 
         # 读取图像 (BGR -> RGB)
@@ -170,7 +225,17 @@ class MedicalSegDataset(Dataset):
 
     def _get_bbox(self, img_source: ImageSource, mask: np.ndarray,
                   orig_h: int, orig_w: int) -> np.ndarray:
-        """获取 bounding box prompt"""
+        """获取边界框，优先使用预计算值，否则从掩码提取。
+
+        参数：
+            - img_source: 图像路径或通道路径元组
+            - mask: 二值掩码数组
+            - orig_h: 原始图像高度
+            - orig_w: 原始图像宽度
+
+        返回：
+            - [xmin, ymin, xmax, ymax] 边界框数组
+        """
         stem = self._get_sample_stem(img_source)
 
         # 优先使用预计算的 bbox
@@ -201,7 +266,16 @@ class MedicalSegDataset(Dataset):
 
 
 class NnUNetRawRGBDataset(MedicalSegDataset):
-    """适配 nnUNet raw 三通道图像目录。"""
+    """适配 nnUNet 原始 RGB 格式的数据集，支持三通道分离文件加载。
+
+    参数：
+        - image_dir: 图像目录路径
+        - mask_dir: 掩码目录路径
+        - transform: 数据增强变换
+        - image_size: 图像缩放尺寸
+        - accepted_prefixes: 接受的样本名前缀元组
+        - **kwargs: 传递给父类的其他参数
+    """
 
     def __init__(
         self,
@@ -212,6 +286,16 @@ class NnUNetRawRGBDataset(MedicalSegDataset):
         accepted_prefixes: Optional[Tuple[str, ...]] = None,
         **kwargs,
     ):
+        """初始化 nnUNet RGB 数据集。
+
+        参数：
+            - image_dir: 图像目录路径
+            - mask_dir: 掩码目录路径
+            - transform: 数据增强变换，可选
+            - image_size: 图像缩放尺寸，默认 1024
+            - accepted_prefixes: 接受的样本名前缀，可选
+            - **kwargs: 传递给父类的关键字参数
+        """
         self.accepted_prefixes = accepted_prefixes
         super().__init__(
             image_dir=image_dir,
@@ -222,6 +306,15 @@ class NnUNetRawRGBDataset(MedicalSegDataset):
         )
 
     def _collect_samples(self) -> List[Tuple[ImageSource, str]]:
+        """brief:
+            Handle collect samples.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         image_files = {
             name for name in os.listdir(self.image_dir)
             if os.path.isfile(os.path.join(self.image_dir, name))
@@ -260,6 +353,14 @@ class NnUNetRawRGBDataset(MedicalSegDataset):
         return samples
 
     def _get_sample_stem(self, img_source: ImageSource) -> str:
+        """获取样本文件名，去除 nnUNet 的 _0000 后缀。
+
+        参数：
+            - img_source: 图像路径或通道路径元组
+
+        返回：
+            - 纯净的文件名字符串
+        """
         stem = super()._get_sample_stem(img_source)
         if stem.endswith("_0000"):
             return stem[:-5]
@@ -267,10 +368,25 @@ class NnUNetRawRGBDataset(MedicalSegDataset):
 
 
 class KvasirCVCDataset(NnUNetRawRGBDataset):
-    """KvasirCVC nnUNet raw 数据集。"""
+    """KvasirCVC 数据集封装，自动定位 nnUNet 格式路径。
+
+    参数：
+        - data_root: 数据根目录
+        - transform: 数据增强变换
+        - image_size: 图像缩放尺寸
+        - **kwargs: 传递给父类的其他参数
+    """
 
     def __init__(self, data_root: str, transform: Any = None,
                  image_size: int = 1024, **kwargs):
+        """初始化 KvasirCVC 数据集。
+
+        参数：
+            - data_root: 数据根目录
+            - transform: 数据增强变换，可选
+            - image_size: 图像缩放尺寸，默认 1024
+            - **kwargs: 传递给父类的关键字参数
+        """
         dataset_dir = os.path.join(
             data_root, "KvasirCVC-nnunet_raw", "Dataset504_KvasirCVC"
         )
@@ -285,10 +401,25 @@ class KvasirCVCDataset(NnUNetRawRGBDataset):
 
 
 class PolypGenDataset(NnUNetRawRGBDataset):
-    """PolypGen external test 数据集，保留 C1-C6。"""
+    """PolypGen 外部测试集封装，自动定位 nnUNet 格式路径。
+
+    参数：
+        - data_root: 数据根目录
+        - transform: 数据增强变换
+        - image_size: 图像缩放尺寸
+        - **kwargs: 传递给父类的其他参数
+    """
 
     def __init__(self, data_root: str, transform: Any = None,
                  image_size: int = 1024, **kwargs):
+        """初始化 PolypGen 数据集。
+
+        参数：
+            - data_root: 数据根目录
+            - transform: 数据增强变换，可选
+            - image_size: 图像缩放尺寸，默认 1024
+            - **kwargs: 传递给父类的关键字参数
+        """
         dataset_dir = os.path.join(
             data_root, "PolypGen_external_test", "Dataset502_PolypGen"
         )
@@ -310,7 +441,18 @@ def create_dataset(
     image_size: int = 1024,
     **kwargs,
 ):
-    """根据数据集名称创建实例，统一脚本入口与底层适配逻辑。"""
+    """根据数据集名称创建对应的数据集实例。
+
+    参数：
+        - dataset_name: 数据集名称（如 "kvasircvc", "polypgen"）
+        - data_root: 数据根目录
+        - transform: 数据增强变换，可选
+        - image_size: 图像缩放尺寸，默认 1024
+        - **kwargs: 传递给数据集构造函数的额外参数
+
+    返回：
+        - 数据集实例
+    """
 
     normalized_name = dataset_name.lower()
     if normalized_name in {"kvasircvc", "kvasir-cvc", "kvasir_cvc", "dataset504_kvasircvc"}:
@@ -340,8 +482,20 @@ def build_dataloaders(
     seed: int = 42,
     jitter_bbox_ratio: float = 0.05,
 ) -> Tuple[DataLoader, DataLoader]:
-    """
-    构建训练和验证 DataLoader
+    """构建训练和验证 DataLoader，自动划分数据集并设置数据增强。
+
+    参数：
+        - dataset_name: 数据集名称
+        - data_root: 数据根目录
+        - image_size: 图像缩放尺寸，默认 1024
+        - batch_size: 批次大小，默认 4
+        - train_ratio: 训练集划分比例，默认 0.85
+        - num_workers: 数据加载工作线程数，默认 4
+        - seed: 随机种子，默认 42
+        - jitter_bbox_ratio: 边界框扰动比例，默认 0.05
+
+    返回：
+        - (train_loader, val_loader) 元组
     """
     train_tf = get_train_transforms(image_size)
     val_tf = get_val_transforms(image_size)
@@ -388,16 +542,43 @@ def build_dataloaders(
 
 
 class TransformSubset(Dataset):
-    """对 Subset 施加独立的 transform"""
+    """包装数据集子集，为其应用独立的变换操作。
+
+    参数：
+        - subset: 原始数据集子集
+        - transform: 要应用的变换
+    """
 
     def __init__(self, subset, transform):
+        """初始化变换子集包装器。
+
+        参数：
+            - subset: 数据集子集
+            - transform: 数据增强变换
+        """
         self.subset = subset
         self.transform = transform
 
     def __len__(self):
+        """返回包装子集的样本数量。
+
+        返回：
+            - 样本数量
+        """
         return len(self.subset)
 
     def __getitem__(self, idx):
+        """获取索引样本并应用变换。
+
+        如果样本是字典，将其中的 image 和 mask 转换回 numpy 格式，
+        应用变换后再转回张量格式。
+
+        参数：
+            - idx: 样本索引
+
+        返回：
+            - 经过变换后的样本字典
+        """
         sample = self.subset[idx]
         # 如果 sample 是 dict，对 image 和 mask 重新做 transform
         if isinstance(sample, dict) and self.transform is not None:

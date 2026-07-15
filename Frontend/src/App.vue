@@ -5,6 +5,16 @@ import { RouterLink, RouterView } from 'vue-router'
 import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
 import { useThemeStore } from '@/stores/theme'
 
+/**
+ * brief:
+ *   Handle theme store.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const themeStore = useThemeStore()
 
 onMounted(async () => {

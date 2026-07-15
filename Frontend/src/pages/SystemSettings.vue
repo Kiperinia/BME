@@ -7,22 +7,133 @@ import type { LlmProfile, LlmProviderKind, SystemSettingsPayload, SystemSettings
 
 type ProfileCreationKind = LlmProviderKind | 'deepseek'
 
+/**
+ * brief:
+ *   Handle saved settings.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const savedSettings = ref<SystemSettingsPayload | null>(null)
+/**
+ * brief:
+ *   Handle form.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const form = ref<SystemSettingsPayload | null>(null)
+/**
+ * brief:
+ *   Handle runtime status.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const runtimeStatus = ref<SystemSettingsStatus | null>(null)
+/**
+ * brief:
+ *   Handle is loading.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isLoading = ref(false)
+/**
+ * brief:
+ *   Handle is saving.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isSaving = ref(false)
+/**
+ * brief:
+ *   Load error message.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const loadErrorMessage = ref('')
+/**
+ * brief:
+ *   Handle toast visible.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toastVisible = ref(false)
+/**
+ * brief:
+ *   Handle toast message.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toastMessage = ref('')
+/**
+ * brief:
+ *   Handle toast tone.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toastTone = ref<'info' | 'success' | 'error'>('info')
 
 let toastTimer: number | undefined
 
+/**
+ * brief:
+ *   Handle clone settings.
+ *
+ * parameter:
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const cloneSettings = (value: SystemSettingsPayload): SystemSettingsPayload => {
   return JSON.parse(JSON.stringify(value)) as SystemSettingsPayload
 }
 
+/**
+ * brief:
+ *   Create profile draft.
+ *
+ * parameter:
+ *   - providerKind: Input value for providerKind.
+ *   - profileId: Input value for profileId.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const createProfileDraft = (providerKind: ProfileCreationKind, profileId: string): LlmProfile => {
   if (providerKind === 'deepseek') {
     return {
@@ -59,6 +170,17 @@ const createProfileDraft = (providerKind: ProfileCreationKind, profileId: string
   }
 }
 
+/**
+ * brief:
+ *   Build unique profile id.
+ *
+ * parameter:
+ *   - baseId: Input value for baseId.
+ *   - existingIds: Input value for existingIds.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const buildUniqueProfileId = (baseId: string, existingIds: string[]) => {
   let candidate = baseId
   let suffix = 2
@@ -71,6 +193,17 @@ const buildUniqueProfileId = (baseId: string, existingIds: string[]) => {
   return candidate
 }
 
+/**
+ * brief:
+ *   Handle push toast.
+ *
+ * parameter:
+ *   - message: Input value for message.
+ *   - tone: Input value for tone.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const pushToast = (message: string, tone: 'info' | 'success' | 'error' = 'info') => {
   toastVisible.value = true
   toastMessage.value = message
@@ -85,6 +218,16 @@ const pushToast = (message: string, tone: 'info' | 'success' | 'error' = 'info')
   }, 2600)
 }
 
+/**
+ * brief:
+ *   Handle active profile.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const activeProfile = computed<LlmProfile | null>(() => {
   if (!form.value) {
     return null
@@ -93,6 +236,16 @@ const activeProfile = computed<LlmProfile | null>(() => {
   return form.value.llm.profiles.find((profile) => profile.profileId === form.value?.llm.activeProfile) ?? null
 })
 
+/**
+ * brief:
+ *   Handle is dirty.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isDirty = computed(() => {
   if (!savedSettings.value || !form.value) {
     return false
@@ -101,11 +254,31 @@ const isDirty = computed(() => {
   return JSON.stringify(savedSettings.value) !== JSON.stringify(form.value)
 })
 
+/**
+ * brief:
+ *   Load settings.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const loadSettings = async () => {
   isLoading.value = true
   loadErrorMessage.value = ''
 
   try {
+    /**
+     * brief:
+     *   Handle response.
+     *
+     * parameter:
+     *   - value: Input value for value.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const response = await getSystemSettings()
     savedSettings.value = cloneSettings(response.settings)
     form.value = cloneSettings(response.settings)
@@ -117,6 +290,16 @@ const loadSettings = async () => {
   }
 }
 
+/**
+ * brief:
+ *   Handle provider kind change.
+ *
+ * parameter:
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleProviderKindChange = (value: LlmProviderKind) => {
   if (!activeProfile.value) {
     return
@@ -129,16 +312,56 @@ const handleProviderKindChange = (value: LlmProviderKind) => {
   }
 }
 
+/**
+ * brief:
+ *   Handle create profile.
+ *
+ * parameter:
+ *   - providerKind: Input value for providerKind.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleCreateProfile = (providerKind: ProfileCreationKind) => {
   if (!form.value) {
     return
   }
 
+  /**
+   * brief:
+   *   Handle base id.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const baseId = providerKind === 'modelscope' ? 'modelscope-profile' : providerKind === 'deepseek' ? 'deepseek-profile' : 'openai-profile'
+  /**
+   * brief:
+   *   Handle profile id.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const profileId = buildUniqueProfileId(
     baseId,
     form.value.llm.profiles.map((profile) => profile.profileId),
   )
+  /**
+   * brief:
+   *   Handle next profile.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const nextProfile = createProfileDraft(providerKind, profileId)
 
   form.value.llm.profiles.push(nextProfile)
@@ -146,6 +369,16 @@ const handleCreateProfile = (providerKind: ProfileCreationKind) => {
   pushToast(`已新增 ${providerKind === 'modelscope' ? 'ModelScope' : providerKind === 'deepseek' ? 'DeepSeek' : 'OpenAI'} API Profile。`, 'success')
 }
 
+/**
+ * brief:
+ *   Handle reset.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleReset = () => {
   if (!savedSettings.value) {
     return
@@ -155,6 +388,16 @@ const handleReset = () => {
   pushToast('已恢复为当前已保存配置。')
 }
 
+/**
+ * brief:
+ *   Handle save.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleSave = async () => {
   if (!form.value) {
     return
@@ -162,6 +405,16 @@ const handleSave = async () => {
 
   isSaving.value = true
   try {
+    /**
+     * brief:
+     *   Handle response.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const response = await updateSystemSettings(form.value)
     savedSettings.value = cloneSettings(response.settings)
     form.value = cloneSettings(response.settings)
@@ -355,12 +608,12 @@ onMounted(async () => {
         <div class="rounded-3xl border border-slate-200 p-4 dark:border-slate-700">
           <h4 class="text-sm font-medium text-slate-900 dark:text-white">报告生成模式</h4>
           <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">选择报告生成的方式</p>
-          
+
           <label class="mt-3 flex items-center gap-3">
-            <input 
-              :checked="form.agent.useLlmReport" 
+            <input
+              :checked="form.agent.useLlmReport"
               @change="form.agent.useLlmReport = !form.agent.useLlmReport"
-              type="checkbox" 
+              type="checkbox"
               class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
             <span class="text-sm font-medium text-slate-700 dark:text-slate-200">使用 LLM 生成自然语言报告</span>
           </label>
@@ -369,10 +622,10 @@ onMounted(async () => {
           </p>
 
           <label class="mt-4 flex items-center gap-3">
-            <input 
-              :checked="form.agent.enableReportReflection" 
+            <input
+              :checked="form.agent.enableReportReflection"
               @change="form.agent.enableReportReflection = !form.agent.enableReportReflection"
-              type="checkbox" 
+              type="checkbox"
               class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
             <span class="text-sm font-medium text-slate-700 dark:text-slate-200">启用 ReAct 反思优化</span>
           </label>
@@ -383,15 +636,15 @@ onMounted(async () => {
 
         <div v-if="form?.agent?.enableReportReflection" class="rounded-3xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-900/60 dark:bg-sky-950/30">
           <h4 class="text-sm font-medium text-sky-900 dark:text-sky-100">反思优化参数</h4>
-          
+
           <label class="mt-3 block">
             <span class="text-xs font-medium uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">
               最大迭代次数
             </span>
-            <input 
-              v-model.number="form.agent.reflectionMaxIterations" 
-              type="number" 
-              min="1" 
+            <input
+              v-model.number="form.agent.reflectionMaxIterations"
+              type="number"
+              min="1"
               max="10"
               class="surface-input mt-2"
             >
@@ -405,10 +658,10 @@ onMounted(async () => {
               质量满足度阈值
             </span>
             <div class="flex items-center gap-3 mt-2">
-              <input 
-                v-model.number="form.agent.reflectionQualityThreshold" 
-                type="range" 
-                min="0" 
+              <input
+                v-model.number="form.agent.reflectionQualityThreshold"
+                type="range"
+                min="0"
                 max="10"
                 step="0.1"
                 class="flex-1"
@@ -435,7 +688,7 @@ onMounted(async () => {
         <p class="mt-2 text-sm text-amber-800 dark:text-amber-200">
           {{ form.agent.useLlmReport ? 'LLM ' : '模板 ' }}
           + {{ form.agent.enableReportReflection ? 'ReAct 反思' : '无反思' }}
-          = 
+          =
           {{ form.agent.useLlmReport && form.agent.enableReportReflection ? '~35s' : form.agent.useLlmReport ? '~5s' : form.agent.enableReportReflection ? '~25s' : '~0.3s' }}
         </p>
       </div>

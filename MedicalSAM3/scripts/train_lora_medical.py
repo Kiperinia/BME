@@ -1,4 +1,4 @@
-"""Train LoRA and medical adapters on MedEx-SAM3 with strict preflight gates."""
+"""在 MedEx-SAM3 上训练 LoRA 与医学适配器，包含严格的预飞行检查。"""
 
 from __future__ import annotations
 
@@ -41,6 +41,15 @@ from MedicalSAM3.yolo_adapter.cli import add_yolo_bbox_args, build_box_provider_
 
 
 def _device_from_args(requested_device: str, precision: str) -> tuple[str, torch.dtype]:
+    """根据命令行参数解析设备和精度类型。
+
+    参数：
+        - requested_device: 请求的设备类型，可选 "auto"/"cuda"/"cpu"
+        - precision: 精度字符串，可选 "fp32"/"fp16"/"bf16"
+
+    返回：
+        - 由 (设备字符串, 自动混合精度 dtype) 组成的元组
+    """
     normalized_device = str(requested_device).strip().lower()
     if normalized_device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -65,11 +74,38 @@ def _device_from_args(requested_device: str, precision: str) -> tuple[str, torch
 
 
 def _autocast_enabled(device: str, precision: str) -> bool:
+    """判断是否启用自动混合精度。
+
+    参数：
+        - device: 设备字符串
+        - precision: 精度字符串
+
+    返回：
+        - 是否启用自动混合精度的布尔值
+    """
     return device == "cuda" and precision in {"fp16", "bf16"}
 
 
 def _scheduler(optimizer: AdamW, total_steps: int, warmup_steps: int) -> LambdaLR:
+    """构建带预热余弦退火的学习率调度器。
+
+    参数：
+        - optimizer: 优化器
+        - total_steps: 总训练步数
+        - warmup_steps: 预热步数
+
+    返回：
+        - LambdaLR 学习率调度器
+    """
     def lr_lambda(step: int) -> float:
+        """计算指定步数的学习率缩放系数。
+
+        参数：
+            - step: 当前训练步数
+
+        返回：
+            - 学习率缩放系数
+        """
         if step < warmup_steps:
             return float(step + 1) / float(max(1, warmup_steps))
         progress = float(step - warmup_steps) / float(max(1, total_steps - warmup_steps))
@@ -79,6 +115,14 @@ def _scheduler(optimizer: AdamW, total_steps: int, warmup_steps: int) -> LambdaL
 
 
 def _default_target_scopes(stage: str) -> list[str]:
+    """根据训练阶段返回默认的 LoRA 目标模块作用域。
+
+    参数：
+        - stage: 训练阶段，可选 "stage_a"/"stage_b"/"stage_c"
+
+    返回：
+        - 目标模块作用域字符串列表
+    """
     normalized = stage.lower()
     if normalized == "stage_a":
         return ["vision_encoder", "mask_decoder"]
@@ -90,6 +134,14 @@ def _default_target_scopes(stage: str) -> list[str]:
 
 
 def _resolve_target_scopes(args: argparse.Namespace) -> list[str]:
+    """根据命令行参数解析 LoRA 目标模块作用域。
+
+    参数：
+        - args: 命令行参数对象
+
+    返回：
+        - 排序后的目标模块作用域列表
+    """
     scopes = set(_default_target_scopes(args.stage))
     if args.enable_vision_lora:
         scopes.add("vision_encoder")
@@ -101,10 +153,27 @@ def _resolve_target_scopes(args: argparse.Namespace) -> list[str]:
 
 
 def _contains_polypgen(records: list[dict[str, Any]]) -> bool:
+    """检查记录列表中是否包含 PolypGen 数据集样本。
+
+    参数：
+        - records: 记录字典列表
+
+    返回：
+        - 是否包含 PolypGen 样本的布尔值
+    """
     return any("polypgen" in str(record.get("dataset_name", "")).lower() for record in records)
 
 
 def _read_split_records(split_dir: Path, fold: int) -> tuple[Path, Path, list[dict[str, Any]], list[dict[str, Any]]]:
+    """读取指定折的训练和验证记录文件。
+
+    参数：
+        - split_dir: 划分目录路径
+        - fold: 折数索引
+
+    返回：
+        - 由 (训练文件路径, 验证文件路径, 训练记录列表, 验证记录列表) 组成的元组
+    """
     fold_dir = split_dir / f"fold_{fold}"
     train_file = fold_dir / "train_ids.txt"
     val_file = fold_dir / "val_ids.txt"
@@ -114,12 +183,30 @@ def _read_split_records(split_dir: Path, fold: int) -> tuple[Path, Path, list[di
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> Path:
+    """将字典以 JSON 格式写入文件。
+
+    参数：
+        - path: 输出文件路径
+        - payload: 要写入的字典
+
+    返回：
+        - 写入后的文件 Path 对象
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return path
 
 
 def _save_adapter_weights(model: torch.nn.Module, path: Path) -> None:
+    """保存模型中医学适配器、边界适配器和精修头的权重。
+
+    参数：
+        - model: 训练模型
+        - path: 权重保存路径
+
+    返回：
+        - 无返回值，仅执行保存操作
+    """
     adapter_state = {
         key: value
         for key, value in model.state_dict().items()
@@ -129,6 +216,15 @@ def _save_adapter_weights(model: torch.nn.Module, path: Path) -> None:
 
 
 def _iter_limited(loader: DataLoader, max_steps: Optional[int]) -> Iterable[tuple[int, dict[str, Any]]]:
+    """以受限步数迭代数据加载器。
+
+    参数：
+        - loader: 数据加载器
+        - max_steps: 最大迭代步数，为 None 时不限制
+
+    返回：
+        - 产生 (步数索引, 批次数据) 的迭代器
+    """
     for step_index, batch in enumerate(loader, start=1):
         if max_steps is not None and step_index > max_steps:
             break
@@ -136,6 +232,15 @@ def _iter_limited(loader: DataLoader, max_steps: Optional[int]) -> Iterable[tupl
 
 
 def _move_batch(batch: dict[str, Any], device: str) -> dict[str, Any]:
+    """将批次张量移动到指定设备。
+
+    参数：
+        - batch: 批次字典
+        - device: 目标设备字符串
+
+    返回：
+        - 张量已移动到目标设备的批次字典
+    """
     return {
         "images": batch["images"].to(device),
         "masks": batch["masks"].to(device),
@@ -150,6 +255,16 @@ def _build_training_stack(
     config: dict[str, Any],
     device: str,
 ) -> tuple[torch.nn.Module, Sam3TensorForwardWrapper, MedExSam3SegmentationModel, list[str]]:
+    """构建训练栈，包括 SAM3 基础模型、LoRA 注入和分割模型。
+
+    参数：
+        - args: 命令行参数对象
+        - config: 配置字典
+        - device: 目标设备字符串
+
+    返回：
+        - 由 (基础模型, 包装器, 分割模型, 被替换模块名列表) 组成的元组
+    """
     base_model = build_official_sam3_image_model(
         checkpoint_path=args.checkpoint,
         device=device,
@@ -191,6 +306,19 @@ def _run_preflight(
     device: str,
     autocast_dtype: torch.dtype,
 ) -> dict[str, Any]:
+    """运行预飞行检查，验证数据划分、模型构建、前向与反向传播。
+
+    参数：
+        - args: 命令行参数对象
+        - config: 配置字典
+        - report_path: 预飞行报告输出路径
+        - split_dir: 数据划分目录
+        - device: 目标设备字符串
+        - autocast_dtype: 自动混合精度 dtype
+
+    返回：
+        - 包含预飞行检查结果的字典
+    """
     train_file, val_file, train_records, val_records = _read_split_records(split_dir, args.fold)
     split_exists = train_file.exists() and val_file.exists()
     blocking_issues: list[str] = []
@@ -298,6 +426,14 @@ def _run_preflight(
 
 
 def main() -> int:
+    """脚本命令行入口，执行 LoRA 与适配器训练。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Train LoRA and medical adapters for MedEx-SAM3.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--fold", type=int, default=0)

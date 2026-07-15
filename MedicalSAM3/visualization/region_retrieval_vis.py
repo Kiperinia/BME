@@ -1,4 +1,4 @@
-"""Region-aware retrieval visualization helpers."""
+"""区域感知检索可视化辅助工具。"""
 
 from __future__ import annotations
 
@@ -12,6 +12,14 @@ import torch.nn.functional as F
 
 
 def _to_rgb(image_tensor: torch.Tensor) -> np.ndarray:
+    """将图像张量转换为 RGB numpy 数组。
+
+    参数：
+        - image_tensor: 输入图像张量，形状为 [C, H, W] 或 [B, C, H, W]。
+
+    返回：
+        - 形状为 [H, W, 3] 的 uint8 RGB 数组。
+    """
     image = image_tensor.detach().cpu().float()
     if image.dim() == 4:
         image = image[0]
@@ -22,6 +30,15 @@ def _to_rgb(image_tensor: torch.Tensor) -> np.ndarray:
 
 
 def _to_gray(mask_tensor: torch.Tensor, *, sigmoid: bool = False) -> np.ndarray:
+    """将掩码张量转换为灰度 numpy 数组，可选 sigmoid 激活。
+
+    参数：
+        - mask_tensor: 输入掩码张量。
+        - sigmoid: 是否先应用 sigmoid 激活。
+
+    返回：
+        - uint8 灰度数组，范围 [0, 255]。
+    """
     mask = mask_tensor.detach().cpu().float()
     if sigmoid:
         mask = torch.sigmoid(mask)
@@ -36,6 +53,16 @@ def _to_gray(mask_tensor: torch.Tensor, *, sigmoid: bool = False) -> np.ndarray:
 
 
 def _resize_map(value: Any, size: tuple[int, int], *, mode: str = "bilinear") -> torch.Tensor | None:
+    """调整张量到指定尺寸，支持多种插值模式。
+
+    参数：
+        - value: 输入张量。
+        - size: 目标尺寸 (H, W)。
+        - mode: 插值模式，可选 "bilinear"、"nearest" 等。
+
+    返回：
+        - 调整尺寸后的张量；若输入无效则返回 None。
+    """
     if not isinstance(value, torch.Tensor) or value.numel() == 0:
         return None
     tensor = value.detach().float()
@@ -52,6 +79,14 @@ def _resize_map(value: Any, size: tuple[int, int], *, mode: str = "bilinear") ->
 
 
 def _heatmap_rgb(values: torch.Tensor) -> np.ndarray:
+    """将张量值渲染为彩色热力图 RGB 数组。
+
+    参数：
+        - values: 输入张量，形状为 [H, W]、[C, H, W] 或 [B, C, H, W]。
+
+    返回：
+        - 形状为 [H, W, 3] 的 uint8 RGB 热力图。
+    """
     tensor = values.detach().cpu().float()
     if tensor.dim() == 4:
         tensor = tensor[0, 0]
@@ -66,6 +101,14 @@ def _heatmap_rgb(values: torch.Tensor) -> np.ndarray:
 
 
 def _delta_rgb(delta_logits: torch.Tensor) -> np.ndarray:
+    """将差异 logits 渲染为红绿对比 RGB 图像。
+
+    参数：
+        - delta_logits: 差异 logits 张量。
+
+    返回：
+        - 形状为 [H, W, 3] 的 uint8 RGB 数组，红色表示负值，绿色表示正值。
+    """
     tensor = delta_logits.detach().cpu().float()
     if tensor.dim() == 4:
         tensor = tensor[0, 0]
@@ -82,6 +125,16 @@ def _delta_rgb(delta_logits: torch.Tensor) -> np.ndarray:
 
 
 def _change_map(baseline_logits: torch.Tensor, corrected_logits: torch.Tensor, gt_mask: torch.Tensor | None) -> np.ndarray:
+    """生成基线与校正掩码的变化图，可选结合真值标注改进/退化区域。
+
+    参数：
+        - baseline_logits: 基线掩码 logits。
+        - corrected_logits: 校正后掩码 logits。
+        - gt_mask: 真值掩码（可选），提供后可区分改进与退化区域。
+
+    返回：
+        - 形状为 [H, W, 3] 的 uint8 RGB 变化图。
+    """
     baseline = (torch.sigmoid(baseline_logits.detach().float()) > 0.5).float()
     corrected = (torch.sigmoid(corrected_logits.detach().float()) > 0.5).float()
     if gt_mask is None or gt_mask.numel() == 0:
@@ -104,6 +157,16 @@ def _change_map(baseline_logits: torch.Tensor, corrected_logits: torch.Tensor, g
 
 
 def _caption(image: Image.Image, title: str, subtitle: str = "") -> Image.Image:
+    """在图像底部添加标题栏（支持副标题）。
+
+    参数：
+        - image: 原始 PIL 图像。
+        - title: 主标题文本。
+        - subtitle: 副标题文本（可选）。
+
+    返回：
+        - 添加标题栏后的新 PIL 图像。
+    """
     extra_height = 34 if subtitle else 22
     canvas = Image.new("RGB", (image.width, image.height + extra_height), color=(18, 18, 18))
     canvas.paste(image, (0, 0))
@@ -115,6 +178,16 @@ def _caption(image: Image.Image, title: str, subtitle: str = "") -> Image.Image:
 
 
 def _tile_from_path(path: Optional[str], tile_size: int, title: str) -> Image.Image:
+    """从路径加载图像磁贴并添加标题，路径无效时生成带叉号的占位图。
+
+    参数：
+        - path: 图像文件路径，为 None 或文件不存在时生成占位图。
+        - tile_size: 磁贴尺寸（宽高相等）。
+        - title: 标题文本。
+
+    返回：
+        - 带标题的 PIL 图像。
+    """
     if path and Path(path).is_file():
         image = Image.open(path).convert("RGB").resize((tile_size, tile_size))
     else:
@@ -125,6 +198,15 @@ def _tile_from_path(path: Optional[str], tile_size: int, title: str) -> Image.Im
 
 
 def _first_entry_path(payload: dict[str, Any], polarity: str = "positive") -> Optional[str]:
+    """从检索负载中提取第一个条目的裁剪路径。
+
+    参数：
+        - payload: 检索结果负载字典。
+        - polarity: 极性，"positive" 或 "negative"。
+
+    返回：
+        - 第一个条目的裁剪路径字符串；若不存在则返回 None。
+    """
     entries = payload.get(f"{polarity}_entries", [])
     if not isinstance(entries, list) or not entries:
         return None
@@ -149,6 +231,21 @@ def save_region_retrieval_panel(
     output_path: str | Path,
     tile_size: int = 160,
 ) -> Path:
+    """保存区域检索可视化面板，包含查询图、基线/校正掩码、不确定性图等多视图。
+
+    参数：
+        - query_image: 查询图像张量。
+        - baseline_mask_logits: 基线掩码 logits。
+        - corrected_mask_logits: 校正后掩码 logits。
+        - adapter_aux: 适配器辅助信息，含分割熵图和检索区域掩码。
+        - retrieval: 检索结果信息，含正例掩码先验等。
+        - gt_mask: 真值掩码（可选）。
+        - output_path: 输出图像路径。
+        - tile_size: 每个磁贴的尺寸。
+
+    返回：
+        - 保存的文件路径。
+    """
     size = tuple(int(item) for item in corrected_mask_logits.shape[-2:])
     entropy_map = _resize_map(adapter_aux.get("segmentation_entropy_map"), size, mode="bilinear")
     if entropy_map is None:

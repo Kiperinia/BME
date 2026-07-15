@@ -3,41 +3,201 @@ import { defineStore } from 'pinia'
 
 import type { PatientCaseRecord } from '@/types/workspace'
 
+/**
+ * brief:
+ *   Handle storage key.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const STORAGE_KEY = 'bme-patient-case-records'
 
 type NewCaseRecordInput = Omit<PatientCaseRecord, 'recordId' | 'createdAt'>
 
+/**
+ * brief:
+ *   Build formal patient id.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const buildFormalPatientId = () => {
+  /**
+   * brief:
+   *   Handle now.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const now = new Date()
+  /**
+   * brief:
+   *   Handle yyyy.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const yyyy = now.getFullYear()
+  /**
+   * brief:
+   *   Handle mm.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const mm = String(now.getMonth() + 1).padStart(2, '0')
+  /**
+   * brief:
+   *   Handle dd.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const dd = String(now.getDate()).padStart(2, '0')
+  /**
+   * brief:
+   *   Handle suffix.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const suffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
   return `PAT-${yyyy}${mm}${dd}-${suffix}`
 }
 
+/**
+ * brief:
+ *   Handle sample patient names.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const SAMPLE_PATIENT_NAMES = ['张伟', '李娜', '王磊', '赵敏', '陈涛', '刘佳', '周倩', '吴晨']
+/**
+ * brief:
+ *   Handle sample findings.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const SAMPLE_FINDINGS = [
   '病灶边界相对清晰，局部血管纹理紊乱，提示需重点复核。',
   '病变区域以平坦型形态为主，表面可见轻度颗粒样改变。',
   '病灶中央轻度凹陷，周缘见浅表充血，建议结合病理判断。',
   '局灶区域黏膜结构破坏，伴不规则血管征象，建议完善随访。',
 ]
+/**
+ * brief:
+ *   Handle sample conclusions.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const SAMPLE_CONCLUSIONS = [
   '综合评估为中等风险病灶，建议内镜医师复核后确定处置策略。',
   '倾向低风险病灶，建议按规范进行常规随访。',
   '提示存在浸润相关风险征象，建议优先进一步评估。',
 ]
+/**
+ * brief:
+ *   Handle sample recommendations.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const SAMPLE_RECOMMENDATIONS = [
   '建议择期内镜下完整切除并送检。',
   '建议进行高倍放大观察并记录表面微结构。',
   '建议结合病理分型和临床信息进行综合决策。',
 ]
+/**
+ * brief:
+ *   Handle sample lesion types.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const SAMPLE_LESION_TYPES = ['adenoma', 'serrated', 'LST', 'hyperplastic']
+/**
+ * brief:
+ *   Handle sample pathology.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const SAMPLE_PATHOLOGY = ['低级别上皮内瘤变', '高级别上皮内瘤变', '未明确']
+/**
+ * brief:
+ *   Handle sample workflow modes.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const SAMPLE_WORKFLOW_MODES = ['llm', 'rule-only']
+/**
+ * brief:
+ *   Handle sample paris.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const SAMPLE_PARIS = ['平坦型 / 0-IIb 完全平坦', '隆起型 / 0-IIa 轻微隆起', '凹陷型 / 0-IIc 轻微凹陷']
 
+/**
+ * brief:
+ *   Handle sample tag pool.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const SAMPLE_TAG_POOL = [
   { label: '0-IIb', category: 'Paris 分型', tone: 'sky' },
   { label: '完全平坦', category: 'Paris 形态', tone: 'sky' },
@@ -53,15 +213,76 @@ const SAMPLE_TAG_POOL = [
   { label: 'high', category: '风险等级', tone: 'rose' },
 ]
 
+/**
+ * brief:
+ *   Handle random pick.
+ *
+ * parameter:
+ *   - items: Input value for items.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const randomPick = <T>(items: T[]): T => items[Math.floor(Math.random() * items.length)] as T
 
+/**
+ * brief:
+ *   Handle random sample.
+ *
+ * parameter:
+ *   - items: Input value for items.
+ *   - count: Input value for count.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const randomSample = <T>(items: T[], count: number): T[] => {
+  /**
+   * brief:
+   *   Handle pool.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const pool = [...items]
   const result: T[] = []
+  /**
+   * brief:
+   *   Handle limited count.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const limitedCount = Math.min(count, pool.length)
 
   for (let index = 0; index < limitedCount; index += 1) {
+    /**
+     * brief:
+     *   Handle chosen index.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const chosenIndex = Math.floor(Math.random() * pool.length)
+    /**
+     * brief:
+     *   Handle chosen.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const chosen = pool.splice(chosenIndex, 1)[0]
     if (chosen !== undefined) {
       result.push(chosen)
@@ -71,17 +292,47 @@ const randomSample = <T>(items: T[], count: number): T[] => {
   return result
 }
 
+/**
+ * brief:
+ *   Load records.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const loadRecords = (): PatientCaseRecord[] => {
   if (typeof window === 'undefined') {
     return []
   }
 
   try {
+    /**
+     * brief:
+     *   Handle raw.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) {
       return []
     }
 
+    /**
+     * brief:
+     *   Handle parsed.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const parsed = JSON.parse(raw) as PatientCaseRecord[]
     return Array.isArray(parsed) ? parsed : []
   } catch {
@@ -89,14 +340,64 @@ const loadRecords = (): PatientCaseRecord[] => {
   }
 }
 
+/**
+ * brief:
+ *   Handle use patient records store.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const usePatientRecordsStore = defineStore('patient-records', () => {
+  /**
+   * brief:
+   *   Handle records.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const records = ref<PatientCaseRecord[]>(loadRecords())
+  /**
+   * brief:
+   *   Handle selected record id.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const selectedRecordId = ref<string>('')
 
+  /**
+   * brief:
+   *   Handle selected record.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const selectedRecord = computed(() => {
     return records.value.find((record) => record.recordId === selectedRecordId.value) ?? null
   })
 
+  /**
+   * brief:
+   *   Handle add record.
+   *
+   * parameter:
+   *   - payload: Input value for payload.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const addRecord = (payload: NewCaseRecordInput) => {
     const nextRecord: PatientCaseRecord = {
       ...payload,
@@ -108,10 +409,60 @@ export const usePatientRecordsStore = defineStore('patient-records', () => {
     selectedRecordId.value = nextRecord.recordId
   }
 
+  /**
+   * brief:
+   *   Create random record.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const createRandomRecord = () => {
+    /**
+     * brief:
+     *   Handle patient name.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const patientName = randomPick(SAMPLE_PATIENT_NAMES)
+    /**
+     * brief:
+     *   Handle risk level.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const riskLevel = randomPick(['low', 'intermediate', 'high'])
+    /**
+     * brief:
+     *   Handle tag count.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const tagCount = 6 + Math.floor(Math.random() * 4)
+    /**
+     * brief:
+     *   Handle chosen tags.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const chosenTags = randomSample(SAMPLE_TAG_POOL, tagCount).map((tag, index) => ({
       id: `${tag.category}-${tag.label}-${Date.now()}-${index}`,
       label: tag.label,
@@ -139,17 +490,57 @@ export const usePatientRecordsStore = defineStore('patient-records', () => {
     })
   }
 
+  /**
+   * brief:
+   *   Create random records.
+   *
+   * parameter:
+   *   - count: Input value for count.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const createRandomRecords = (count = 6) => {
+    /**
+     * brief:
+     *   Handle safe count.
+     *
+     * parameter:
+     *   - recordId: Input value for recordId.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const safeCount = Math.max(1, Math.min(20, Math.floor(count)))
     for (let index = 0; index < safeCount; index += 1) {
       createRandomRecord()
     }
   }
 
+  /**
+   * brief:
+   *   Select record.
+   *
+   * parameter:
+   *   - recordId: Input value for recordId.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const selectRecord = (recordId: string) => {
     selectedRecordId.value = recordId
   }
 
+  /**
+   * brief:
+   *   Clear all records.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const clearAllRecords = () => {
     records.value = []
     selectedRecordId.value = ''

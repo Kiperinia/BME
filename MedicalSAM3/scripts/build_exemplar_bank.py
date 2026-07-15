@@ -36,6 +36,16 @@ from MedicalSAM3.yolo_adapter.cli import add_yolo_bbox_args, build_box_provider_
 
 
 def _crop_tensor(image: torch.Tensor, mask: torch.Tensor, margin_ratio: float = 0.15) -> tuple[torch.Tensor, torch.Tensor, list[float]]:
+    """在掩码周围扩展边距后裁剪图像和掩码。
+
+    参数：
+        - image: 输入图像张量 [C, H, W]
+        - mask: 输入掩码张量 [1, H, W]
+        - margin_ratio: 边距与目标尺寸的比值
+
+    返回：
+        - 裁剪后的图像、掩码张量和边界框 [x1, y1, x2, y2]
+    """
     box = mask_to_box(mask)
     x1, y1, x2, y2 = [int(value) for value in box.tolist()]
     width = x2 - x1
@@ -50,6 +60,15 @@ def _crop_tensor(image: torch.Tensor, mask: torch.Tensor, margin_ratio: float = 
 
 
 def _save_crop(path: Path, tensor: torch.Tensor) -> None:
+    """将裁剪后的张量保存为 PNG 图像文件。
+
+    参数：
+        - path: 输出图像路径
+        - tensor: 图像张量 [C, H, W]，值范围 [0, 1]
+
+    返回：
+        - 无
+    """
     array = tensor.detach().cpu()
     if array.dim() == 3 and array.shape[0] == 1:
         image = Image.fromarray((array.squeeze(0).numpy() * 255).astype(np.uint8))
@@ -59,6 +78,14 @@ def _save_crop(path: Path, tensor: torch.Tensor) -> None:
 
 
 def _bank_stats(bank: ExemplarMemoryBank) -> dict[str, object]:
+    """生成记忆库的统计摘要。
+
+    参数：
+        - bank: 示例记忆库实例
+
+    返回：
+        - 包含版本、各类别数量及泄漏检查结果的字典
+    """
     return {
         "version": bank.version,
         "total_items": len(bank.items),
@@ -73,6 +100,15 @@ def _bank_stats(bank: ExemplarMemoryBank) -> dict[str, object]:
 
 
 def _write_review_queue_csv(bank: ExemplarMemoryBank, path: Path) -> Path:
+    """将记忆库中的所有条目写入 CSV 格式的审核队列。
+
+    参数：
+        - bank: 示例记忆库实例
+        - path: 输出的审核队列 CSV 文件路径
+
+    返回：
+        - 写入后的 CSV 文件路径
+    """
     header = [
         "item_id",
         "image_id",
@@ -111,6 +147,15 @@ def _write_review_queue_csv(bank: ExemplarMemoryBank, path: Path) -> Path:
 
 
 def _infer_embed_dim(checkpoint_path: str | None, allow_dummy: bool) -> int:
+    """从预检报告或模型检查点推断嵌入维度。
+
+    参数：
+        - checkpoint_path: SAM3 模型检查点路径，为 None 时返回默认值
+        - allow_dummy: 是否允许虚拟回退
+
+    返回：
+        - 嵌入维度整数值
+    """
     preflight_report = Path("MedicalSAM3/outputs/medex_sam3/preflight/model_build_report.json")
     if preflight_report.exists():
         try:
@@ -142,6 +187,15 @@ def _build_sam3_embedding_stack(
     *,
     allow_dummy: bool,
 ) -> tuple[str, Sam3TensorForwardWrapper | None, MedExSam3SegmentationModel | None]:
+    """构建 SAM3 嵌入堆栈，包括前向封装和分割模型。
+
+    参数：
+        - checkpoint_path: 模型检查点路径
+        - allow_dummy: 是否允许使用虚拟模型
+
+    返回：
+        - (设备字符串, 前向封装器, 分割模型) 的三元组
+    """
     if allow_dummy or checkpoint_path is None:
         return "cpu", None, None
 
@@ -176,6 +230,18 @@ def _score_record_with_sam3(
     box: torch.Tensor,
     device: str,
 ) -> dict[str, float]:
+    """使用 SAM3 模型对单条记录进行质量评分。
+
+    参数：
+        - model: SAM3 分割模型，为 None 时返回默认评分
+        - image: 输入图像张量 [C, H, W]
+        - mask: 真值掩码张量 [1, H, W]
+        - box: 边界框张量 [4]
+        - device: 运行设备
+
+    返回：
+        - 包含 quality、boundary、difficulty 等评分的字典
+    """
     if model is None:
         return {
             "quality": 0.8,
@@ -215,6 +281,18 @@ def _save_sam3_embedding(
     embedding_path: Path,
     device: str,
 ) -> None:
+    """使用 SAM3 编码器提取并保存前景与全局嵌入向量。
+
+    参数：
+        - wrapper: SAM3 前向封装器
+        - crop_tensor: 裁剪后的图像张量
+        - mask_tensor: 裁剪后的掩码张量
+        - embedding_path: 嵌入保存路径
+        - device: 计算设备
+
+    返回：
+        - 无
+    """
     with torch.no_grad():
         crop_batch = crop_tensor.unsqueeze(0).to(device)
         outputs = wrapper(images=crop_batch, text_prompt=["polyp"])
@@ -235,6 +313,14 @@ def _save_sam3_embedding(
 
 
 def _update_diversity_scores(bank: ExemplarMemoryBank) -> None:
+    """基于嵌入之间的余弦相似度更新所有条目的多样性评分。
+
+    参数：
+        - bank: 示例记忆库实例
+
+    返回：
+        - 无
+    """
     embedding_rows: list[tuple[ExemplarItem, torch.Tensor]] = []
     for item in bank.items:
         if not item.embedding_path:
@@ -263,6 +349,14 @@ def _update_diversity_scores(bank: ExemplarMemoryBank) -> None:
 
 
 def _quality_rank(item: ExemplarItem) -> float:
+    """计算示例项的综合质量排名分数。
+
+    参数：
+        - item: 示例项
+
+    返回：
+        - 综合得分（综合质量、边界、多样性、难度、不确定性等）
+    """
     return (
         item.quality_score
         + 0.5 * item.boundary_score
@@ -281,8 +375,22 @@ def _filter_low_value_items(
     min_diversity: float,
     max_uncertainty: float,
     min_negative_false_positive_risk: float,
-    min_items_per_type: int,
+    min_items_per_type: float,
 ) -> None:
+    """根据质量、多样性和不确定性阈值过滤低价值的示例项。
+
+    参数：
+        - bank: 示例记忆库实例
+        - min_positive_quality: 正例最低质量分数
+        - min_negative_quality: 负例最低质量分数
+        - min_diversity: 最低多样性分数
+        - max_uncertainty: 最大不确定性分数
+        - min_negative_false_positive_risk: 负例最低假阳性风险
+        - min_items_per_type: 每类型最低保留条目数
+
+    返回：
+        - 无
+    """
     protected_ids: set[str] = set()
     for exemplar_type in ["positive", "boundary", "negative"]:
         ranked = sorted(bank.get_items(type=exemplar_type), key=_quality_rank, reverse=True)
@@ -313,6 +421,14 @@ def _filter_low_value_items(
 
 
 def main() -> int:
+    """命令行入口：从训练拆分构建候选示例裁剪和嵌入。
+
+    参数：
+        - 无（通过 argparse 解析命令行参数）
+
+    返回：
+        - 进程退出码（0 表示成功）
+    """
     parser = argparse.ArgumentParser(description="Build MedEx-SAM3 candidate exemplar bank.")
     parser.add_argument("--split-file", default="MedicalSAM3/outputs/medex_sam3/splits/fold_0/train_ids.txt")
     parser.add_argument("--output-dir", default="MedicalSAM3/outputs/medex_sam3/exemplar_bank")

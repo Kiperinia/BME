@@ -17,37 +17,248 @@ import type {
   SaveReportDraftRequest,
 } from '@/types/eis'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   reportId?: string
   contextData?: ReportContextData
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'invoke-agent', payload: GenerateReportDraftRequest): void
   (event: 'save-draft', payload: SaveReportDraftRequest): void
 }>()
 
+/**
+ * brief:
+ *   Handle context.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const context = ref<ReportContextData | null>(null)
+/**
+ * brief:
+ *   Handle capture images.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const captureImages = ref<string[]>([])
+/**
+ * brief:
+ *   Handle initial opinion.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const initialOpinion = ref('')
+/**
+ * brief:
+ *   Handle findings.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const findings = ref('')
+/**
+ * brief:
+ *   Handle conclusion.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const conclusion = ref('')
+/**
+ * brief:
+ *   Handle layout suggestion.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const layoutSuggestion = ref('')
+/**
+ * brief:
+ *   Handle stream text.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const streamText = ref('')
+/**
+ * brief:
+ *   Handle annotation tags.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const annotationTags = ref<AnnotationTag[]>([])
+/**
+ * brief:
+ *   Handle agent workflow.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const agentWorkflow = ref<AgentWorkflowSummary | null>(null)
+/**
+ * brief:
+ *   Handle tags loading.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const tagsLoading = ref(false)
+/**
+ * brief:
+ *   Handle tag error message.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const tagErrorMessage = ref('')
+/**
+ * brief:
+ *   Handle is hydrating.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isHydrating = ref(false)
+/**
+ * brief:
+ *   Handle is agent loading.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isAgentLoading = ref(false)
+/**
+ * brief:
+ *   Handle is saving.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isSaving = ref(false)
+/**
+ * brief:
+ *   Handle last saved at.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const lastSavedAt = ref('')
+/**
+ * brief:
+ *   Handle toast visible.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toastVisible = ref(false)
+/**
+ * brief:
+ *   Handle toast message.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toastMessage = ref('')
+/**
+ * brief:
+ *   Handle toast tone.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toastTone = ref<'info' | 'success' | 'error'>('info')
 
 let toastTimer: number | undefined
 
+/**
+ * brief:
+ *   Handle show toast.
+ *
+ * parameter:
+ *   - message: Input value for message.
+ *   - tone: Input value for tone.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const showToast = (message: string, tone: 'info' | 'success' | 'error' = 'info') => {
   toastMessage.value = message
   toastTone.value = tone
@@ -62,6 +273,16 @@ const showToast = (message: string, tone: 'info' | 'success' | 'error' = 'info')
   }, 2600)
 }
 
+/**
+ * brief:
+ *   Apply context.
+ *
+ * parameter:
+ *   - nextContext: Input value for nextContext.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const applyContext = (nextContext: ReportContextData) => {
   context.value = nextContext
   captureImages.value = [...nextContext.captureImageSrcs]
@@ -71,6 +292,16 @@ const applyContext = (nextContext: ReportContextData) => {
   streamText.value = ''
 }
 
+/**
+ * brief:
+ *   Handle hydrate context.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const hydrateContext = async () => {
   isHydrating.value = true
 
@@ -78,6 +309,16 @@ const hydrateContext = async () => {
     if (props.contextData) {
       applyContext(props.contextData)
     } else {
+      /**
+       * brief:
+       *   Handle remote context.
+       *
+       * parameter:
+       *   - None.
+       *
+       * retrival:
+       *   - Returns the computed value or updates local application state.
+       */
       const remoteContext = await getReportBuilderContext(props.reportId)
       applyContext(remoteContext)
     }
@@ -88,6 +329,16 @@ const hydrateContext = async () => {
   }
 }
 
+/**
+ * brief:
+ *   Handle draft request.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const draftRequest = computed<GenerateReportDraftRequest | null>(() => {
   if (!context.value) {
     return null
@@ -105,6 +356,16 @@ const draftRequest = computed<GenerateReportDraftRequest | null>(() => {
   }
 })
 
+/**
+ * brief:
+ *   Save draft request.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const saveDraftRequest = computed<SaveReportDraftRequest | null>(() => {
   if (!context.value) {
     return null
@@ -119,10 +380,30 @@ const saveDraftRequest = computed<SaveReportDraftRequest | null>(() => {
   }
 })
 
+/**
+ * brief:
+ *   Handle can save draft.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const canSaveDraft = computed(() => {
   return Boolean(saveDraftRequest.value?.findings || saveDraftRequest.value?.conclusion)
 })
 
+/**
+ * brief:
+ *   Handle formatted saved at.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const formattedSavedAt = computed(() => {
   if (!lastSavedAt.value) {
     return '尚未保存'
@@ -137,6 +418,16 @@ const formattedSavedAt = computed(() => {
   }).format(new Date(lastSavedAt.value))
 })
 
+/**
+ * brief:
+ *   Handle invoke agent.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleInvokeAgent = async () => {
   if (!draftRequest.value) {
     return
@@ -147,6 +438,16 @@ const handleInvokeAgent = async () => {
   emit('invoke-agent', draftRequest.value)
 
   try {
+    /**
+     * brief:
+     *   Handle response.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const response = await invokeReportDraftAgent(draftRequest.value, (chunk) => {
       streamText.value += chunk
     })
@@ -163,6 +464,16 @@ const handleInvokeAgent = async () => {
   }
 }
 
+/**
+ * brief:
+ *   Handle save draft.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleSaveDraft = async () => {
   if (!saveDraftRequest.value) {
     return
@@ -172,6 +483,16 @@ const handleSaveDraft = async () => {
   emit('save-draft', saveDraftRequest.value)
 
   try {
+    /**
+     * brief:
+     *   Handle saved draft.
+     *
+     * parameter:
+     *   - payload: Input value for payload.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const savedDraft = await saveReportDraft(saveDraftRequest.value)
     lastSavedAt.value = savedDraft.updatedAt
     showToast('报告草稿已保存。', 'success')
@@ -182,11 +503,31 @@ const handleSaveDraft = async () => {
   }
 }
 
+/**
+ * brief:
+ *   Handle fetch agent tags.
+ *
+ * parameter:
+ *   - payload: Input value for payload.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleFetchAgentTags = async (payload: FetchAnnotationTagsRequest) => {
   tagsLoading.value = true
   tagErrorMessage.value = ''
 
   try {
+    /**
+     * brief:
+     *   Handle response.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const response = await fetchSmartAnnotationTags(payload)
     annotationTags.value = response.tags
     agentWorkflow.value = response.workflow
@@ -199,14 +540,44 @@ const handleFetchAgentTags = async (payload: FetchAnnotationTagsRequest) => {
   }
 }
 
+/**
+ * brief:
+ *   Handle tag click.
+ *
+ * parameter:
+ *   - tag: Input value for tag.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleTagClick = (tag: AnnotationTag) => {
   showToast(`已定位标签 ${tag.label}，建议回看 ${tag.targetTime.toFixed(1)} 秒。`)
 }
 
+/**
+ * brief:
+ *   Handle patient edit.
+ *
+ * parameter:
+ *   - patientId: Input value for patientId.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handlePatientEdit = (patientId: string) => {
   showToast(`已触发患者 ${patientId} 的编辑入口。`)
 }
 
+/**
+ * brief:
+ *   Handle view history.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleViewHistory = () => {
   showToast('已触发患者历史记录查看。')
 }

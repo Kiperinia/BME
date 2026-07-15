@@ -1,4 +1,4 @@
-"""Summarize cross-validation and ablation results for MedEx-SAM3."""
+"""汇总 MedEx-SAM3 的交叉验证和消融实验结果。"""
 
 from __future__ import annotations
 
@@ -16,6 +16,14 @@ from MedicalSAM3.scripts.common import ensure_dir
 
 
 def _collect_val_metrics(results_dir: Path) -> list[dict[str, float]]:
+    """收集各折的验证集指标。
+
+    参数：
+        - results_dir: 结果根目录
+
+    返回：
+        - 各折指标字典列表
+    """
     metrics = []
     for path in sorted(results_dir.glob("fold_*/val_metrics.json")):
         metrics.append(json.loads(path.read_text(encoding="utf-8")))
@@ -23,6 +31,14 @@ def _collect_val_metrics(results_dir: Path) -> list[dict[str, float]]:
 
 
 def _collect_external_metrics(eval_dir: Path) -> dict[str, float]:
+    """收集外部测试集指标。
+
+    参数：
+        - eval_dir: 评估目录
+
+    返回：
+        - 指标字典
+    """
     summary_path = eval_dir / "summary_metrics.json"
     if summary_path.exists():
         return json.loads(summary_path.read_text(encoding="utf-8"))
@@ -33,6 +49,14 @@ def _collect_external_metrics(eval_dir: Path) -> dict[str, float]:
 
 
 def _mean_std(rows: list[dict[str, float]]) -> dict[str, dict[str, float]]:
+    """计算多个字典中各数值字段的均值和标准差。
+
+    参数：
+        - rows: 字典列表
+
+    返回：
+        - 字段名到 {mean, std} 的字典
+    """
     if not rows:
         return {}
     keys = [key for key in rows[0].keys() if isinstance(rows[0][key], (int, float))]
@@ -46,6 +70,14 @@ def _mean_std(rows: list[dict[str, float]]) -> dict[str, dict[str, float]]:
 
 
 def main() -> int:
+    """脚本命令行入口，汇总交叉验证和消融结果并输出表格。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Summarize MedEx-SAM3 CV and ablation results.")
     parser.add_argument("--results-dir", default="MedicalSAM3/outputs/medex_sam3")
     parser.add_argument("--ablation-dir", default="MedicalSAM3/outputs/medex_sam3/ablation")

@@ -20,6 +20,16 @@ from tools.medical.exemplar_bank_schemas import (
 
 
 def _mock_record(exemplar_id: str, polarity: ExemplarPolarity) -> MedicalExemplarRecord:
+    """brief:
+        Handle mock record.
+
+    parameter:
+        - exemplar_id: Input value for exemplar_id.
+        - polarity: Input value for polarity.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return MedicalExemplarRecord(
         exemplar_id=exemplar_id,
         image_path=f"images/{exemplar_id}.png",
@@ -40,6 +50,15 @@ def _mock_record(exemplar_id: str, polarity: ExemplarPolarity) -> MedicalExempla
 
 
 def main() -> None:
+    """brief:
+        Run the command-line entry point for this module.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     with tempfile.TemporaryDirectory(prefix="exemplar_agent_bank_test_") as memory_root:
         agent = ExemplarBankAgent(memory_root=Path(memory_root), hidden_dim=256)
         ingest_result = agent.ingest(_mock_record("positive-1", ExemplarPolarity.POSITIVE))

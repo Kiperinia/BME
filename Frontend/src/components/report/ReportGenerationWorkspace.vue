@@ -37,6 +37,16 @@ defineProps<{
   toastTone: 'info' | 'success' | 'error'
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'invoke-agent'): void
   (event: 'save-draft'): void

@@ -1,1 +1,1 @@
-"""MedEx-SAM3 scripts package."""
+"""MedEx-SAM3 脚本包。包含模型训练、验证、数据划分、样本库构建、消融实验等核心脚本入口。"""

@@ -14,7 +14,9 @@ from MedicalSAM3.exemplar.losses import (
 
 
 class TestLossBackward(unittest.TestCase):
+    """测试所有损失函数的标量输出和反向传播。"""
     def test_losses_are_scalar_and_backward(self) -> None:
+        """验证所有损失函数返回标量并支持反向传播。"""
         anchor = torch.randn(2, 8, requires_grad=True)
         positive = torch.randn(2, 8, requires_grad=True)
         negatives = torch.randn(2, 3, 8, requires_grad=True)

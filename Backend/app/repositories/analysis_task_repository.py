@@ -12,16 +12,52 @@ from app.models.analysis_task import AnalysisLesion, AnalysisTask
 
 
 class AnalysisTaskRepository:
+    """brief:
+        Represent AnalysisTaskRepository state and behavior.
+
+    parameter:
+        - session: Input value for session.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self, session: AsyncSession):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - session: Input value for session.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.session = session
 
     async def create(self, task: AnalysisTask) -> AnalysisTask:
+        """brief:
+            Handle create.
+
+        parameter:
+            - task: Input value for task.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         self.session.add(task)
         await self.session.commit()
         await self.session.refresh(task)
         return task
 
     async def get_by_task_id(self, task_id: str) -> AnalysisTask | None:
+        """brief:
+            Get by task id.
+
+        parameter:
+            - task_id: Input value for task_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         statement = (
             select(AnalysisTask)
             .options(selectinload(AnalysisTask.lesions))
@@ -31,6 +67,15 @@ class AnalysisTaskRepository:
         return result.scalar_one_or_none()
 
     async def update_processing(self, task_id: str) -> AnalysisTask | None:
+        """brief:
+            Update processing.
+
+        parameter:
+            - task_id: Input value for task_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         task = await self.get_by_task_id(task_id)
         if task is None:
             return None
@@ -44,6 +89,16 @@ class AnalysisTaskRepository:
         return task
 
     async def update_success(self, task_id: str, payload: dict) -> AnalysisTask | None:
+        """brief:
+            Update success.
+
+        parameter:
+            - task_id: Input value for task_id.
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         task = await self.get_by_task_id(task_id)
         if task is None:
             return None
@@ -81,6 +136,17 @@ class AnalysisTaskRepository:
         return task
 
     async def update_failure(self, task_id: str, error_code: int, error_message: str) -> AnalysisTask | None:
+        """brief:
+            Update failure.
+
+        parameter:
+            - task_id: Input value for task_id.
+            - error_code: Input value for error_code.
+            - error_message: Input value for error_message.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         task = await self.get_by_task_id(task_id)
         if task is None:
             return None

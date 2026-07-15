@@ -8,7 +8,9 @@ from MedicalSAM3.retrieval.region_uncertainty import build_region_uncertainty_ma
 
 
 class TestRegionAwareRetrieval(unittest.TestCase):
+    """测试区域感知检索模块的掩码生成和门控融合策略。"""
     def test_region_gate_blocks_high_confidence_regions(self) -> None:
+        """验证区域门控能在高置信度区域阻止检索激活。"""
         logits = torch.full((1, 1, 8, 8), -8.0)
         logits[:, :, 3:5, 3:5] = 0.0
         logits[:, :, 0:2, 0:2] = 8.0
@@ -26,6 +28,7 @@ class TestRegionAwareRetrieval(unittest.TestCase):
         self.assertGreater(float(gate["high_confidence_preserve_mask"][0, 0, 0, 0].item()), 0.0)
 
     def test_region_aware_policy_localizes_retrieval_delta(self) -> None:
+        """验证区域感知策略能定位检索增量的作用区域。"""
         fusion = GatedRetrievalFusion(
             dim=8,
             positive_weight=1.0,

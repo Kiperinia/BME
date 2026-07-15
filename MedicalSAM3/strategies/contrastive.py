@@ -20,11 +20,16 @@ from typing import Optional
 
 
 class PixelContrastiveLoss(nn.Module):
-    """
-    像素级监督对比损失
+    """像素级对比损失，用于增强前景特征的聚类性和前景-背景的判别性。
 
-    对编码器输出的特征图，按前景/背景 mask 采样锚点，
-    构建正/负对，计算 InfoNCE 损失。
+    通过 InfoNCE 损失拉近前景像素特征、推远前景-背景特征。
+
+    参数：
+        - temperature: 温度系数，控制对比损失分布的锐度
+        - num_anchor: 每个样本采样的锚点像素数
+        - num_negative: 每个样本采样的负例像素数
+        - proj_dim: 投影头的输出维度
+        - feat_dim: 输入特征的通道维度
     """
 
     def __init__(
@@ -35,6 +40,15 @@ class PixelContrastiveLoss(nn.Module):
         proj_dim: int = 128,
         feat_dim: int = 256,
     ):
+        """初始化像素级对比损失模块。
+
+        参数：
+            - temperature: 温度系数，默认 0.07
+            - num_anchor: 锚点采样数，默认 256
+            - num_negative: 负例采样数，默认 512
+            - proj_dim: 投影维度，默认 128
+            - feat_dim: 特征通道维度，默认 256
+        """
         super().__init__()
         self.temperature = temperature
         self.num_anchor = num_anchor
@@ -49,14 +63,15 @@ class PixelContrastiveLoss(nn.Module):
 
     def _sample_pixels(self, mask: torch.Tensor, n: int,
                        fg: bool = True) -> torch.Tensor:
-        """
-        从 mask 中随机采样 n 个前景/背景像素索引
-        Args:
-            mask: (H, W) 二值 mask
-            n: 采样数量
-            fg: True=前景, False=背景
-        Returns:
-            indices: (n,) 展平后的像素索引
+        """从 mask 中采样前景或背景像素的索引。
+
+        参数：
+            - mask: 二值掩码张量
+            - n: 采样像素数
+            - fg: 若为 True 采样前景像素，否则采样背景像素
+
+        返回：
+            - 采样得到的像素索引张量
         """
         flat = mask.flatten()
         if fg:
@@ -73,12 +88,14 @@ class PixelContrastiveLoss(nn.Module):
 
     def forward(self, features: torch.Tensor,
                 masks: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            features: (B, C, H, W) 编码器特征
-            masks: (B, 1, H, W) GT mask (需下采样到特征尺寸)
-        Returns:
-            对比损失 (标量)
+        """计算像素级对比损失。
+
+        参数：
+            - features: 特征图张量，形状 (B, C, H, W)
+            - masks: 二值掩码张量，形状 (B, 1, H, W)
+
+        返回：
+            - 标量损失值
         """
         # 投影
         proj = self.projector(features)  # (B, proj_dim, H, W)
@@ -124,15 +141,25 @@ class PixelContrastiveLoss(nn.Module):
 
 
 class PrototypeContrastiveLoss(nn.Module):
-    """
-    原型对比损失
+    """原型对比损失，维护全局前景/背景原型进行跨样本对比。
 
-    维护前景/背景的特征原型 (EMA 更新)，
-    鼓励每个像素特征与同类原型接近、与异类原型远离。
+    通过 EMA 更新全局原型，拉近像素特征与同类原型、推远异类原型。
+
+    参数：
+        - feat_dim: 特征维度
+        - temperature: 温度系数
+        - momentum: 原型更新的动量系数
     """
 
     def __init__(self, feat_dim: int = 256, temperature: float = 0.1,
                  momentum: float = 0.999):
+        """初始化原型对比损失模块。
+
+        参数：
+            - feat_dim: 特征维度，默认 256
+            - temperature: 温度系数，默认 0.1
+            - momentum: 动量系数，默认 0.999
+        """
         super().__init__()
         self.temperature = temperature
         self.momentum = momentum
@@ -144,7 +171,12 @@ class PrototypeContrastiveLoss(nn.Module):
     @torch.no_grad()
     def update_prototypes(self, features: torch.Tensor,
                           masks: torch.Tensor) -> None:
-        """EMA 更新原型"""
+        """用当前批次的特征和掩码更新全局原型。
+
+        参数：
+            - features: 特征图张量 (B, C, H, W)
+            - masks: 二值掩码张量 (B, 1, H, W)
+        """
         B, C, H, W = features.shape
         if masks.shape[-2:] != (H, W):
             masks = F.interpolate(masks, size=(H, W), mode="nearest")
@@ -180,8 +212,14 @@ class PrototypeContrastiveLoss(nn.Module):
 
     def forward(self, features: torch.Tensor,
                 masks: torch.Tensor) -> torch.Tensor:
-        """
-        计算原型对比损失
+        """计算原型对比损失。
+
+        参数：
+            - features: 特征图张量 (B, C, H, W)
+            - masks: 二值掩码张量 (B, 1, H, W)
+
+        返回：
+            - 标量损失值
         """
         B, C, H, W = features.shape
         if masks.shape[-2:] != (H, W):

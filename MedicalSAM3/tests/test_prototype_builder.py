@@ -9,7 +9,9 @@ from MedicalSAM3.exemplar.prototype_builder import PrototypeBuilder
 
 
 class TestPrototypeBuilder(unittest.TestCase):
+    """测试原型构建器的多种原型生成模式及正负边界原型选择功能。"""
     def test_prototype_modes_and_topk(self) -> None:
+        """验证多种原型构建模式（均值、加权、注意力融合、聚类）及方差过滤。"""
         builder = PrototypeBuilder(variance_threshold=0.01)
         embeddings = torch.randn(5, 8)
         mean_proto = builder.build_mean_prototype(embeddings)
@@ -29,6 +31,7 @@ class TestPrototypeBuilder(unittest.TestCase):
         self.assertTrue(builder.reject_if_high_variance(variance, threshold=0.0))
 
     def test_build_positive_negative_boundary_prototypes(self) -> None:
+        """验证基于记忆库构建正样本、负样本和边界原型的功能。"""
         builder = PrototypeBuilder()
         bank = ExemplarMemoryBank()
         with tempfile.TemporaryDirectory() as tmpdir:

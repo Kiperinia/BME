@@ -1,4 +1,4 @@
-"""Preflight checks and readiness checklist generation for MedEx-SAM3."""
+"""MedEx-SAM3 的预飞行检查与就绪清单生成。"""
 
 from __future__ import annotations
 
@@ -140,6 +140,15 @@ OPTIONAL_SCRIPTS = [
 
 
 def _read_json(path: Path, default: dict[str, Any] | None = None) -> dict[str, Any]:
+    """读取 JSON 文件，文件不存在或解析失败时返回默认值。
+
+    参数：
+        - path: JSON 文件路径
+        - default: 默认返回值
+
+    返回：
+        - 解析后的字典，失败时返回 default
+    """
     if not path.exists():
         return default or {}
     try:
@@ -149,12 +158,29 @@ def _read_json(path: Path, default: dict[str, Any] | None = None) -> dict[str, A
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> Path:
+    """将字典以 JSON 格式写入文件。
+
+    参数：
+        - path: 输出文件路径
+        - payload: 要写入的字典
+
+    返回：
+        - 写入后的文件 Path 对象
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return path
 
 
 def _resolve_device(requested_device: str) -> str:
+    """解析设备字符串，验证 CUDA 可用性。
+
+    参数：
+        - requested_device: 请求的设备类型，可选 "cpu"/"cuda"
+
+    返回：
+        - 解析后的设备字符串
+    """
     normalized = str(requested_device).strip().lower()
     if normalized == "cpu":
         return "cpu"
@@ -166,12 +192,28 @@ def _resolve_device(requested_device: str) -> str:
 
 
 def _cuda_device_name(device: str) -> str | None:
+    """获取 CUDA 设备名称，非 CUDA 环境返回 None。
+
+    参数：
+        - device: 设备字符串
+
+    返回：
+        - GPU 设备名称字符串或 None
+    """
     if str(device) != "cuda" or not torch.cuda.is_available():
         return None
     return torch.cuda.get_device_name(0)
 
 
 def _run_code_audit(report_dir: Path) -> dict[str, Any]:
+    """执行代码审计，检查核心文件存在性和符号完整性。
+
+    参数：
+        - report_dir: 审计报告输出目录
+
+    返回：
+        - 包含审计结果的字典
+    """
     existing_files: list[str] = []
     missing_files: list[str] = []
     import_errors: dict[str, str] = {}
@@ -180,6 +222,15 @@ def _run_code_audit(report_dir: Path) -> dict[str, Any]:
     non_blocking_issues: list[str] = []
 
     def has_symbol(module: Any, symbol: str) -> bool:
+        """检查模块或其属性中是否存在指定符号。
+
+        参数：
+            - module: 待检查的模块
+            - symbol: 符号名称
+
+        返回：
+            - 是否存在该符号的布尔值
+        """
         if hasattr(module, symbol):
             return True
         for value in module.__dict__.values():
@@ -243,6 +294,14 @@ def _run_code_audit(report_dir: Path) -> dict[str, Any]:
 
 
 def _run_loss_backward_check() -> bool:
+    """运行损失反向传播检查，验证梯度是否正确产生。
+
+    参数：
+        - 无
+
+    返回：
+        - 反向传播是否成功的布尔值
+    """
     logits = torch.randn(2, 1, 16, 16, requires_grad=True)
     gt_mask = (torch.rand(2, 1, 16, 16) > 0.5).float()
     criterion = MedExLossComposer()
@@ -252,6 +311,15 @@ def _run_loss_backward_check() -> bool:
 
 
 def _split_status(split_dir: Path, fold: int) -> dict[str, Any]:
+    """检查数据划分状态，包括记录数量和 PolypGen 泄露检测。
+
+    参数：
+        - split_dir: 划分目录路径
+        - fold: 折数索引
+
+    返回：
+        - 包含划分状态信息的字典
+    """
     summary = _read_json(split_dir / "split_summary.json", {})
     train_records = read_records(split_dir / f"fold_{fold}" / "train_ids.txt")
     val_records = read_records(split_dir / f"fold_{fold}" / "val_ids.txt")
@@ -268,6 +336,15 @@ def _split_status(split_dir: Path, fold: int) -> dict[str, Any]:
 
 
 def _short_train_status(results_dir: Path, fold: int) -> tuple[bool, list[str]]:
+    """检查短训练状态，判断是否生成了非 dummy 的训练产物。
+
+    参数：
+        - results_dir: 结果目录路径
+        - fold: 折数索引
+
+    返回：
+        - 由 (是否成功, 警告列表) 组成的元组
+    """
     fold_dir = results_dir / f"fold_{fold}"
     warnings: list[str] = []
     config = load_config(fold_dir / "config_used.yaml")
@@ -279,6 +356,14 @@ def _short_train_status(results_dir: Path, fold: int) -> tuple[bool, list[str]]:
 
 
 def _embedding_dim_from_item(item: Any) -> int | None:
+    """从示例项的嵌入文件中提取嵌入维度。
+
+    参数：
+        - item: 示例项对象
+
+    返回：
+        - 嵌入维度整数，无法提取时返回 None
+    """
     embedding_path = Path(str(getattr(item, "embedding_path", "") or ""))
     if not embedding_path.exists():
         return None
@@ -294,6 +379,15 @@ def _embedding_dim_from_item(item: Any) -> int | None:
 
 
 def _memory_bank_status(memory_dir: Path, expected_dim: int | None) -> dict[str, Any]:
+    """检查记忆库状态，包括可训练项数量和嵌入维度匹配。
+
+    参数：
+        - memory_dir: 记忆库目录路径
+        - expected_dim: 期望的嵌入维度
+
+    返回：
+        - 包含记忆库状态信息的字典
+    """
     bank = ExemplarMemoryBank.load(memory_dir)
     positives = bank.get_items(type="positive", human_verified=True)
     embedding_dim = _embedding_dim_from_item(positives[0]) if positives else None
@@ -309,6 +403,15 @@ def _memory_bank_status(memory_dir: Path, expected_dim: int | None) -> dict[str,
 
 
 def _maybe_run_short_train(args: argparse.Namespace, device: str) -> bool:
+    """在请求时执行短训练子进程。
+
+    参数：
+        - args: 命令行参数对象
+        - device: 目标设备
+
+    返回：
+        - 是否实际执行了短训练的布尔值
+    """
     if not args.run_short_train:
         return False
     command = [
@@ -341,6 +444,14 @@ def _maybe_run_short_train(args: argparse.Namespace, device: str) -> bool:
 
 
 def main() -> int:
+    """脚本命令行入口，执行 MedEx-SAM3 预飞行检查并生成就绪清单。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Run MedEx-SAM3 preflight checks.")
     parser.add_argument("--checkpoint", default=None)
     parser.add_argument("--fold", type=int, default=0)

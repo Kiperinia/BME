@@ -1,4 +1,4 @@
-"""Validate RSS-DA with retrieval sensitivity and spatial-semantic visualizations."""
+"""验证 RSS-DA，包含检索敏感度与空间-语义可视化。"""
 
 from __future__ import annotations
 
@@ -49,10 +49,27 @@ from MedicalSAM3.yolo_adapter.cli import add_yolo_bbox_args, build_box_provider_
 
 
 def _resolve_hidden_dim(model: torch.nn.Module) -> int:
+    """从模型属性解析隐藏维度，回退到默认值 128。
+
+    参数：
+        - model: 模型模块
+
+    返回：
+        - 隐藏维度整数
+    """
     return int(getattr(model, "hidden_dim", getattr(model, "_medex_hidden_dim", getattr(model, "embed_dim", 128))))
 
 
 def _save_gray(path: Path, tensor: torch.Tensor) -> None:
+    """将张量保存为灰度 PNG 图像。
+
+    参数：
+        - path: 输出图像路径
+        - tensor: 待保存的张量
+
+    返回：
+        - 无返回值，仅执行保存操作
+    """
     array = tensor.detach().cpu().float().squeeze().numpy()
     if array.max() <= 1.0:
         array = array * 255.0
@@ -60,6 +77,15 @@ def _save_gray(path: Path, tensor: torch.Tensor) -> None:
 
 
 def _save_heatmap(path: Path, tensor: torch.Tensor) -> None:
+    """将张量归一化后保存为伪彩色热图 PNG。
+
+    参数：
+        - path: 输出图像路径
+        - tensor: 待保存的热图张量
+
+    返回：
+        - 无返回值，仅执行保存操作
+    """
     array = tensor.detach().cpu().float().squeeze().numpy()
     array = array - array.min()
     denom = max(float(array.max()), 1e-6)
@@ -69,10 +95,27 @@ def _save_heatmap(path: Path, tensor: torch.Tensor) -> None:
 
 
 def _mask_area(mask_logits: torch.Tensor) -> float:
+    """计算预测掩码的像素面积。
+
+    参数：
+        - mask_logits: 掩码 logits 张量
+
+    返回：
+        - 掩码像素面积浮点数
+    """
     return float((torch.sigmoid(mask_logits) > 0.5).float().sum().item())
 
 
 def _load_checkpoint_payload(path: Path, device: str) -> object:
+    """从文件加载检查点负载。
+
+    参数：
+        - path: 检查点文件路径
+        - device: 目标设备
+
+    返回：
+        - 加载的检查点对象
+    """
     return torch.load(path, map_location=device, weights_only=False)
 
 
@@ -83,6 +126,18 @@ def _maybe_load_rssda_bundle(
     retriever: PrototypeRetriever,
     similarity_builder: SimilarityHeatmapBuilder,
 ) -> bool:
+    """尝试从检查点加载 RSS-DA 组件（适配器、检索器、相似度构建器）。
+
+    参数：
+        - path: 检查点文件路径
+        - device: 目标设备
+        - adapter: 检索空间-语义适配器
+        - retriever: 原型检索器
+        - similarity_builder: 相似度热图构建器
+
+    返回：
+        - 是否成功加载任意组件的布尔值
+    """
     payload = _load_checkpoint_payload(path, device)
     if not isinstance(payload, dict):
         return False
@@ -103,6 +158,15 @@ def _maybe_load_rssda_bundle(
 
 
 def _apply_retrieval_mode(retrieval: dict[str, object], mode: str) -> dict[str, object]:
+    """根据检索模式过滤或保留检索结果中的正例/负例部分。
+
+    参数：
+        - retrieval: 原始检索结果字典
+        - mode: 检索模式，可选 "baseline"/"joint"/"semantic"/"spatial"/"positive-only"/"negative-only"/"positive-negative"
+
+    返回：
+        - 处理后的检索结果字典
+    """
     if mode == "baseline":
         return retrieval
     if mode in {"joint", "semantic", "spatial", "positive-negative"}:
@@ -128,6 +192,14 @@ def _apply_retrieval_mode(retrieval: dict[str, object], mode: str) -> dict[str, 
 
 
 def _contains_polypgen_records(records: list[dict[str, object]]) -> bool:
+    """检查验证记录中是否包含 PolypGen 样本。
+
+    参数：
+        - records: 记录字典列表
+
+    返回：
+        - 是否包含 PolypGen 样本的布尔值
+    """
     for record in records:
         searchable = " ".join(
             str(record.get(key, "")).lower()
@@ -139,6 +211,14 @@ def _contains_polypgen_records(records: list[dict[str, object]]) -> bool:
 
 
 def _bank_has_polypgen_leakage(bank_root: Path) -> bool:
+    """检查检索库目录中是否存在 PolypGen 数据泄露。
+
+    参数：
+        - bank_root: 检索库根目录路径
+
+    返回：
+        - 是否检测到 PolypGen 泄露的布尔值
+    """
     if not bank_root.exists():
         return False
     for path in bank_root.rglob("*"):
@@ -166,6 +246,23 @@ def _run_adapter_forward(
     retrieval_mode: str,
     baseline_mask_logits: Optional[torch.Tensor] = None,
 ) -> tuple[dict[str, object], dict[str, torch.Tensor], dict[str, torch.Tensor]]:
+    """执行适配器前向推理，返回输出、检索先验和适配器辅助信息。
+
+    参数：
+        - adapter: 检索空间-语义适配器
+        - wrapper: SAM3 张量前向包装器
+        - images: 输入图像张量
+        - boxes: 边界框张量
+        - text_prompt: 文本提示列表
+        - query_feature: 查询特征图
+        - retrieval: 检索结果字典
+        - similarity: 相似度信息字典
+        - retrieval_mode: 检索模式
+        - baseline_mask_logits: 基线掩码 logits
+
+    返回：
+        - 由 (模型输出, 检索先验, 适配器辅助信息) 组成的元组
+    """
     if retrieval_mode == "baseline":
         return wrapper(images=images, boxes=boxes, text_prompt=text_prompt), {}, {}
     _, retrieval_prior, adapter_aux = adapter(
@@ -191,6 +288,14 @@ def _run_adapter_forward(
 
 
 def main() -> int:
+    """脚本命令行入口，执行 RSS-DA 验证评估。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Validate RSS-DA.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--split-file", default="MedicalSAM3/outputs/medex_sam3/splits/external_polypgen_ids.txt")

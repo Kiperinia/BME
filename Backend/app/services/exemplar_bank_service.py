@@ -28,9 +28,27 @@ from app.schemas.workspace import (
 
 
 class ExemplarBankService:
+    """brief:
+        Represent ExemplarBankService state and behavior.
+
+    parameter:
+        - hidden_dim: Input value for hidden_dim.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     threshold = 0.6
 
     def __init__(self, *, hidden_dim: int = 256) -> None:
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - hidden_dim: Input value for hidden_dim.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.hidden_dim = hidden_dim
         self.agent_root = (WORKSPACE_DIR / "agent").resolve()
         self.bank_root = (self.agent_root / "memory" / "exemplar_bank").resolve()
@@ -47,6 +65,15 @@ class ExemplarBankService:
         self.metadata_root = self.bank_root / "metadata"
 
     def evaluate_and_store(self, payload: ExemplarBankRequestSchema) -> ExemplarBankDecisionSchema:
+        """brief:
+            Evaluate and store.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         from tools.medical.exemplar_bank_schemas import ExemplarPolarity
 
         image_bytes = self._decode_image_source(payload.image.dataUrl)
@@ -133,10 +160,28 @@ class ExemplarBankService:
         )
 
     def retrieve_prior(self, payload: ExemplarRetrievalRequestSchema) -> ExemplarRetrievalResponseSchema:
+        """brief:
+            Handle retrieve prior.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         response, _ = self.build_retrieval_artifacts(payload)
         return response
 
     def build_retrieval_artifacts(self, payload: ExemplarRetrievalRequestSchema) -> tuple[ExemplarRetrievalResponseSchema, Any | None]:
+        """brief:
+            Build retrieval artifacts.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         from tools.medical.exemplar_bank_retrieval import RetrievedFeatureSet
         from tools.medical.exemplar_bank_schemas import QueryFeatureBatch, RetrievalCandidate
 
@@ -219,6 +264,15 @@ class ExemplarBankService:
         )
 
     def apply_feedback(self, payload: ExemplarFeedbackRequestSchema) -> ExemplarFeedbackResponseSchema:
+        """brief:
+            Handle apply feedback.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         feedback: dict[str, Any] = {"failure_mode": payload.failureMode, **payload.metadata}
         if payload.qualityScore is not None:
             feedback["quality_score"] = payload.qualityScore
@@ -253,6 +307,22 @@ class ExemplarBankService:
         polarity: Any,
         score: float,
     ) -> Any:
+        """brief:
+            Build record.
+
+        parameter:
+            - payload: Input value for payload.
+            - sample_id: Input value for sample_id.
+            - created_at: Input value for created_at.
+            - image_hash: Input value for image_hash.
+            - image_path: Input value for image_path.
+            - metadata_path: Input value for metadata_path.
+            - polarity: Input value for polarity.
+            - score: Input value for score.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         from tools.medical.exemplar_bank_schemas import (
             ExemplarEmbeddingRecord,
             FeatureCentroid,
@@ -314,6 +384,16 @@ class ExemplarBankService:
         )
 
     def _score_candidate(self, *, payload: ExemplarBankRequestSchema, duplicate: bool) -> tuple[float, list[str]]:
+        """brief:
+            Handle score candidate.
+
+        parameter:
+            - payload: Input value for payload.
+            - duplicate: Input value for duplicate.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         reasons: list[str] = []
         score = 0.0
 
@@ -373,6 +453,18 @@ class ExemplarBankService:
         query_boundary: torch.Tensor,
         top_k: int,
     ) -> dict[str, list[Any]]:
+        """brief:
+            Handle select candidates.
+
+        parameter:
+            - records: Input value for records.
+            - query_semantic: Input value for query_semantic.
+            - query_boundary: Input value for query_boundary.
+            - top_k: Input value for top_k.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         from tools.medical.exemplar_bank_schemas import ExemplarPolarity, RetrievalCandidate
 
         grouped: dict[str, list[tuple[float, float, Any]]] = {"positive": [], "negative": [], "boundary": []}
@@ -410,12 +502,32 @@ class ExemplarBankService:
         return selected
 
     def _stack_token_group(self, candidates: list[Any], *, fallback: torch.Tensor) -> torch.Tensor:
+        """brief:
+            Handle stack token group.
+
+        parameter:
+            - candidates: Input value for candidates.
+            - fallback: Input value for fallback.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         vectors = [self._candidate_vector(candidate) for candidate in candidates]
         if not vectors:
             vectors = [fallback.squeeze(0)]
         return torch.stack(vectors, dim=0).unsqueeze(0)
 
     def _stack_map_group(self, candidates: list[Any], *, fallback: torch.Tensor) -> torch.Tensor:
+        """brief:
+            Handle stack map group.
+
+        parameter:
+            - candidates: Input value for candidates.
+            - fallback: Input value for fallback.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         base = fallback.squeeze(0).view(self.hidden_dim, 1, 1).expand(self.hidden_dim, 16, 16)
         maps = [base.clone() * (1.0 + max(candidate.rank_score, 0.0)) for candidate in candidates]
         if not maps:
@@ -423,10 +535,28 @@ class ExemplarBankService:
         return torch.stack(maps, dim=0).mean(dim=0, keepdim=True)
 
     def _candidate_vector(self, candidate: Any) -> torch.Tensor:
+        """brief:
+            Handle candidate vector.
+
+        parameter:
+            - candidate: Input value for candidate.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         signature = f"{candidate.exemplar_id}|{candidate.rank_score:.4f}|{candidate.similarity:.4f}"
         return self._hash_to_unit_vector(signature)
 
     def _semantic_embedding_from_payload(self, payload: Any) -> torch.Tensor:
+        """brief:
+            Handle semantic embedding from payload.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         tokens = [
             payload.image.filename,
             payload.patient.patientId,
@@ -441,6 +571,15 @@ class ExemplarBankService:
         return self._hash_to_unit_vector("|".join(part.strip() for part in tokens if part.strip())).unsqueeze(0)
 
     def _boundary_embedding_from_payload(self, payload: Any) -> torch.Tensor:
+        """brief:
+            Handle boundary embedding from payload.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         bbox = payload.segmentation.boundingBox
         signature = "|".join(
             [
@@ -453,6 +592,17 @@ class ExemplarBankService:
         return self._hash_to_unit_vector(signature).unsqueeze(0)
 
     def _spatial_embedding_from_payload(self, payload: Any, semantic: torch.Tensor, boundary: torch.Tensor) -> torch.Tensor:
+        """brief:
+            Handle spatial embedding from payload.
+
+        parameter:
+            - payload: Input value for payload.
+            - semantic: Input value for semantic.
+            - boundary: Input value for boundary.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         base = 0.65 * semantic.squeeze(0) + 0.35 * boundary.squeeze(0)
         feature = base.view(self.hidden_dim, 1, 1).expand(self.hidden_dim, 16, 16).clone()
         bbox = payload.segmentation.boundingBox
@@ -467,6 +617,15 @@ class ExemplarBankService:
         return feature.unsqueeze(0)
 
     def _morphology_tags(self, payload: ExemplarBankRequestSchema) -> list[str]:
+        """brief:
+            Handle morphology tags.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         detail = payload.expertConfig.parisDetail
         tags = [
             payload.expertConfig.parisClassification,
@@ -478,10 +637,28 @@ class ExemplarBankService:
         return [item.strip() for item in tags if item.strip()]
 
     def _pathology_tags(self, payload: ExemplarBankRequestSchema) -> list[str]:
+        """brief:
+            Handle pathology tags.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         tags = [payload.expertConfig.lesionType, payload.expertConfig.pathologyClassification, payload.expertConfig.surfacePattern]
         return [item.strip() for item in tags if item.strip()]
 
     def _semantic_tags(self, payload: ExemplarBankRequestSchema) -> list[str]:
+        """brief:
+            Handle semantic tags.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         tags = [payload.findings, payload.conclusion, payload.expertConfig.expertNotes]
         normalized: list[str] = []
         for tag in tags:
@@ -491,18 +668,45 @@ class ExemplarBankService:
         return normalized[:12]
 
     def _difficulty_score(self, payload: ExemplarBankRequestSchema) -> float:
+        """brief:
+            Handle difficulty score.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         complexity = self._boundary_complexity(payload)
         area = payload.segmentation.maskAreaRatio
         subtype_bonus = 0.08 if payload.expertConfig.parisDetail.subtypeCode in {"0-IIc", "0-Is", "0-IIa+IIc"} else 0.0
         return min(0.35 * complexity + 0.25 * (1.0 - min(area / 0.35, 1.0)) + subtype_bonus + 0.18, 1.0)
 
     def _boundary_complexity(self, payload: ExemplarBankRequestSchema) -> float:
+        """brief:
+            Handle boundary complexity.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         point_count = max(payload.segmentation.pointCount, len(payload.segmentation.maskCoordinates), 1)
         area = max(payload.segmentation.maskAreaRatio, 1e-4)
         raw = min(point_count / 24.0, 1.0) * 0.6 + min(abs(math.log(area + 1e-4)) / 8.0, 1.0) * 0.4
         return min(max(raw, 0.0), 1.0)
 
     def _uncertainty_score(self, payload: ExemplarBankRequestSchema) -> float:
+        """brief:
+            Handle uncertainty score.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         missing = 0.0
         if not payload.expertConfig.pathologyClassification.strip():
             missing += 0.2
@@ -515,6 +719,16 @@ class ExemplarBankService:
         return min(missing + 0.1, 1.0)
 
     def _find_duplicate(self, snapshot: Any, *, image_hash: str) -> Any | None:
+        """brief:
+            Handle find duplicate.
+
+        parameter:
+            - snapshot: Input value for snapshot.
+            - image_hash: Input value for image_hash.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         for record in [*snapshot.positive_items, *snapshot.negative_items, *snapshot.boundary_items]:
             if record.dedup_hash == image_hash:
                 return record
@@ -522,9 +736,27 @@ class ExemplarBankService:
 
     @staticmethod
     def _snapshot_size(snapshot: Any) -> int:
+        """brief:
+            Handle snapshot size.
+
+        parameter:
+            - snapshot: Input value for snapshot.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return len(snapshot.positive_items) + len(snapshot.negative_items) + len(snapshot.boundary_items)
 
     def _tensor_from_list(self, values: list[float]) -> torch.Tensor:
+        """brief:
+            Handle tensor from list.
+
+        parameter:
+            - values: Input value for values.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not values:
             return self._hash_to_unit_vector("empty")
         tensor = torch.tensor(values, dtype=torch.float32)
@@ -535,6 +767,15 @@ class ExemplarBankService:
         return F.normalize(tensor, dim=0)
 
     def _hash_to_unit_vector(self, text: str) -> torch.Tensor:
+        """brief:
+            Handle hash to unit vector.
+
+        parameter:
+            - text: Input value for text.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not text:
             text = "empty"
         digest = hashlib.sha256(text.encode("utf-8")).digest()
@@ -550,6 +791,15 @@ class ExemplarBankService:
 
     @staticmethod
     def _sanitize_diagnostics(diagnostics: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle sanitize diagnostics.
+
+        parameter:
+            - diagnostics: Input value for diagnostics.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         sanitized: dict[str, Any] = {}
         for key, value in diagnostics.items():
             if isinstance(value, torch.Tensor):
@@ -560,12 +810,30 @@ class ExemplarBankService:
 
     @staticmethod
     def _quality_to_dict(quality: Any | None) -> dict[str, float]:
+        """brief:
+            Handle quality to dict.
+
+        parameter:
+            - quality: Input value for quality.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if quality is None:
             return {}
         return {key: round(float(value), 4) for key, value in asdict(quality).items()}
 
     @staticmethod
     def _decode_image_source(image_source: str) -> bytes:
+        """brief:
+            Handle decode image source.
+
+        parameter:
+            - image_source: Input value for image_source.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not image_source.startswith("data:"):
             raise AppException(400, 40062, "workspace image must be sent as a data URL")
 
@@ -580,6 +848,15 @@ class ExemplarBankService:
             raise AppException(400, 40064, "failed to decode uploaded image data") from exc
 
     def _ensure_agent_path(self) -> None:
+        """brief:
+            Handle ensure agent path.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         agent_root_str = str(self.agent_root)
         if agent_root_str not in sys.path:
             sys.path.insert(0, agent_root_str)

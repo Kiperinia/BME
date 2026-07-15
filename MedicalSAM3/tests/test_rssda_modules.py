@@ -16,7 +16,9 @@ from MedicalSAM3.scripts.common import SplitSegmentationDataset, infer_source_do
 
 
 class TestRSSDAModules(unittest.TestCase):
+    """测试 RSSDA 各模块的集成功能，包括检索库、原型提取器、提示适配器等。"""
     def test_bank_roundtrip_and_retrieval(self) -> None:
+        """验证检索库的保存-加载往返过程以及检索功能。"""
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             bank = RSSDABank()
@@ -43,6 +45,7 @@ class TestRSSDAModules(unittest.TestCase):
             self.assertEqual(outputs["projected_query"].shape[-1], 8)
 
     def test_infer_source_domain_from_merged_kvasircvc_record(self) -> None:
+        """验证从合并的 KvasirCVC 数据记录中推断源域的功能。"""
         source = infer_source_domain(
             dataset_name="KvasirCVC",
             image_id="KvasirCVC__cvc_57",
@@ -52,6 +55,7 @@ class TestRSSDAModules(unittest.TestCase):
         self.assertEqual(source, "CVC")
 
     def test_retriever_prefers_cross_domain_positive(self) -> None:
+        """验证检索器在跨域场景下优先选择不同域的正样本。"""
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             bank = RSSDABank()
@@ -86,6 +90,7 @@ class TestRSSDAModules(unittest.TestCase):
             self.assertEqual(outputs["positive_entries"][0][0].source_dataset, "CVC")
 
     def test_similarity_and_adapter_outputs(self) -> None:
+        """验证相似度计算和检索适配器的输出形状与内容。"""
         feature_map = torch.randn(2, 8, 8, 8)
         mask = torch.ones(2, 1, 8, 8)
         pooled = masked_average_pool(feature_map, mask)
@@ -115,6 +120,7 @@ class TestRSSDAModules(unittest.TestCase):
         self.assertTrue(any(parameter.requires_grad for parameter in similarity_builder.parameters()))
 
     def test_gated_retrieval_fusion_calibrates_low_confidence_negative_retrieval(self) -> None:
+        """验证门控检索融合在低置信度分割结果下能正确校准负样本检索权重。"""
         fusion = GatedRetrievalFusion(
             dim=8,
             positive_weight=1.0,
@@ -166,6 +172,7 @@ class TestRSSDAModules(unittest.TestCase):
         )
 
     def test_gated_retrieval_fusion_similarity_threshold_can_disable_retrieval(self) -> None:
+        """验证相似度阈值可以完全禁用检索（当所有相似度低于阈值时）。"""
         fusion = GatedRetrievalFusion(
             dim=8,
             positive_weight=1.0,
@@ -193,6 +200,7 @@ class TestRSSDAModules(unittest.TestCase):
         self.assertEqual(float(outputs["negative_calibrated_weight"].mean().item()), 0.0)
 
     def test_gated_retrieval_fusion_soft_similarity_weighting_keeps_partial_activation(self) -> None:
+        """验证软相似度加权模式下检索激活保持部分而非全有或全无。"""
         fusion = GatedRetrievalFusion(
             dim=8,
             positive_weight=1.0,
@@ -224,6 +232,7 @@ class TestRSSDAModules(unittest.TestCase):
         self.assertGreater(float(outputs["retrieval_activation_ratio"].mean().item()), 0.0)
 
     def test_prompt_dropout_uses_full_image_box(self) -> None:
+        """验证提示丢弃增强模式下使用全图边界框。"""
         dataset = SplitSegmentationDataset(
             [{"image_path": "", "mask_path": "", "dataset_name": "dummy", "image_id": "dropout_case"}],
             image_size=64,
@@ -234,6 +243,7 @@ class TestRSSDAModules(unittest.TestCase):
         self.assertTrue(torch.equal(sample["box"], torch.tensor([0.0, 0.0, 64.0, 64.0])))
 
     def test_prompt_removal_uses_nan_sentinel(self) -> None:
+        """验证提示移除增强模式下边界框被设置为 NaN 哨兵值。"""
         dataset = SplitSegmentationDataset(
             [{"image_path": "", "mask_path": "", "dataset_name": "dummy", "image_id": "removed_case"}],
             image_size=64,
@@ -245,6 +255,7 @@ class TestRSSDAModules(unittest.TestCase):
         self.assertTrue(torch.isnan(sample["box"]).all())
 
     def test_prompt_corruption_gate_can_disable_corruption(self) -> None:
+        """验证当概率设置为零时提示增强门控可以禁用所有扰动。"""
         dataset = SplitSegmentationDataset(
             [{"image_path": "", "mask_path": "", "dataset_name": "dummy", "image_id": "clean_case"}],
             image_size=64,
@@ -262,6 +273,7 @@ class TestRSSDAModules(unittest.TestCase):
         self.assertFalse(sample["prompt_aug"]["dropout"])
 
     def test_loose_bbox_expands_prompt_box(self) -> None:
+        """验证宽松边界框模式能正确扩展提示边界框的范围。"""
         records = [{"image_path": "", "mask_path": "", "dataset_name": "dummy", "image_id": "loose_case"}]
         baseline = SplitSegmentationDataset(records, image_size=64)
         loose = SplitSegmentationDataset(records, image_size=64, loose_box_ratio=0.3, loose_box_prob=1.0)
@@ -273,6 +285,7 @@ class TestRSSDAModules(unittest.TestCase):
         self.assertTrue(loose[0]["prompt_aug"]["loose"])
 
     def test_prompt_sensitivity_reports_logit_shift(self) -> None:
+        """验证提示敏感性分析能正确报告 logit 偏移量。"""
         zeros = torch.zeros(1, 1, 4, 4)
         variants = {
             "positive_exemplar": {"mask_logits": zeros + 0.3, "metrics": {"Dice": 0.7, "IoU": 0.55}},
@@ -285,12 +298,14 @@ class TestRSSDAModules(unittest.TestCase):
         self.assertGreater(summary["prompt_sensitivity_score"], 0.0)
 
     def test_mask_difference_ratio_uses_xor_over_union(self) -> None:
+        """验证掩码差异率使用 XOR 除以并集的正确计算。"""
         mask_a = torch.tensor([[[[10.0, 10.0], [-10.0, -10.0]]]])
         mask_b = torch.tensor([[[[10.0, -10.0], [10.0, -10.0]]]])
         ratio = _mask_difference_ratio(mask_a, mask_b)
         self.assertAlmostEqual(ratio, 2.0 / 3.0, places=5)
 
     def test_extractor_saves_pt_and_json(self) -> None:
+        """验证原型提取器能同时保存 .pt 特征文件和 .json 元数据文件。"""
         extractor = PrototypeExtractor()
         feature_map = torch.randn(1, 8, 8, 8)
         mask = torch.ones(1, 1, 8, 8)
@@ -310,6 +325,7 @@ class TestRSSDAModules(unittest.TestCase):
             self.assertTrue((Path(tmpdir) / "positive_bank" / "proto_a.json").exists())
 
     def test_directory_bank_loader_builds_cache_and_supports_retrieval(self) -> None:
+        """验证目录检索加载器能构建缓存并支持检索功能。"""
         with tempfile.TemporaryDirectory() as tmpdir:
             bank_root = Path(tmpdir) / "banks" / "train_bank"
             for polarity, color in (("positive", (220, 40, 40)), ("negative", (40, 220, 40))):

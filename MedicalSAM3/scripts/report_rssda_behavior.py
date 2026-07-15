@@ -1,4 +1,4 @@
-"""Generate lightweight numerical reports for RSS-DA behavior and domain gap."""
+"""生成 RSS-DA 行为及域差距的轻量数值报告。"""
 
 from __future__ import annotations
 
@@ -35,10 +35,26 @@ from MedicalSAM3.scripts.common import (
 
 
 def _resolve_hidden_dim(model: torch.nn.Module) -> int:
+    """从模型中解析隐藏层维度。
+
+    参数：
+        - model: PyTorch 模型
+
+    返回：
+        - 隐藏层维度整数值
+    """
     return int(getattr(model, "hidden_dim", getattr(model, "_medex_hidden_dim", getattr(model, "embed_dim", 128))))
 
 
 def _resolve_runtime_device(requested_device: str) -> str:
+    """解析运行时设备（cpu/cuda）。
+
+    参数：
+        - requested_device: 请求的设备字符串（auto/cpu/cuda）
+
+    返回：
+        - 解析后的设备名
+    """
     normalized = requested_device.strip().lower()
     if normalized == "cpu":
         return "cpu"
@@ -54,11 +70,27 @@ def _resolve_runtime_device(requested_device: str) -> str:
 
 
 def _mask_area_ratio(mask_logits: torch.Tensor) -> float:
+    """计算预测掩码中前景区域的占比。
+
+    参数：
+        - mask_logits: 预测掩码 logits 张量
+
+    返回：
+        - 前景区域比例（0~1）
+    """
     prob = torch.sigmoid(mask_logits)
     return float((prob > 0.5).float().mean().item())
 
 
 def _mean_confidence(outputs: dict[str, Any]) -> float:
+    """计算输出中的平均置信度。
+
+    参数：
+        - outputs: 模型输出字典
+
+    返回：
+        - 平均置信度浮点值
+    """
     scores = outputs.get("scores")
     if isinstance(scores, torch.Tensor):
         return float(scores.mean().item())
@@ -69,6 +101,15 @@ def _mean_confidence(outputs: dict[str, Any]) -> float:
 
 
 def _load_checkpoint_payload(path: Path, device: str) -> object:
+    """从磁盘加载检查点文件。
+
+    参数：
+        - path: 检查点文件路径
+        - device: 加载目标设备
+
+    返回：
+        - 检查点数据对象
+    """
     return torch.load(path, map_location=device, weights_only=False)
 
 
@@ -79,6 +120,18 @@ def _maybe_load_rssda_bundle(
     retriever: PrototypeRetriever,
     similarity_builder: SimilarityHeatmapBuilder,
 ) -> bool:
+    """尝试从检查点加载 RSS-DA 组件（adapter/retriever/similarity_builder）的状态字典。
+
+    参数：
+        - path: 检查点路径
+        - device: 加载目标设备
+        - adapter: RSS-DA 适配器
+        - retriever: 原型检索器
+        - similarity_builder: 相似度热图构建器
+
+    返回：
+        - 是否成功加载了任何组件
+    """
     payload = _load_checkpoint_payload(path, device)
     if not isinstance(payload, dict):
         return False
@@ -99,6 +152,15 @@ def _maybe_load_rssda_bundle(
 
 
 def _apply_retrieval_mode(retrieval: dict[str, object], mode: str) -> dict[str, object]:
+    """根据指定的检索模式对检索结果进行过滤（positive-only 模式清除负例信息）。
+
+    参数：
+        - retrieval: 原始检索结果字典
+        - mode: 检索模式
+
+    返回：
+        - 应用模式后的检索结果
+    """
     if mode in {"joint", "semantic", "spatial", "positive-negative"}:
         return retrieval
     if mode != "positive-only":
@@ -113,6 +175,16 @@ def _apply_retrieval_mode(retrieval: dict[str, object], mode: str) -> dict[str, 
 
 
 def _dummy_records(prefix: str, dataset_name: str, count: int) -> list[dict[str, str]]:
+    """生成用于测试的虚拟数据记录。
+
+    参数：
+        - prefix: 图像 ID 前缀
+        - dataset_name: 数据集名称
+        - count: 生成数量
+
+    返回：
+        - 虚拟记录列表
+    """
     return [
         {
             "image_path": "",
@@ -125,6 +197,18 @@ def _dummy_records(prefix: str, dataset_name: str, count: int) -> list[dict[str,
 
 
 def _ensure_records(split_file: str | Path, dummy: bool, prefix: str, dataset_name: str, count: int) -> list[dict[str, Any]]:
+    """从拆分文件读取记录，若失败且启用 dummy 则返回虚拟记录。
+
+    参数：
+        - split_file: 拆分文件路径
+        - dummy: 是否允许使用虚拟数据
+        - prefix: 虚拟记录 ID 前缀
+        - dataset_name: 数据集名称
+        - count: 虚拟记录生成数量
+
+    返回：
+        - 有效记录列表
+    """
     records = read_records(split_file)
     if dummy and not records:
         return _dummy_records(prefix, dataset_name, count)
@@ -132,6 +216,16 @@ def _ensure_records(split_file: str | Path, dummy: bool, prefix: str, dataset_na
 
 
 def _create_dummy_bank(bank_dir: Path, hidden_dim: int, seed: int) -> RSSDABank:
+    """创建包含随机正负示例的虚拟 RSS-DA 库。
+
+    参数：
+        - bank_dir: 库存储目录
+        - hidden_dim: 特征维度
+        - seed: 随机种子
+
+    返回：
+        - 虚拟 RSSDABank 实例
+    """
     generator = torch.Generator().manual_seed(seed)
     bank = RSSDABank()
     entries = [
@@ -177,6 +271,21 @@ def _load_or_create_bank(
     checkpoint: Optional[str] = None,
     device: str = "auto",
 ) -> RSSDABank:
+    """从路径加载 RSS-DA 库，若不存在且启用 dummy 则创建虚拟库。
+
+    参数：
+        - path: 库路径
+        - hidden_dim: 特征维度
+        - dummy: 是否允许创建虚拟库
+        - seed: 随机种子
+        - image_size: 图像尺寸
+        - precision: 精度设置
+        - checkpoint: 检查点路径
+        - device: 设备
+
+    返回：
+        - RSSDABank 实例
+    """
     bank_path = Path(path)
     if bank_path.exists():
         bank_context = load_retrieval_bank(
@@ -196,6 +305,14 @@ def _load_or_create_bank(
 
 
 def _entry_source_counts(bank: RSSDABank) -> dict[str, dict[str, int]]:
+    """统计库中每个数据源的正负示例条目数。
+
+    参数：
+        - bank: RSS-DA 库
+
+    返回：
+        - 数据源到 {positive: int, negative: int} 的字典
+    """
     counts: dict[str, dict[str, int]] = {}
     for entry in bank.entries:
         polarity_counts = counts.setdefault(entry.source_dataset, {"positive": 0, "negative": 0})
@@ -204,6 +321,14 @@ def _entry_source_counts(bank: RSSDABank) -> dict[str, dict[str, int]]:
 
 
 def _metadata_readiness(bank: RSSDABank) -> dict[str, Any]:
+    """检查库条目的元数据完备性（设备信息、医院信息等）。
+
+    参数：
+        - bank: RSS-DA 库
+
+    返回：
+        - 元数据完备性指标字典
+    """
     device_keys: set[str] = set()
     extra_keys: set[str] = set()
     has_hospital = False
@@ -229,6 +354,17 @@ def _selection_from_entries(
     entries: list[PrototypeBankEntry],
     indices: list[int],
 ) -> tuple[torch.Tensor, torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor]:
+    """从库中选择指定索引的条目，计算加权原型和权重。
+
+    参数：
+        - bank: RSS-DA 库
+        - query_vector: 查询向量
+        - entries: 候选条目列表
+        - indices: 选中条目的索引列表
+
+    返回：
+        - (特征张量, 权重张量, 条目列表, 原型张量, 原始分数) 的元组
+    """
     dim = int(query_vector.shape[-1])
     if not indices:
         return (
@@ -255,6 +391,19 @@ def _rank_entry_indices(
     strategy: str,
     rng: random.Random,
 ) -> list[int]:
+    """根据指定策略对库条目进行排序并返回前 top_k 个索引。
+
+    参数：
+        - bank: RSS-DA 库
+        - query_vector: 查询向量
+        - entries: 候选条目列表
+        - top_k: 选取数量
+        - strategy: 排序策略（best/worst/random）
+        - rng: 随机数生成器
+
+    返回：
+        - 选中条目的索引列表
+    """
     if not entries or top_k <= 0:
         return []
     features = bank.stack_features(entries, device=query_vector.device)
@@ -278,6 +427,16 @@ def _override_retrieval(
     positive_override: Optional[tuple[torch.Tensor, torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor]] = None,
     negative_override: Optional[tuple[torch.Tensor, torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor]] = None,
 ) -> dict[str, Any]:
+    """用指定的正例/负例覆盖检索结果，用于消融实验。
+
+    参数：
+        - base_retrieval: 原始检索结果
+        - positive_override: 替换正例的元组
+        - negative_override: 替换负例的元组
+
+    返回：
+        - 覆盖后的检索结果字典
+    """
     retrieval = dict(base_retrieval)
     if positive_override is not None:
         retrieval["positive_features"] = positive_override[0]
@@ -295,6 +454,14 @@ def _override_retrieval(
 
 
 def _empty_negative_like(retrieval: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor]:
+    """生成与检索结果维度匹配的空负例占位符。
+
+    参数：
+        - retrieval: 检索结果字典
+
+    返回：
+        - (空特征, 空权重, 空条目, 零原型, 空分数) 的元组
+    """
     dim = int(retrieval["positive_prototype"].shape[-1])
     device = retrieval["positive_prototype"].device
     return (
@@ -316,6 +483,21 @@ def _build_variant_retrievals(
     prefer_cross_domain_positive: bool,
     retrieval_mode: str,
 ) -> dict[str, Optional[dict[str, Any]]]:
+    """构建多种检索变体（正确正例、错误示例、负例示例、随机示例、无检索）。
+
+    参数：
+        - bank: RSS-DA 库
+        - retriever: 原型检索器
+        - query_feature: 查询特征
+        - query_source: 查询来源域
+        - top_k_positive: 选取正例数量
+        - rng: 随机数生成器
+        - prefer_cross_domain_positive: 是否优先选用跨域正例
+        - retrieval_mode: 检索模式
+
+    返回：
+        - 变体名称到检索结果（或 None）的字典
+    """
     base_retrieval = _apply_retrieval_mode(
         retriever(
             query_feature,
@@ -359,6 +541,14 @@ def _build_variant_retrievals(
 
 
 def _safe_entropy(values: torch.Tensor) -> float:
+    """安全计算张量的归一化熵（防止除零）。
+
+    参数：
+        - values: 输入张量
+
+    返回：
+        - 归一化熵值（0~1）
+    """
     flat = values.float().flatten()
     if flat.numel() == 0:
         return 0.0
@@ -372,6 +562,16 @@ def _safe_entropy(values: torch.Tensor) -> float:
 
 
 def summarize_heatmap(tensor: Optional[torch.Tensor], gt_mask: torch.Tensor, top_percent: float) -> dict[str, float]:
+    """汇总热图的统计信息，包括与真值掩码的重叠比。
+
+    参数：
+        - tensor: 热图张量（可选）
+        - gt_mask: 真值掩码
+        - top_percent: 前百分之几视为热点
+
+    返回：
+        - 包含 max/mean/entropy/top_percent_activation/hotspot_overlap_ratio 的字典
+    """
     if tensor is None or not isinstance(tensor, torch.Tensor):
         return {
             "max": 0.0,
@@ -407,6 +607,15 @@ def summarize_heatmap(tensor: Optional[torch.Tensor], gt_mask: torch.Tensor, top
 
 
 def _variant_delta(current: dict[str, Any], baseline: dict[str, Any]) -> dict[str, float]:
+    """计算当前变体相对于基线的各项指标变化量。
+
+    参数：
+        - current: 当前变体结果
+        - baseline: 基线结果
+
+    返回：
+        - 各指标变化量的字典
+    """
     return {
         "Dice change": float(current["metrics"]["Dice"] - baseline["metrics"]["Dice"]),
         "Mask area ratio change": float(current["mask_area_ratio"] - baseline["mask_area_ratio"]),
@@ -416,6 +625,14 @@ def _variant_delta(current: dict[str, Any], baseline: dict[str, Any]) -> dict[st
 
 
 def _sensitivity_spread(variants: dict[str, dict[str, Any]]) -> dict[str, float]:
+    """计算所有变体在各指标上的极差（最大值-最小值），衡量检索敏感性。
+
+    参数：
+        - variants: 变体名称到结果的字典
+
+    返回：
+        - 指标到极差值的字典
+    """
     keys = {
         "dice_range": [variant["metrics"]["Dice"] for variant in variants.values()],
         "mask_area_ratio_range": [variant["mask_area_ratio"] for variant in variants.values()],
@@ -426,6 +643,14 @@ def _sensitivity_spread(variants: dict[str, dict[str, Any]]) -> dict[str, float]
 
 
 def _to_score_list(scores: list[torch.Tensor] | list[object]) -> list[float]:
+    """将分数张量列表转换为 Python 浮点数列表。
+
+    参数：
+        - scores: 分数张量列表
+
+    返回：
+        - Python 浮点数列表
+    """
     if not scores:
         return []
     first = scores[0]
@@ -448,6 +673,25 @@ def _run_variant(
     retrieval_mode: str,
     top_percent: float,
 ) -> dict[str, Any]:
+    """运行单一检索变体的完整前向推理并计算指标与热图统计。
+
+    参数：
+        - adapter: RSS-DA 适配器
+        - wrapper: SAM3 张量前向封装
+        - similarity_builder: 相似度热图构建器
+        - images: 输入图像张量
+        - masks: 真值掩码
+        - boxes: 边界框
+        - text_prompt: 文本提示
+        - query_feature: 查询特征
+        - baseline_outputs: 基线输出
+        - retrieval: 检索结果（None 时使用基线）
+        - retrieval_mode: 检索模式
+        - top_percent: 热点前百分之几
+
+    返回：
+        - 包含 metrics、heatmap_stats 等结果的字典
+    """
     if retrieval is None:
         outputs = baseline_outputs
         metrics = compute_segmentation_metrics(outputs["mask_logits"], masks)
@@ -513,6 +757,16 @@ def _accumulate_variant(
     variant_name: str,
     payload: dict[str, float],
 ) -> None:
+    """累加变体的各项指标值到目标字典。
+
+    参数：
+        - target: 累加目标字典
+        - variant_name: 变体名称
+        - payload: 变体指标字典
+
+    返回：
+        - 无返回值，仅更新 target 字典的副作用
+    """
     summary = target.setdefault(variant_name, {})
     for key, value in payload.items():
         summary[key] = summary.get(key, 0.0) + float(value)
@@ -523,6 +777,16 @@ def _accumulate_heatmaps(
     variant_name: str,
     heatmaps: dict[str, dict[str, float]],
 ) -> None:
+    """累加变体的热图统计信息到目标字典。
+
+    参数：
+        - target: 累加目标字典
+        - variant_name: 变体名称
+        - heatmaps: 热图统计字典
+
+    返回：
+        - 无返回值，仅更新 target 字典的副作用
+    """
     variant_target = target.setdefault(variant_name, {})
     for heatmap_name, stats in heatmaps.items():
         heatmap_target = variant_target.setdefault(heatmap_name, {})
@@ -531,6 +795,15 @@ def _accumulate_heatmaps(
 
 
 def _average_nested(values: dict[str, Any], count: int) -> dict[str, Any]:
+    """递归对嵌套字典中的数值除以 count 取均值。
+
+    参数：
+        - values: 嵌套字典（叶节点为数值）
+        - count: 除数
+
+    返回：
+        - 取均值后的字典结构
+    """
     averaged: dict[str, Any] = {}
     for key, value in values.items():
         if isinstance(value, dict):
@@ -541,6 +814,15 @@ def _average_nested(values: dict[str, Any], count: int) -> dict[str, Any]:
 
 
 def _report_gap(internal: dict[str, Any], external: dict[str, Any]) -> dict[str, dict[str, float]]:
+    """计算内部验证集与外部测试集之间的域差距报告。
+
+    参数：
+        - internal: 内部集汇总
+        - external: 外部集汇总
+
+    返回：
+        - 变体名称到域差距指标（dice_gap、precision_gap、fpr_gap）的字典
+    """
     gap: dict[str, dict[str, float]] = {}
     internal_variants = internal.get("variant_metrics", {})
     external_variants = external.get("variant_metrics", {})
@@ -579,6 +861,28 @@ def _evaluate_split(
     device: str,
     max_samples: Optional[int],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """在指定拆分（内/外部验证集）上评估 RSS-DA 行为并收集逐行指标。
+
+    参数：
+        - split_name: 拆分名称
+        - records: 数据记录列表
+        - adapter: RSS-DA 适配器
+        - wrapper: SAM3 张量前向封装
+        - retriever: 原型检索器
+        - similarity_builder: 相似度热图构建器
+        - bank: RSS-DA 库
+        - image_size: 图像尺寸
+        - retrieval_mode: 检索模式
+        - top_k_positive: 选取正例数量
+        - top_percent: 热点前百分之几
+        - prefer_cross_domain_positive: 是否优先选用跨域正例
+        - seed: 随机种子
+        - device: 设备
+        - max_samples: 最大样本数限制
+
+    返回：
+        - (逐行结果列表, 汇总字典) 的元组
+    """
     if max_samples is not None:
         records = records[: max(0, max_samples)]
     loader = DataLoader(SplitSegmentationDataset(records, image_size), batch_size=1, shuffle=False, collate_fn=collate_batch)
@@ -672,6 +976,14 @@ def _evaluate_split(
 
 
 def main() -> int:
+    """脚本命令行入口，生成 RSS-DA 行为数值报告及域差距分析。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Generate numerical RSS-DA behavior reports.")
     parser.add_argument("--device", default="auto")
     parser.add_argument("--internal-split-file", default="MedicalSAM3/outputs/medex_sam3/splits/fold_0/val_ids.txt")

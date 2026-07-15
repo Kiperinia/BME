@@ -8,13 +8,26 @@ import torch.nn as nn
 
 
 class TextGuidedAttention(nn.Module):
-    """
-    Text-Guided Attention (TGA)
+    """文本引导注意力模块，用文本嵌入调制图像特征实现跨模态对齐。
 
-    将文本 encoding 引入图像特征，通过跨模态 attention 调制图像特征。
+    参数：
+        - embed_dim: 嵌入维度。
+        - num_heads: 多头注意力的头数。
+
+    返回：
+        - 构建可用的文本引导注意力模块实例。
     """
 
     def __init__(self, embed_dim: int = 256, num_heads: int = 4):
+        """初始化文本查询投影、交叉注意力、门控与通道注意力子模块。
+
+        参数：
+            - embed_dim: 嵌入维度。
+            - num_heads: 多头注意力的头数。
+
+        返回：
+            - 无返回值，完成各子模块的构建。
+        """
         super().__init__()
         self.embed_dim = embed_dim
 
@@ -43,7 +56,15 @@ class TextGuidedAttention(nn.Module):
 
     def forward(self, image_feat: torch.Tensor,
                 text_embed: torch.Tensor) -> torch.Tensor:
-        """利用文本引导生成通道注意力并回写到图像特征。"""
+        """用文本嵌入通过交叉注意力与门控调制图像特征。
+
+        参数：
+            - image_feat: 形状为 [B, C, H, W] 的图像特征张量。
+            - text_embed: 形状为 [B, C] 的文本嵌入张量。
+
+        返回：
+            - 与 image_feat 同形状的文本调制后特征张量。
+        """
 
         residual = image_feat
         img_seq = image_feat.flatten(2).transpose(1, 2)

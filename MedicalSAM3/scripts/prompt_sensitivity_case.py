@@ -1,4 +1,4 @@
-"""Run same-image different-exemplar prompt sensitivity experiments."""
+"""运行同图不同示例的提示敏感性实验。"""
 
 from __future__ import annotations
 
@@ -39,6 +39,14 @@ from MedicalSAM3.scripts.retrieval_runtime import (
 
 
 def _load_path_mapping(path: str | Path) -> dict[str, str]:
+    """从 JSON 文件加载图像路径到掩码路径的映射。
+
+    参数：
+        - path: JSON 文件路径
+
+    返回：
+        - 图像路径到掩码路径的映射字典
+    """
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if isinstance(payload, dict):
         return {str(key): str(value) for key, value in payload.items()}
@@ -56,6 +64,16 @@ def _load_path_mapping(path: str | Path) -> dict[str, str]:
 
 
 def _resolve_bbox_for_image(image_path: Path, bbox_literal: str | None, bbox_mapping: dict[str, list[float]]) -> list[float]:
+    """解析图像对应的边界框。
+
+    参数：
+        - image_path: 图像文件路径
+        - bbox_literal: 命令行直接指定的边界框字符串
+        - bbox_mapping: 图像名到边界框的映射字典
+
+    返回：
+        - [x1, y1, x2, y2] 格式的边界框列表
+    """
     if bbox_literal:
         return parse_bbox(bbox_literal)
     for key in [image_path.name, image_path.stem, image_path.as_posix()]:
@@ -65,6 +83,15 @@ def _resolve_bbox_for_image(image_path: Path, bbox_literal: str | None, bbox_map
 
 
 def _load_mask(mask_path: str | None, image_size: int) -> torch.Tensor | None:
+    """从文件加载真值掩码，若文件不存在返回 None。
+
+    参数：
+        - mask_path: 掩码文件路径
+        - image_size: 目标图像尺寸
+
+    返回：
+        - 二值掩码张量或 None
+    """
     if not mask_path:
         return None
     target = Path(mask_path)
@@ -77,6 +104,15 @@ def _load_mask(mask_path: str | None, image_size: int) -> torch.Tensor | None:
 
 
 def _overlay_image(image: Image.Image, mask_logits: torch.Tensor) -> Image.Image:
+    """将预测掩码半透明叠加到原始图像上生成可视化。
+
+    参数：
+        - image: 原始 PIL 图像
+        - mask_logits: 预测掩码 logits 张量
+
+    返回：
+        - 叠加了掩码的 PIL 图像
+    """
     mask = (torch.sigmoid(mask_logits[0, 0]).detach().cpu().numpy() > 0.5).astype(np.float32)
     mask = np.asarray(Image.fromarray((mask * 255).astype(np.uint8)).resize(image.size, resample=Image.NEAREST)).astype(np.float32) / 255.0
     base = np.asarray(image).astype("float32")
@@ -86,6 +122,16 @@ def _overlay_image(image: Image.Image, mask_logits: torch.Tensor) -> Image.Image
 
 
 def _save_influence_heatmap(path: Path, current_logits: torch.Tensor, baseline_logits: torch.Tensor) -> None:
+    """保存检索影响热图，显示当前结果与基线的差异。
+
+    参数：
+        - path: 输出图像路径
+        - current_logits: 当前（使用检索）掩码 logits
+        - baseline_logits: 基线（无检索）掩码 logits
+
+    返回：
+        - 无返回值，仅执行保存图像的副作用
+    """
     diff = (torch.sigmoid(current_logits[0, 0]).detach().cpu().float() - torch.sigmoid(baseline_logits[0, 0]).detach().cpu().float()).abs().numpy()
     diff = diff - diff.min()
     denom = max(float(diff.max()), 1e-6)
@@ -95,6 +141,14 @@ def _save_influence_heatmap(path: Path, current_logits: torch.Tensor, baseline_l
 
 
 def _empty_positive_like(retrieval: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor, list[Any], torch.Tensor, torch.Tensor]:
+    """生成与检索结果维度匹配的空正例占位符。
+
+    参数：
+        - retrieval: 检索结果字典
+
+    返回：
+        - (空特征, 空权重, 空条目, 零原型, 空分数) 的元组
+    """
     dim = int(retrieval["negative_prototype"].shape[-1])
     device = retrieval["negative_prototype"].device
     return (
@@ -112,6 +166,16 @@ def _override_retrieval(
     positive_override: tuple[torch.Tensor, torch.Tensor, list[Any], torch.Tensor, torch.Tensor] | None = None,
     negative_override: tuple[torch.Tensor, torch.Tensor, list[Any], torch.Tensor, torch.Tensor] | None = None,
 ) -> dict[str, Any]:
+    """用指定的正例/负例覆盖检索结果，用于消融实验。
+
+    参数：
+        - base_retrieval: 原始检索结果
+        - positive_override: 替换正例的元组
+        - negative_override: 替换负例的元组
+
+    返回：
+        - 覆盖后的检索结果字典
+    """
     retrieval = dict(base_retrieval)
     if positive_override is not None:
         retrieval["positive_features"] = positive_override[0]
@@ -139,6 +203,19 @@ def _build_variants(
     top_k_negative: int,
     seed: int,
 ) -> dict[str, Any | None]:
+    """构建多种检索变体（仅正例、仅负例、随机正例、无检索）用于敏感性比较。
+
+    参数：
+        - base_retrieval: 原始检索结果
+        - bank: 示例库
+        - query_vector: 查询向量
+        - top_k_positive: 选取正例数量
+        - top_k_negative: 选取负例数量
+        - seed: 随机种子
+
+    返回：
+        - 变体名称到检索结果（或 None）的字典
+    """
     positive_entries = bank.get_entries(polarity="positive", human_verified=True)
     negative_entries = bank.get_entries(polarity="negative", human_verified=True)
     rng = random.Random(seed)
@@ -178,6 +255,22 @@ def _run_variant(
     retrieval_mode: str,
     mask: torch.Tensor | None,
 ) -> dict[str, Any]:
+    """运行单一检索变体的前向推理并计算分割指标。
+
+    参数：
+        - runtime: 检索运行时
+        - images: 输入图像张量
+        - boxes: 边界框张量
+        - text_prompt: 文本提示列表
+        - query_feature: 查询特征
+        - baseline_outputs: 基线输出
+        - retrieval: 检索结果字典（None 时使用基线）
+        - retrieval_mode: 检索模式
+        - mask: 真值掩码（可选）
+
+    返回：
+        - 包含 mask_logits、metrics 和 policy_diagnostics 的字典
+    """
     if retrieval is None:
         outputs = baseline_outputs
         adapter_aux: dict[str, Any] = {}
@@ -207,6 +300,14 @@ def _run_variant(
 
 
 def main() -> int:
+    """脚本命令行入口，运行同图不同示例的提示敏感性实验并生成可视化报告。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Run prompt sensitivity experiments for same-image different-exemplar variants.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--input-path", required=True)

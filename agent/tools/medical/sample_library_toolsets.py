@@ -9,10 +9,32 @@ from typing import Any, Callable, Iterable
 
 
 def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
+    """brief:
+        Handle clamp.
+
+    parameter:
+        - value: Input value for value.
+        - low: Input value for low.
+        - high: Input value for high.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return max(low, min(high, value))
 
 
 def _safe_float(payload: dict[str, Any], key: str, default: float = 0.0) -> float:
+    """brief:
+        Handle safe float.
+
+    parameter:
+        - payload: Input value for payload.
+        - key: Input value for key.
+        - default: Input value for default.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     value = payload.get(key, default)
     if value is None:
         return default
@@ -20,6 +42,16 @@ def _safe_float(payload: dict[str, Any], key: str, default: float = 0.0) -> floa
 
 
 def _dice(row: dict[str, Any], field: str = "metrics") -> float:
+    """brief:
+        Handle dice.
+
+    parameter:
+        - row: Input value for row.
+        - field: Input value for field.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     payload = row.get(field, {})
     if isinstance(payload, dict):
         return _safe_float(payload, "Dice")
@@ -27,6 +59,15 @@ def _dice(row: dict[str, Any], field: str = "metrics") -> float:
 
 
 def _as_list(value: Any) -> list[Any]:
+    """brief:
+        Handle as list.
+
+    parameter:
+        - value: Input value for value.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     if value is None:
         return []
     if isinstance(value, list):
@@ -38,6 +79,15 @@ def _as_list(value: Any) -> list[Any]:
 
 @dataclass(slots=True)
 class SampleLibraryRecord:
+    """brief:
+        Represent SampleLibraryRecord state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     image_id: str
     site_id: str = ""
     split: str = ""
@@ -56,6 +106,15 @@ class SampleLibraryRecord:
 
     @classmethod
     def from_mapping(cls, payload: dict[str, Any]) -> "SampleLibraryRecord":
+        """brief:
+            Handle from mapping.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return cls(
             image_id=str(payload.get("image_id", "")),
             site_id=str(payload.get("site_id", payload.get("site", ""))),
@@ -76,22 +135,67 @@ class SampleLibraryRecord:
 
     @property
     def baseline_dice(self) -> float:
+        """brief:
+            Handle baseline dice.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return _safe_float(self.baseline_metrics, "Dice")
 
     @property
     def result_dice(self) -> float:
+        """brief:
+            Handle result dice.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return _safe_float(self.metrics, "Dice")
 
     @property
     def delta_dice(self) -> float:
+        """brief:
+            Handle delta dice.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.result_dice - self.baseline_dice
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return asdict(self)
 
 
 @dataclass(slots=True)
 class ToolExplanation:
+    """brief:
+        Represent ToolExplanation state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     name: str
     agent: str
     purpose: str
@@ -100,11 +204,29 @@ class ToolExplanation:
     sample_library_role: str
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return asdict(self)
 
 
 @dataclass(slots=True)
 class ToolCallLog:
+    """brief:
+        Represent ToolCallLog state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     tool_name: str
     status: str
     duration_ms: float
@@ -112,6 +234,15 @@ class ToolCallLog:
     error_message: str = ""
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "tool_name": self.tool_name,
             "status": self.status,
@@ -199,6 +330,15 @@ PRIMARY_AGENT_TOOL_CHAINS: dict[str, dict[str, Any]] = {
 
 
 def get_primary_agent_tool_chains() -> dict[str, dict[str, Any]]:
+    """brief:
+        Get primary agent tool chains.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return {
         agent_name: {
             "displayName": str(metadata["displayName"]),
@@ -211,14 +351,52 @@ def get_primary_agent_tool_chains() -> dict[str, dict[str, Any]]:
 
 
 class SampleLibraryToolRegistry:
+    """brief:
+        Represent SampleLibraryToolRegistry state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self) -> None:
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self._tools: dict[str, tuple[ToolExplanation, Callable[..., Any]]] = {}
         self._logs: list[ToolCallLog] = []
 
     def register(self, explanation: ToolExplanation, handler: Callable[..., Any]) -> None:
+        """brief:
+            Handle register.
+
+        parameter:
+            - explanation: Input value for explanation.
+            - handler: Input value for handler.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self._tools[explanation.name] = (explanation, handler)
 
     def call(self, tool_name: str, **kwargs: Any) -> Any:
+        """brief:
+            Handle call.
+
+        parameter:
+            - tool_name: Input value for tool_name.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if tool_name not in self._tools:
             raise ValueError(f"Unknown sample-library tool: {tool_name}")
         _, handler = self._tools[tool_name]
@@ -247,16 +425,52 @@ class SampleLibraryToolRegistry:
             raise
 
     def list_tool_specs(self) -> list[dict[str, Any]]:
+        """brief:
+            List tool specs.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return [explanation.to_dict() for explanation, _ in self._tools.values()]
 
     def get_call_logs(self) -> list[dict[str, Any]]:
+        """brief:
+            Get call logs.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return [log.to_dict() for log in self._logs]
 
     def reset_logs(self) -> None:
+        """brief:
+            Handle reset logs.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self._logs = []
 
 
 class ReportGenerationToolSet:
+    """brief:
+        Represent ReportGenerationToolSet state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "report_generation_agent"
 
     @staticmethod
@@ -266,6 +480,17 @@ class ReportGenerationToolSet:
         similar_cases: list[dict[str, Any]] | None = None,
         review_summary: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """brief:
+            Handle assemble case context.
+
+        parameter:
+            - sample: Input value for sample.
+            - similar_cases: Input value for similar_cases.
+            - review_summary: Input value for review_summary.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         return {
             "image_id": record.image_id,
@@ -291,6 +516,18 @@ class ReportGenerationToolSet:
         top_k: int = 5,
         prefer_groups: list[str] | None = None,
     ) -> list[dict[str, Any]]:
+        """brief:
+            Handle retrieve similar cases.
+
+        parameter:
+            - query: Input value for query.
+            - library: Input value for library.
+            - top_k: Input value for top_k.
+            - prefer_groups: Input value for prefer_groups.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         query_record = SampleLibraryRecord.from_mapping(query)
         preferred = set(prefer_groups or ["hard", "boundary", "positive"])
         ranked: list[tuple[float, dict[str, Any]]] = []
@@ -306,6 +543,16 @@ class ReportGenerationToolSet:
 
     @staticmethod
     def compose_report_template(*, context: dict[str, Any], report_type: str = "segmentation_review") -> dict[str, Any]:
+        """brief:
+            Handle compose report template.
+
+        parameter:
+            - context: Input value for context.
+            - report_type: Input value for report_type.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         sections = ["case_summary", "segmentation_result", "uncertainty", "evidence", "review_recommendation"]
         if report_type == "clinical":
             sections = ["finding", "impression", "risk_note", "evidence"]
@@ -318,6 +565,15 @@ class ReportGenerationToolSet:
 
     @staticmethod
     def narrate_findings(*, context: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle narrate findings.
+
+        parameter:
+            - context: Input value for context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         dice = float(context.get("dice", 0.0))
         delta = float(context.get("delta_dice", 0.0))
         area_ratio = float(context.get("mask_stats", {}).get("area_ratio", 0.0))
@@ -336,6 +592,15 @@ class ReportGenerationToolSet:
 
     @staticmethod
     def explain_uncertainty(*, context: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle explain uncertainty.
+
+        parameter:
+            - context: Input value for context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         uncertainty = context.get("uncertainty", {})
         mean_entropy = float(uncertainty.get("mean_entropy", 0.0))
         confidence = float(uncertainty.get("mean_confidence", context.get("metrics", {}).get("mean confidence", 0.0)))
@@ -355,6 +620,16 @@ class ReportGenerationToolSet:
 
     @staticmethod
     def bind_evidence(*, context: dict[str, Any], statements: list[str]) -> list[dict[str, Any]]:
+        """brief:
+            Handle bind evidence.
+
+        parameter:
+            - context: Input value for context.
+            - statements: Input value for statements.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         evidence = []
         for statement in statements:
             evidence.append(
@@ -369,6 +644,15 @@ class ReportGenerationToolSet:
 
     @staticmethod
     def flag_report_risks(*, context: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle flag report risks.
+
+        parameter:
+            - context: Input value for context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         flags: list[str] = []
         if float(context.get("dice", 0.0)) < 0.5:
             flags.append("low_result_dice")
@@ -380,6 +664,15 @@ class ReportGenerationToolSet:
 
 
 class CaseContextAssembler:
+    """brief:
+        Represent CaseContextAssembler state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     description = "汇总病例与相似样本上下文"
 
     def __call__(
@@ -389,6 +682,17 @@ class CaseContextAssembler:
         similar_cases: list[dict[str, Any]] | None = None,
         review_summary: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - sample: Input value for sample.
+            - similar_cases: Input value for similar_cases.
+            - review_summary: Input value for review_summary.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return ReportGenerationToolSet.assemble_case_context(
             sample=sample,
             similar_cases=similar_cases,
@@ -397,20 +701,66 @@ class CaseContextAssembler:
 
 
 class UncertaintyExplainer:
+    """brief:
+        Represent UncertaintyExplainer state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     description = "解释分割置信度风险来源"
 
     def __call__(self, *, context: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - context: Input value for context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return ReportGenerationToolSet.explain_uncertainty(context=context)
 
 
 class ReportTemplateComposer:
+    """brief:
+        Represent ReportTemplateComposer state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     description = "生成结构化诊疗报告模板"
 
     def __call__(self, *, context: dict[str, Any], report_type: str = "segmentation_review") -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - context: Input value for context.
+            - report_type: Input value for report_type.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return ReportGenerationToolSet.compose_report_template(context=context, report_type=report_type)
 
 
 def _register_report_generation_primary_tools(registry: SampleLibraryToolRegistry) -> None:
+    """brief:
+        Register report generation primary tools.
+
+    parameter:
+        - registry: Input value for registry.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     tools: list[tuple[str, Callable[..., Any], list[str], list[str], str]] = [
         (
             "CaseContextAssembler",
@@ -449,10 +799,29 @@ def _register_report_generation_primary_tools(registry: SampleLibraryToolRegistr
 
 
 class SampleAuditToolSet:
+    """brief:
+        Represent SampleAuditToolSet state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "sample_audit_agent"
 
     @staticmethod
     def check_identity(*, sample: dict[str, Any], known_ids: list[str] | None = None) -> dict[str, Any]:
+        """brief:
+            Handle check identity.
+
+        parameter:
+            - sample: Input value for sample.
+            - known_ids: Input value for known_ids.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         issues: list[str] = []
         if not record.image_id:
@@ -465,6 +834,15 @@ class SampleAuditToolSet:
 
     @staticmethod
     def check_label_mask_consistency(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle check label mask consistency.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         area_ratio = _safe_float(record.mask_stats, "area_ratio")
         components = int(record.mask_stats.get("components", 1) or 1)
@@ -479,6 +857,15 @@ class SampleAuditToolSet:
 
     @staticmethod
     def audit_site_leakage(*, samples: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle audit site leakage.
+
+        parameter:
+            - samples: Input value for samples.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         seen: dict[str, set[str]] = {}
         for item in samples:
             record = SampleLibraryRecord.from_mapping(item)
@@ -490,6 +877,17 @@ class SampleAuditToolSet:
 
     @staticmethod
     def mine_hard_case(*, sample: dict[str, Any], dice_threshold: float = 0.7, harm_threshold: float = -0.03) -> dict[str, Any]:
+        """brief:
+            Handle mine hard case.
+
+        parameter:
+            - sample: Input value for sample.
+            - dice_threshold: Input value for dice_threshold.
+            - harm_threshold: Input value for harm_threshold.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         reasons: list[str] = []
         if record.baseline_dice < dice_threshold:
@@ -502,6 +900,16 @@ class SampleAuditToolSet:
 
     @staticmethod
     def detect_boundary_case(*, sample: dict[str, Any], boundary_threshold: float = 0.55) -> dict[str, Any]:
+        """brief:
+            Handle detect boundary case.
+
+        parameter:
+            - sample: Input value for sample.
+            - boundary_threshold: Input value for boundary_threshold.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         complexity = _safe_float(record.mask_stats, "boundary_complexity")
         boundary_f1 = _safe_float(record.metrics, "Boundary F1", 1.0)
@@ -515,6 +923,15 @@ class SampleAuditToolSet:
 
     @staticmethod
     def validate_negative_sample(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Validate negative sample.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         area_ratio = _safe_float(record.mask_stats, "area_ratio")
         confidence = _safe_float(record.uncertainty, "mean_confidence")
@@ -523,6 +940,16 @@ class SampleAuditToolSet:
 
     @staticmethod
     def build_review_queue_item(*, sample: dict[str, Any], audit_results: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Build review queue item.
+
+        parameter:
+            - sample: Input value for sample.
+            - audit_results: Input value for audit_results.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         reasons = [reason for result in audit_results for reason in result.get("issues", []) + result.get("reasons", [])]
         priority = "high" if any(reason in {"empty_mask", "regression", "duplicate_image_id"} for reason in reasons) else "medium" if reasons else "low"
@@ -530,6 +957,15 @@ class SampleAuditToolSet:
 
     @staticmethod
     def assign_sample_grade(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle assign sample grade.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         area_ratio = _safe_float(record.mask_stats, "area_ratio")
         boundary_complexity = _safe_float(record.mask_stats, "boundary_complexity")
@@ -553,6 +989,18 @@ class SampleAuditToolSet:
         doctor_annotations: dict[str, Any] | None = None,
         pass_threshold: float = 0.55,
     ) -> dict[str, Any]:
+        """brief:
+            Run reference label quiz.
+
+        parameter:
+            - sample: Input value for sample.
+            - reference_sample: Input value for reference_sample.
+            - doctor_annotations: Input value for doctor_annotations.
+            - pass_threshold: Input value for pass_threshold.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         reference = SampleLibraryRecord.from_mapping(reference_sample or {})
         annotations = doctor_annotations or {}
@@ -609,20 +1057,61 @@ class SampleAuditToolSet:
 
 
 class SegmentationPreprocessToolSet:
+    """brief:
+        Represent SegmentationPreprocessToolSet state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "segmentation_preprocess_agent"
 
     @staticmethod
     def normalize_image_plan(*, sample: dict[str, Any], target_size: int = 1024) -> dict[str, Any]:
+        """brief:
+            Handle normalize image plan.
+
+        parameter:
+            - sample: Input value for sample.
+            - target_size: Input value for target_size.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         return {"image_id": record.image_id, "target_size": target_size, "color_space": "RGB", "scale_mode": "long_side_pad"}
 
     @staticmethod
     def build_bbox_cache_request(*, sample: dict[str, Any], detector: str = "yolo") -> dict[str, Any]:
+        """brief:
+            Build bbox cache request.
+
+        parameter:
+            - sample: Input value for sample.
+            - detector: Input value for detector.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         return {"image_id": record.image_id, "detector": detector, "use_cached": bool(record.bbox), "bbox": record.bbox}
 
     @staticmethod
     def package_prompts(*, sample: dict[str, Any], use_text: bool = True, use_box: bool = True, use_exemplar: bool = False) -> dict[str, Any]:
+        """brief:
+            Handle package prompts.
+
+        parameter:
+            - sample: Input value for sample.
+            - use_text: Input value for use_text.
+            - use_box: Input value for use_box.
+            - use_exemplar: Input value for use_exemplar.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         prompts: dict[str, Any] = {}
         if use_text:
@@ -635,12 +1124,31 @@ class SegmentationPreprocessToolSet:
 
     @staticmethod
     def generate_mask_prior_plan(*, sample: dict[str, Any], similar_cases: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle generate mask prior plan.
+
+        parameter:
+            - sample: Input value for sample.
+            - similar_cases: Input value for similar_cases.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         selected = [case.get("image_id", "") for case in similar_cases if case.get("mask_path")][:3]
         return {"image_id": record.image_id, "prior_type": "similar_case_mask", "source_case_ids": selected, "enabled": bool(selected)}
 
     @staticmethod
     def scan_region_uncertainty(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle scan region uncertainty.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         entropy = _safe_float(record.uncertainty, "mean_entropy")
         confidence = _safe_float(record.uncertainty, "mean_confidence", 1.0)
@@ -648,23 +1156,62 @@ class SegmentationPreprocessToolSet:
 
     @staticmethod
     def guard_small_lesion(*, sample: dict[str, Any], min_area_ratio: float = 0.002) -> dict[str, Any]:
+        """brief:
+            Handle guard small lesion.
+
+        parameter:
+            - sample: Input value for sample.
+            - min_area_ratio: Input value for min_area_ratio.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         area_ratio = _safe_float(record.mask_stats, "area_ratio")
         return {"is_small_lesion": 0.0 < area_ratio < min_area_ratio, "recommended_scale": 1.5 if 0.0 < area_ratio < min_area_ratio else 1.0}
 
     @staticmethod
     def gate_large_mask(*, sample: dict[str, Any], max_area_ratio: float = 0.35) -> dict[str, Any]:
+        """brief:
+            Handle gate large mask.
+
+        parameter:
+            - sample: Input value for sample.
+            - max_area_ratio: Input value for max_area_ratio.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         area_ratio = _safe_float(record.mask_stats, "area_ratio")
         return {"is_large_mask": area_ratio > max_area_ratio, "use_exemplar_guard": area_ratio > max_area_ratio, "area_ratio": area_ratio}
 
     @staticmethod
     def trace_preprocess(*, sample: dict[str, Any], steps: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle trace preprocess.
+
+        parameter:
+            - sample: Input value for sample.
+            - steps: Input value for steps.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         return {"image_id": record.image_id, "step_count": len(steps), "steps": steps}
 
 
 class LabelEmbeddingToolSet:
+    """brief:
+        Represent LabelEmbeddingToolSet state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "label_embedding_agent"
 
     _report_label_patterns: tuple[tuple[str, str], ...] = (
@@ -690,6 +1237,17 @@ class LabelEmbeddingToolSet:
         doctor_annotations: dict[str, Any] | None = None,
         max_terms: int = 16,
     ) -> dict[str, Any]:
+        """brief:
+            Extract report terms.
+
+        parameter:
+            - report: Input value for report.
+            - doctor_annotations: Input value for doctor_annotations.
+            - max_terms: Input value for max_terms.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         labels = cls.extract_report_feature_labels(
             report=report,
             doctor_annotations=doctor_annotations,
@@ -700,6 +1258,15 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def normalize_medical_terms(*, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle normalize medical terms.
+
+        parameter:
+            - terms: Input value for terms.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         synonym_map = {
             "polyp": "息肉",
             "adenoma": "腺瘤",
@@ -725,7 +1292,25 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def classify_term_category(*, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Classify term category.
+
+        parameter:
+            - terms: Input value for terms.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         def category_for(term: str) -> str:
+            """brief:
+                Handle category for.
+
+            parameter:
+                - term: Input value for term.
+
+            retrival:
+                - Returns the computed value for the caller or workflow.
+            """
             text = term.lower()
             if "0-i" in text or "paris" in text:
                 return "Paris分型"
@@ -751,6 +1336,16 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def score_term_confidence(*, terms: list[dict[str, Any]], doctor_annotations: dict[str, Any] | None = None) -> dict[str, Any]:
+        """brief:
+            Handle score term confidence.
+
+        parameter:
+            - terms: Input value for terms.
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         annotation_blob = " ".join(str(value) for value in (doctor_annotations or {}).values()).lower()
         scored = []
         for item in terms:
@@ -766,6 +1361,15 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def deduplicate_terms(*, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle deduplicate terms.
+
+        parameter:
+            - terms: Input value for terms.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         deduped: dict[tuple[str, str], dict[str, Any]] = {}
         for item in terms:
             key = (
@@ -779,6 +1383,16 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def bind_terms_to_report(*, terms: list[dict[str, Any]], report: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle bind terms to report.
+
+        parameter:
+            - terms: Input value for terms.
+            - report: Input value for report.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         bindings = []
         fields = {
             "findings": str(report.get("findings", "")),
@@ -804,6 +1418,17 @@ class LabelEmbeddingToolSet:
         report_id: str = "",
         patient_id: str = "",
     ) -> dict[str, Any]:
+        """brief:
+            Build db term records.
+
+        parameter:
+            - terms: Input value for terms.
+            - report_id: Input value for report_id.
+            - patient_id: Input value for patient_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         records = []
         for index, item in enumerate(terms, start=1):
             category = str(item.get("category", "科研筛选标签"))
@@ -827,6 +1452,15 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def validate_term_records(*, records: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Validate term records.
+
+        parameter:
+            - records: Input value for records.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         issues: list[str] = []
         valid_categories = {"Paris分型", "病灶形态", "风险等级", "处理建议", "表面/血管特征", "病理/类型", "科研筛选标签"}
         for record in records:
@@ -841,6 +1475,15 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def route_term_index(*, records: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle route term index.
+
+        parameter:
+            - records: Input value for records.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         routes: dict[str, list[str]] = {}
         for record in records:
             category = str(record.get("category", "科研筛选标签"))
@@ -855,6 +1498,16 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def upsert_report_terms(*, records: list[dict[str, Any]], dry_run: bool = True) -> dict[str, Any]:
+        """brief:
+            Handle upsert report terms.
+
+        parameter:
+            - records: Input value for records.
+            - dry_run: Input value for dry_run.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "dryRun": dry_run,
             "upserted": 0 if dry_run else len(records),
@@ -864,6 +1517,15 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def build_filter_facets(*, records: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Build filter facets.
+
+        parameter:
+            - records: Input value for records.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         facets: dict[str, list[str]] = {}
         for record in records:
             category = str(record.get("category", "科研筛选标签"))
@@ -876,6 +1538,16 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def audit_term_coverage(*, records: list[dict[str, Any]], required_categories: list[str] | None = None) -> dict[str, Any]:
+        """brief:
+            Handle audit term coverage.
+
+        parameter:
+            - records: Input value for records.
+            - required_categories: Input value for required_categories.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         required = required_categories or ["Paris分型", "风险等级", "处理建议"]
         present = {str(record.get("category", "")) for record in records}
         missing = [category for category in required if category not in present]
@@ -893,6 +1565,17 @@ class LabelEmbeddingToolSet:
         doctor_annotations: dict[str, Any] | None = None,
         max_labels: int = 12,
     ) -> dict[str, Any]:
+        """brief:
+            Extract report feature labels.
+
+        parameter:
+            - report: Input value for report.
+            - doctor_annotations: Input value for doctor_annotations.
+            - max_labels: Input value for max_labels.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         annotations = doctor_annotations or {}
         text = " ".join(
             str(report.get(key, ""))
@@ -922,6 +1605,15 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def embed_mask_shape(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle embed mask shape.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         stats = record.mask_stats
         vector = [
@@ -935,11 +1627,30 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def embed_visual_region_request(*, sample: dict[str, Any], crop_padding: float = 0.15) -> dict[str, Any]:
+        """brief:
+            Handle embed visual region request.
+
+        parameter:
+            - sample: Input value for sample.
+            - crop_padding: Input value for crop_padding.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         return {"image_id": record.image_id, "image_path": record.image_path, "bbox": record.bbox, "crop_padding": crop_padding}
 
     @staticmethod
     def embed_text_label(*, labels: list[str]) -> dict[str, Any]:
+        """brief:
+            Handle embed text label.
+
+        parameter:
+            - labels: Input value for labels.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         tokens = [label.strip().lower() for label in labels if label.strip()]
         vocabulary = sorted(set(tokens))
         vector = [tokens.count(token) / max(len(tokens), 1) for token in vocabulary]
@@ -947,6 +1658,15 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def encode_boundary_features(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle encode boundary features.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         boundary_f1 = _safe_float(record.metrics, "Boundary F1", 1.0)
         complexity = _safe_float(record.mask_stats, "boundary_complexity")
@@ -961,6 +1681,15 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def build_hard_case_signature(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Build hard case signature.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         tags: list[str] = []
         if record.baseline_dice < 0.5:
@@ -975,6 +1704,15 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def index_polarity_groups(*, samples: list[dict[str, Any]]) -> dict[str, list[str]]:
+        """brief:
+            Handle index polarity groups.
+
+        parameter:
+            - samples: Input value for samples.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         groups = {"positive": [], "negative": [], "boundary": [], "hard": []}
         for item in samples:
             record = SampleLibraryRecord.from_mapping(item)
@@ -984,6 +1722,16 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def route_site_aware_embedding(*, sample: dict[str, Any], default_index: str = "global") -> dict[str, Any]:
+        """brief:
+            Handle route site aware embedding.
+
+        parameter:
+            - sample: Input value for sample.
+            - default_index: Input value for default_index.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         index_name = f"site_{record.site_id}" if record.site_id else default_index
         if record.sample_group in {"hard", "boundary"}:
@@ -992,6 +1740,17 @@ class LabelEmbeddingToolSet:
 
     @staticmethod
     def monitor_embedding_drift(*, embedding: list[float], centroid: list[float], threshold: float = 0.35) -> dict[str, Any]:
+        """brief:
+            Handle monitor embedding drift.
+
+        parameter:
+            - embedding: Input value for embedding.
+            - centroid: Input value for centroid.
+            - threshold: Input value for threshold.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not embedding or not centroid or len(embedding) != len(centroid):
             return {"drift": 0.0, "is_outlier": False, "reason": "missing_or_mismatched_embedding"}
         distance = math.sqrt(sum((a - b) ** 2 for a, b in zip(embedding, centroid))) / math.sqrt(len(embedding))
@@ -999,10 +1758,29 @@ class LabelEmbeddingToolSet:
 
 
 class ResultReviewToolSet:
+    """brief:
+        Represent ResultReviewToolSet state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "result_review_agent"
 
     @staticmethod
     def collect_agent_outputs(*, agent_outputs: dict[str, Any], agent_runs: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle collect agent outputs.
+
+        parameter:
+            - agent_outputs: Input value for agent_outputs.
+            - agent_runs: Input value for agent_runs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "agent_outputs": agent_outputs,
             "agent_runs": agent_runs,
@@ -1012,6 +1790,16 @@ class ResultReviewToolSet:
 
     @staticmethod
     def check_workflow_completeness(*, review_package: dict[str, Any], required_agents: list[str] | None = None) -> dict[str, Any]:
+        """brief:
+            Handle check workflow completeness.
+
+        parameter:
+            - review_package: Input value for review_package.
+            - required_agents: Input value for required_agents.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         required = required_agents or [
             "segmentation_preprocess_agent",
             "sample_audit_agent",
@@ -1030,6 +1818,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def audit_preprocess_result(*, preprocess: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle audit preprocess result.
+
+        parameter:
+            - preprocess: Input value for preprocess.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         bbox = preprocess.get("bbox_request", {}).get("bbox", [])
         prompts = preprocess.get("prompt_package", {}).get("prompts", {})
         large_mask = preprocess.get("large_mask_gate", {}).get("is_large_mask", False)
@@ -1044,6 +1841,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def audit_sample_audit_result(*, sample_audit: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle audit sample audit result.
+
+        parameter:
+            - sample_audit: Input value for sample_audit.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         issues: list[str] = []
         if sample_audit.get("accepted") and not sample_audit.get("reference_quiz", {}).get("passed"):
             issues.append("accepted_without_reference_quiz_pass")
@@ -1055,6 +1861,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def audit_report_result(*, report: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle audit report result.
+
+        parameter:
+            - report: Input value for report.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         findings = str(report.get("findings", "")).strip()
         conclusion = str(report.get("conclusion", "")).strip()
         report_score = float(report.get("report_score", {}).get("overall_score", 8.0) or 0.0)
@@ -1069,6 +1884,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def audit_term_records(*, term_payload: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle audit term records.
+
+        parameter:
+            - term_payload: Input value for term_payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         validation = term_payload.get("validation", {})
         coverage = term_payload.get("coverage", {})
         issues = list(validation.get("issues", []))
@@ -1081,6 +1905,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def check_cross_agent_consistency(*, agent_outputs: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle check cross agent consistency.
+
+        parameter:
+            - agent_outputs: Input value for agent_outputs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         issues: list[str] = []
         report = agent_outputs.get("report_generation_agent", {})
         terms = agent_outputs.get("label_embedding_agent", {})
@@ -1096,6 +1929,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def detect_decision_conflicts(*, agent_runs: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle detect decision conflicts.
+
+        parameter:
+            - agent_runs: Input value for agent_runs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         decisions = {str(run.get("agent_name", "")): str(run.get("decision", "")) for run in agent_runs}
         conflicts: list[str] = []
         if decisions.get("sample_audit_agent") == "reject" and decisions.get("label_embedding_agent") == "ready_to_index":
@@ -1106,6 +1948,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def score_pipeline_quality(*, audit_results: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle score pipeline quality.
+
+        parameter:
+            - audit_results: Input value for audit_results.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not audit_results:
             return {"qualityScore": 0.0, "blockingIssues": ["missing_audit_results"], "warnings": []}
         blocking: list[str] = []
@@ -1128,6 +1979,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def assign_review_action(*, quality: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle assign review action.
+
+        parameter:
+            - quality: Input value for quality.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         blocking = list(quality.get("blockingIssues", []))
         score = float(quality.get("qualityScore", 0.0))
         if any("missing_bbox" in issue or "large_mask" in issue for issue in blocking):
@@ -1148,6 +2008,16 @@ class ResultReviewToolSet:
 
     @staticmethod
     def route_retry_or_human_review(*, review_action: dict[str, Any], quality: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle route retry or human review.
+
+        parameter:
+            - review_action: Input value for review_action.
+            - quality: Input value for quality.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         decision = str(review_action.get("finalDecision", "needs_human_review"))
         retry_targets = {
             "retry_preprocess": "segmentation_preprocess_agent",
@@ -1165,6 +2035,17 @@ class ResultReviewToolSet:
 
     @staticmethod
     def build_review_report(*, review_action: dict[str, Any], quality: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Build review report.
+
+        parameter:
+            - review_action: Input value for review_action.
+            - quality: Input value for quality.
+            - route: Input value for route.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         decision = review_action.get("finalDecision", "needs_human_review")
         if route.get("shouldRetry"):
             text = f"闭环复核未通过，建议重跑 {route.get('targetAgent')}。原因：{route.get('reason')}"
@@ -1176,6 +2057,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def analyze_metric_delta(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle analyze metric delta.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         return {
             "image_id": record.image_id,
@@ -1195,10 +2085,33 @@ class ResultReviewToolSet:
         rescue_threshold: float = 0.5,
         hard_weight_gamma: float = 2.0,
     ) -> dict[str, Any]:
+        """brief:
+            Handle generate hard case delta report.
+
+        parameter:
+            - rows: Input value for rows.
+            - thresholds: Input value for thresholds.
+            - quantiles: Input value for quantiles.
+            - min_gain: Input value for min_gain.
+            - rescue_threshold: Input value for rescue_threshold.
+            - hard_weight_gamma: Input value for hard_weight_gamma.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         thresholds = thresholds or [0.3, 0.5, 0.7]
         quantiles = quantiles or [0.1, 0.2]
 
         def summarize(subset: list[dict[str, Any]]) -> dict[str, Any]:
+            """brief:
+                Handle summarize.
+
+            parameter:
+                - subset: Input value for subset.
+
+            retrival:
+                - Returns the computed value for the caller or workflow.
+            """
             if not subset:
                 return {
                     "count": 0,
@@ -1260,6 +2173,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def classify_failure_case(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Classify failure case.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         precision = _safe_float(record.metrics, "Precision", 1.0)
         recall = _safe_float(record.metrics, "Recall", 1.0)
@@ -1278,6 +2200,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def check_confidence_consistency(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle check confidence consistency.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         confidence = _safe_float(record.uncertainty, "mean_confidence", _safe_float(record.metrics, "mean confidence"))
         dice = record.result_dice
@@ -1286,6 +2217,15 @@ class ResultReviewToolSet:
 
     @staticmethod
     def review_mask_sanity(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle review mask sanity.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         area_ratio = _safe_float(record.mask_stats, "area_ratio")
         components = int(record.mask_stats.get("components", 1) or 1)
@@ -1300,11 +2240,30 @@ class ResultReviewToolSet:
 
     @staticmethod
     def detect_regression(*, sample: dict[str, Any], min_harm: float = -0.03) -> dict[str, Any]:
+        """brief:
+            Handle detect regression.
+
+        parameter:
+            - sample: Input value for sample.
+            - min_harm: Input value for min_harm.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         return {"image_id": record.image_id, "is_regression": record.delta_dice <= min_harm, "delta_dice": record.delta_dice}
 
     @staticmethod
     def audit_exemplar_effect(*, sample: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle audit exemplar effect.
+
+        parameter:
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         used = any(record.selected_exemplars.values())
         effect = "helpful" if used and record.delta_dice >= 0.03 else "harmful" if used and record.delta_dice <= -0.03 else "neutral"
@@ -1312,6 +2271,16 @@ class ResultReviewToolSet:
 
     @staticmethod
     def update_continual_bank_item(*, sample: dict[str, Any], review: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Update continual bank item.
+
+        parameter:
+            - sample: Input value for sample.
+            - review: Input value for review.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         record = SampleLibraryRecord.from_mapping(sample)
         accepted = review.get("sane", True) and not review.get("is_regression", False)
         target_group = "hard" if record.baseline_dice < 0.7 else record.sample_group
@@ -1319,21 +2288,87 @@ class ResultReviewToolSet:
 
 
 class BuildBboxRequest:
+    """brief:
+        Represent BuildBboxRequest state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, sample: dict[str, Any], detector: str = "yolo") -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - sample: Input value for sample.
+            - detector: Input value for detector.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return SegmentationPreprocessToolSet.build_bbox_cache_request(sample=sample, detector=detector)
 
 
 class NormalizeImagePlan:
+    """brief:
+        Represent NormalizeImagePlan state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, sample: dict[str, Any], target_size: int = 1024) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - sample: Input value for sample.
+            - target_size: Input value for target_size.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return SegmentationPreprocessToolSet.normalize_image_plan(sample=sample, target_size=target_size)
 
 
 class TracePreprocess:
+    """brief:
+        Represent TracePreprocess state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, sample: dict[str, Any], steps: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - sample: Input value for sample.
+            - steps: Input value for steps.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return SegmentationPreprocessToolSet.trace_preprocess(sample=sample, steps=steps)
 
 
 class PackagePrompts:
+    """brief:
+        Represent PackagePrompts state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(
         self,
         *,
@@ -1342,6 +2377,18 @@ class PackagePrompts:
         use_box: bool = True,
         use_exemplar: bool = True,
     ) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - sample: Input value for sample.
+            - use_text: Input value for use_text.
+            - use_box: Input value for use_box.
+            - use_exemplar: Input value for use_exemplar.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return SegmentationPreprocessToolSet.package_prompts(
             sample=sample,
             use_text=use_text,
@@ -1351,7 +2398,26 @@ class PackagePrompts:
 
 
 class BuildReviewQueueItem:
+    """brief:
+        Represent BuildReviewQueueItem state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, sample: dict[str, Any], known_ids: list[str] | None = None) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - sample: Input value for sample.
+            - known_ids: Input value for known_ids.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         identity = SampleAuditToolSet.check_identity(sample=sample, known_ids=known_ids or [])
         mask_consistency = SampleAuditToolSet.check_label_mask_consistency(sample=sample)
         hard_case = SampleAuditToolSet.mine_hard_case(sample=sample)
@@ -1372,6 +2438,15 @@ class BuildReviewQueueItem:
 
 
 class RunReferenceLabelQuiz:
+    """brief:
+        Represent RunReferenceLabelQuiz state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(
         self,
         *,
@@ -1380,6 +2455,18 @@ class RunReferenceLabelQuiz:
         doctor_annotations: dict[str, Any] | None = None,
         pass_threshold: float = 0.55,
     ) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - sample: Input value for sample.
+            - reference_sample: Input value for reference_sample.
+            - doctor_annotations: Input value for doctor_annotations.
+            - pass_threshold: Input value for pass_threshold.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return SampleAuditToolSet.run_reference_label_quiz(
             sample=sample,
             reference_sample=reference_sample,
@@ -1389,6 +2476,15 @@ class RunReferenceLabelQuiz:
 
 
 class ExtractReportTerms:
+    """brief:
+        Represent ExtractReportTerms state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(
         self,
         *,
@@ -1396,6 +2492,17 @@ class ExtractReportTerms:
         doctor_annotations: dict[str, Any] | None = None,
         max_terms: int = 16,
     ) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - report: Input value for report.
+            - doctor_annotations: Input value for doctor_annotations.
+            - max_terms: Input value for max_terms.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return LabelEmbeddingToolSet.extract_report_terms(
             report=report,
             doctor_annotations=doctor_annotations,
@@ -1404,16 +2511,61 @@ class ExtractReportTerms:
 
 
 class NormalizeMedicalTerms:
+    """brief:
+        Represent NormalizeMedicalTerms state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - terms: Input value for terms.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return LabelEmbeddingToolSet.normalize_medical_terms(terms=terms)
 
 
 class DeduplicateTerms:
+    """brief:
+        Represent DeduplicateTerms state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, terms: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - terms: Input value for terms.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return LabelEmbeddingToolSet.deduplicate_terms(terms=terms)
 
 
 class BuildDbTermRecords:
+    """brief:
+        Represent BuildDbTermRecords state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(
         self,
         *,
@@ -1423,6 +2575,19 @@ class BuildDbTermRecords:
         report_id: str = "",
         patient_id: str = "",
     ) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - terms: Input value for terms.
+            - report: Input value for report.
+            - doctor_annotations: Input value for doctor_annotations.
+            - report_id: Input value for report_id.
+            - patient_id: Input value for patient_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         classified = LabelEmbeddingToolSet.classify_term_category(terms=terms)
         scored = LabelEmbeddingToolSet.score_term_confidence(
             terms=classified["terms"],
@@ -1453,7 +2618,26 @@ class BuildDbTermRecords:
 
 
 class CollectAgentOutputs:
+    """brief:
+        Represent CollectAgentOutputs state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, agent_outputs: dict[str, Any], agent_runs: list[dict[str, Any]]) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - agent_outputs: Input value for agent_outputs.
+            - agent_runs: Input value for agent_runs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         package = ResultReviewToolSet.collect_agent_outputs(agent_outputs=agent_outputs, agent_runs=agent_runs)
         completeness = ResultReviewToolSet.check_workflow_completeness(review_package=package)
         package["completeness"] = completeness
@@ -1461,26 +2645,107 @@ class CollectAgentOutputs:
 
 
 class AuditPreprocessResult:
+    """brief:
+        Represent AuditPreprocessResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, preprocess: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - preprocess: Input value for preprocess.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return ResultReviewToolSet.audit_preprocess_result(preprocess=preprocess)
 
 
 class AuditSampleAuditResult:
+    """brief:
+        Represent AuditSampleAuditResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, sample_audit: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - sample_audit: Input value for sample_audit.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return ResultReviewToolSet.audit_sample_audit_result(sample_audit=sample_audit)
 
 
 class AuditReportResult:
+    """brief:
+        Represent AuditReportResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, report: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - report: Input value for report.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return ResultReviewToolSet.audit_report_result(report=report)
 
 
 class AuditTermResult:
+    """brief:
+        Represent AuditTermResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __call__(self, *, term_payload: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle call.
+
+        parameter:
+            - term_payload: Input value for term_payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return ResultReviewToolSet.audit_term_records(term_payload=term_payload)
 
 
 def _register_primary_agent_tools(registry: SampleLibraryToolRegistry) -> None:
+    """brief:
+        Register primary agent tools.
+
+    parameter:
+        - registry: Input value for registry.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     handlers: dict[str, Callable[..., Any]] = {
         "BuildBboxRequest": BuildBboxRequest(),
         "NormalizeImagePlan": NormalizeImagePlan(),
@@ -1563,6 +2828,18 @@ def _register_many(
     toolset: Any,
     specs: list[tuple[str, str, list[str], list[str], str]],
 ) -> None:
+    """brief:
+        Register many.
+
+    parameter:
+        - registry: Input value for registry.
+        - agent: Input value for agent.
+        - toolset: Input value for toolset.
+        - specs: Input value for specs.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     for method_name, purpose, inputs, outputs, role in specs:
         registry.register(
             ToolExplanation(
@@ -1578,6 +2855,15 @@ def _register_many(
 
 
 def create_sample_library_tool_registry() -> SampleLibraryToolRegistry:
+    """brief:
+        Create sample library tool registry.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     registry = SampleLibraryToolRegistry()
     _register_primary_agent_tools(registry)
     _register_many(
@@ -1667,10 +2953,28 @@ def create_sample_library_tool_registry() -> SampleLibraryToolRegistry:
 
 
 def explain_sample_library_toolsets() -> list[dict[str, Any]]:
+    """brief:
+        Handle explain sample library toolsets.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return create_sample_library_tool_registry().list_tool_specs()
 
 
 def group_tool_specs_by_agent(specs: Iterable[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """brief:
+        Handle group tool specs by agent.
+
+    parameter:
+        - specs: Input value for specs.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     grouped: dict[str, list[dict[str, Any]]] = {}
     for spec in specs:
         grouped.setdefault(str(spec.get("agent", "")), []).append(spec)

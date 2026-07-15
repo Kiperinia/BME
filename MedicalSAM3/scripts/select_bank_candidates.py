@@ -1,4 +1,4 @@
-"""Select balanced continual-bank candidates from evaluation artifacts."""
+"""从评估产物中选择平衡的持续库候选。"""
 
 from __future__ import annotations
 
@@ -26,6 +26,14 @@ SUPPORTED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".
 
 @dataclass
 class CandidateRecord:
+    """表示一个候选示例的记录，包含基本元数据、评分和检索信息。
+
+    参数：
+        - 无
+
+    返回：
+        - 提供用于策展流程的候选记录实例
+    """
     image_id: str
     image_path: str
     mask_path: str
@@ -52,6 +60,14 @@ class CandidateRecord:
 
 @dataclass
 class SelectionState:
+    """追踪选择过程中的状态（已用图像、患者、哈希、特征），避免重复。
+
+    参数：
+        - 无
+
+    返回：
+        - 提供用于去重选择的状态实例
+    """
     used_image_ids: set[str] = field(default_factory=set)
     used_patients: set[str] = field(default_factory=set)
     selected_hashes: list[int] = field(default_factory=list)
@@ -59,6 +75,14 @@ class SelectionState:
 
 
 def _read_rows(path: str | Path | None) -> list[dict[str, Any]]:
+    """从 JSON 或 JSONL 文件读取行数据。
+
+    参数：
+        - path: 文件路径
+
+    返回：
+        - 字典列表
+    """
     if path is None:
         return []
     target = Path(path)
@@ -83,6 +107,14 @@ def _read_rows(path: str | Path | None) -> list[dict[str, Any]]:
 
 
 def _image_id_from_row(row: dict[str, Any]) -> str:
+    """从行数据中提取图像 ID。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 图像 ID 字符串
+    """
     explicit = str(row.get("image_id") or "").strip()
     if explicit:
         return explicit
@@ -93,6 +125,15 @@ def _image_id_from_row(row: dict[str, Any]) -> str:
 
 
 def _merge_missing_fields(target: dict[str, Any], source: dict[str, Any]) -> None:
+    """将 source 中缺失的字段合并到 target。
+
+    参数：
+        - target: 目标字典
+        - source: 源字典
+
+    返回：
+        - 无返回值，仅更新 target 的副作用
+    """
     for key, value in source.items():
         current = target.get(key)
         if key not in target or current is None or current == "" or current == [] or current == {}:
@@ -106,6 +147,17 @@ def _merge_artifacts(
     region_rows: list[dict[str, Any]],
     prompt_rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
+    """合并多个来源的行数据（指标、诊断、区域、提示敏感性）为统一的记录。
+
+    参数：
+        - metrics_rows: 指标行列表
+        - diagnostics_rows: 检索诊断行列表
+        - region_rows: 区域检索行列表
+        - prompt_rows: 提示敏感性行列表
+
+    返回：
+        - 按 image_id 去重合并后的行列表
+    """
     merged: dict[str, dict[str, Any]] = {}
     for row in metrics_rows:
         image_id = _image_id_from_row(row)
@@ -138,6 +190,15 @@ def _merge_artifacts(
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
+    """安全地将值转换为浮点数。
+
+    参数：
+        - value: 输入值
+        - default: 转换失败时的默认值
+
+    返回：
+        - 浮点数值
+    """
     try:
         if value is None:
             return default
@@ -147,10 +208,26 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 
 def _safe_dict(value: Any) -> dict[str, Any]:
+    """安全地获取字典值。
+
+    参数：
+        - value: 输入值
+
+    返回：
+        - 字典或空字典
+    """
     return value if isinstance(value, dict) else {}
 
 
 def _safe_list(value: Any) -> list[Any]:
+    """安全地获取列表值。
+
+    参数：
+        - value: 输入值
+
+    返回：
+        - 列表或空列表
+    """
     if isinstance(value, list):
         return value
     if isinstance(value, tuple):
@@ -159,6 +236,14 @@ def _safe_list(value: Any) -> list[Any]:
 
 
 def _normalize_vector(value: np.ndarray | list[float] | tuple[float, ...] | None) -> Optional[np.ndarray]:
+    """对向量进行 L2 归一化。
+
+    参数：
+        - value: 输入向量
+
+    返回：
+        - 归一化后的向量或 None
+    """
     if value is None:
         return None
     array = np.asarray(value, dtype=np.float32).reshape(-1)
@@ -171,6 +256,14 @@ def _normalize_vector(value: np.ndarray | list[float] | tuple[float, ...] | None
 
 
 def _vector_from_value(value: Any) -> Optional[np.ndarray]:
+    """从各种格式的值中提取特征向量。
+
+    参数：
+        - value: 输入值（列表、元组或 JSON 字符串）
+
+    返回：
+        - 归一化向量或 None
+    """
     if isinstance(value, (list, tuple)):
         return _normalize_vector(list(value))
     if isinstance(value, str):
@@ -187,6 +280,15 @@ def _vector_from_value(value: Any) -> Optional[np.ndarray]:
 
 
 def _image_feature_vector(image_path: str | Path | None, size: int = 16) -> Optional[np.ndarray]:
+    """从图像文件计算感知特征向量（灰度缩略图 L2 归一化）。
+
+    参数：
+        - image_path: 图像路径
+        - size: 缩略图尺寸
+
+    返回：
+        - 归一化特征向量或 None
+    """
     if not image_path:
         return None
     target = Path(image_path)
@@ -199,6 +301,14 @@ def _image_feature_vector(image_path: str | Path | None, size: int = 16) -> Opti
 
 
 def _extract_feature_vector(row: dict[str, Any]) -> Optional[np.ndarray]:
+    """从行数据的多个可能字段中提取特征向量。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 特征向量或 None
+    """
     for key in ("feature_vector", "candidate_feature", "image_feature", "query_feature_vector"):
         vector = _vector_from_value(row.get(key))
         if vector is not None:
@@ -213,6 +323,15 @@ def _extract_feature_vector(row: dict[str, Any]) -> Optional[np.ndarray]:
 
 
 def _average_hash(path: str | Path, hash_size: int = 8) -> Optional[int]:
+    """计算图像的平均哈希值用于快速去重。
+
+    参数：
+        - path: 图像路径
+        - hash_size: 哈希尺寸
+
+    返回：
+        - 哈希整数值或 None
+    """
     target = Path(path)
     if not target.exists() or target.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
         return None
@@ -227,10 +346,27 @@ def _average_hash(path: str | Path, hash_size: int = 8) -> Optional[int]:
 
 
 def _hamming_distance(left: int, right: int) -> int:
+    """计算两个哈希值之间的汉明距离。
+
+    参数：
+        - left: 左哈希值
+        - right: 右哈希值
+
+    返回：
+        - 汉明距离
+    """
     return int((left ^ right).bit_count())
 
 
 def _patient_id_from_value(value: str) -> str:
+    """从字符串值中解析患者 ID。
+
+    参数：
+        - value: 输入字符串
+
+    返回：
+        - 患者 ID 字符串
+    """
     normalized = value.strip()
     if not normalized:
         return ""
@@ -246,6 +382,14 @@ def _patient_id_from_value(value: str) -> str:
 
 
 def _infer_site_id(row: dict[str, Any]) -> str:
+    """从行数据中推断站点 ID。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 站点 ID 字符串
+    """
     site_id = resolve_polypgen_site(
         image_path=row.get("image_path"),
         metadata=row,
@@ -260,6 +404,15 @@ def _infer_site_id(row: dict[str, Any]) -> str:
 
 
 def _extract_selected_ids(row: dict[str, Any], polarity: str) -> list[str]:
+    """从行数据中提取检索时选中的原型 ID。
+
+    参数：
+        - row: 行数据字典
+        - polarity: 极性（positive/negative）
+
+    返回：
+        - 原型 ID 列表
+    """
     direct_key = f"selected_{polarity}"
     direct = [str(item) for item in _safe_list(row.get(direct_key)) if str(item).strip()]
     if direct:
@@ -277,6 +430,14 @@ def _extract_selected_ids(row: dict[str, Any], polarity: str) -> list[str]:
 
 
 def _retrieval_delta(row: dict[str, Any]) -> dict[str, float]:
+    """计算检索相对于基线的各项指标增量。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 各指标增量字典
+    """
     delta = _safe_dict(row.get("retrieval_vs_baseline"))
     metrics = _safe_dict(row.get("metrics"))
     baseline = _safe_dict(row.get("baseline_metrics"))
@@ -291,17 +452,41 @@ def _retrieval_delta(row: dict[str, Any]) -> dict[str, float]:
 
 
 def _prompt_sensitivity_score(row: dict[str, Any]) -> float:
+    """从行数据中提取提示敏感性评分。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 提示敏感性评分
+    """
     prompt_row = _safe_dict(row.get("prompt_sensitivity_row"))
     prompt = _safe_dict(prompt_row.get("prompt_sensitivity"))
     return _safe_float(prompt.get("prompt_sensitivity_score"))
 
 
 def _retrieval_influence_strength(row: dict[str, Any]) -> float:
+    """从行数据中提取检索影响强度。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 检索影响强度值
+    """
     diagnostics = _safe_dict(row.get("retrieval_diagnostics"))
     return _safe_float(diagnostics.get("retrieval_influence_strength"), _safe_float(row.get("retrieval_influence_strength")))
 
 
 def _positive_score(row: dict[str, Any]) -> float:
+    """计算正例候选的综合评分。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 正例评分（值越高越适合作为正例）
+    """
     metrics = _safe_dict(row.get("metrics"))
     delta = _retrieval_delta(row)
     prompt_score = _prompt_sensitivity_score(row)
@@ -327,6 +512,14 @@ def _positive_score(row: dict[str, Any]) -> float:
 
 
 def _negative_score(row: dict[str, Any]) -> float:
+    """计算负例候选的综合评分。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 负例评分（值越高越适合作为负例）
+    """
     metrics = _safe_dict(row.get("metrics"))
     delta = _retrieval_delta(row)
     prompt_score = _prompt_sensitivity_score(row)
@@ -347,6 +540,14 @@ def _negative_score(row: dict[str, Any]) -> float:
 
 
 def _is_positive_candidate(row: dict[str, Any]) -> bool:
+    """判断行数据是否适合作为正例候选。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 是否为合格的正例候选
+    """
     delta = _retrieval_delta(row)
     metrics = _safe_dict(row.get("metrics"))
     lesion_area = _safe_float(row.get("lesion_area"))
@@ -363,6 +564,14 @@ def _is_positive_candidate(row: dict[str, Any]) -> bool:
 
 
 def _is_negative_candidate(row: dict[str, Any]) -> bool:
+    """判断行数据是否适合作为负例候选。
+
+    参数：
+        - row: 行数据字典
+
+    返回：
+        - 是否为合格的负例候选
+    """
     delta = _retrieval_delta(row)
     lesion_area = _safe_float(row.get("lesion_area"))
     prediction_area = _safe_float(row.get("prediction_area"))
@@ -377,6 +586,15 @@ def _is_negative_candidate(row: dict[str, Any]) -> bool:
 
 
 def _reason_flags(row: dict[str, Any], polarity: str) -> list[str]:
+    """生成候选的标记原因列表。
+
+    参数：
+        - row: 行数据字典
+        - polarity: 极性（positive/negative）
+
+    返回：
+        - 原因标签列表
+    """
     delta = _retrieval_delta(row)
     flags: list[str] = []
     if polarity == "positive":
@@ -401,6 +619,15 @@ def _reason_flags(row: dict[str, Any], polarity: str) -> list[str]:
 
 
 def _build_candidate(row: dict[str, Any], polarity: str) -> CandidateRecord:
+    """从行数据构建候选记录。
+
+    参数：
+        - row: 行数据字典
+        - polarity: 极性
+
+    返回：
+        - 候选记录实例
+    """
     image_id = _image_id_from_row(row)
     image_path = str(row.get("image_path") or "")
     mask_path = str(row.get("mask_path") or "")
@@ -439,6 +666,15 @@ def _build_candidate(row: dict[str, Any], polarity: str) -> CandidateRecord:
 
 
 def _cosine_similarity(left: np.ndarray, right: np.ndarray) -> float:
+    """计算两个向量的余弦相似度。
+
+    参数：
+        - left: 左向量
+        - right: 右向量
+
+    返回：
+        - 余弦相似度（-1~1）
+    """
     if left.shape != right.shape:
         return -1.0
     return float(np.dot(left, right))
@@ -451,6 +687,17 @@ def _dedup_reason(
     max_hash_distance: int,
     feature_similarity_threshold: float,
 ) -> Optional[str]:
+    """检查候选是否与已选中的重复，若重复则返回原因。
+
+    参数：
+        - candidate: 候选记录
+        - state: 选择状态
+        - max_hash_distance: 哈希最大允许距离
+        - feature_similarity_threshold: 特征相似度阈值
+
+    返回：
+        - 重复原因字符串或 None（不重复）
+    """
     if candidate.image_id in state.used_image_ids:
         return "duplicate_image_id"
     if candidate.patient_id and candidate.patient_id in state.used_patients:
@@ -467,6 +714,15 @@ def _dedup_reason(
 
 
 def _register_candidate(candidate: CandidateRecord, state: SelectionState) -> None:
+    """将选中的候选注册到状态中。
+
+    参数：
+        - candidate: 候选记录
+        - state: 选择状态
+
+    返回：
+        - 无返回值，仅更新 state 的副作用
+    """
     state.used_image_ids.add(candidate.image_id)
     if candidate.patient_id:
         state.used_patients.add(candidate.patient_id)
@@ -477,6 +733,14 @@ def _register_candidate(candidate: CandidateRecord, state: SelectionState) -> No
 
 
 def _group_candidates(candidates: list[CandidateRecord]) -> dict[str, deque[CandidateRecord]]:
+    """按站点 ID 对候选进行分组。
+
+    参数：
+        - candidates: 候选记录列表
+
+    返回：
+        - 站点 ID 到候选队列的字典
+    """
     grouped: dict[str, deque[CandidateRecord]] = defaultdict(deque)
     for candidate in sorted(candidates, key=lambda item: (-item.score, item.image_id)):
         grouped[candidate.site_id].append(candidate)
@@ -493,6 +757,20 @@ def _pick_candidate(
     feature_similarity_threshold: float,
     skipped: Counter[str],
 ) -> Optional[CandidateRecord]:
+    """从分组中按轮询方式选取一个候选，兼顾站点平衡和去重。
+
+    参数：
+        - grouped: 分组后的候选队列字典
+        - state: 选择状态
+        - site_counts: 各站点已选计数
+        - per_site_limit: 每站点最大选择数
+        - max_hash_distance: 哈希最大允许距离
+        - feature_similarity_threshold: 特征相似度阈值
+        - skipped: 跳过原因计数
+
+    返回：
+        - 选中的候选或 None（无可用候选）
+    """
     site_order = sorted(
         (site for site, queue in grouped.items() if queue and site_counts[site] < per_site_limit),
         key=lambda site: (site_counts[site], -grouped[site][0].score, site),
@@ -518,6 +796,15 @@ def _pick_candidate(
 
 
 def _copy_file_if_exists(source: str | Path | None, destination: Path) -> Optional[str]:
+    """若源文件存在则复制到目标路径。
+
+    参数：
+        - source: 源路径
+        - destination: 目标路径
+
+    返回：
+        - 目标路径字符串或 None
+    """
     if not source:
         return None
     target = Path(source)
@@ -528,6 +815,15 @@ def _copy_file_if_exists(source: str | Path | None, destination: Path) -> Option
 
 
 def _copy_dir_if_exists(source: str | Path | None, destination: Path) -> Optional[str]:
+    """若源目录存在则递归复制到目标路径。
+
+    参数：
+        - source: 源目录路径
+        - destination: 目标目录路径
+
+    返回：
+        - 目标路径字符串或 None
+    """
     if not source:
         return None
     target = Path(source)
@@ -538,6 +834,16 @@ def _copy_dir_if_exists(source: str | Path | None, destination: Path) -> Optiona
 
 
 def _target_bank_path(candidate: CandidateRecord, *, bank_root: Path, train_bank_root: Path) -> str:
+    """确定候选应添加到的目标库路径。
+
+    参数：
+        - candidate: 候选记录
+        - bank_root: 持续库根目录
+        - train_bank_root: 训练库根目录
+
+    返回：
+        - 目标库路径字符串
+    """
     site_id = str(candidate.site_id or "").upper()
     if site_id in {f"C{index}" for index in range(1, 7)}:
         return str(bank_root / site_id / candidate.polarity / "images")
@@ -545,10 +851,26 @@ def _target_bank_path(candidate: CandidateRecord, *, bank_root: Path, train_bank
 
 
 def _selection_reason(candidate: CandidateRecord) -> str:
+    """生成候选的选择原因字符串。
+
+    参数：
+        - candidate: 候选记录
+
+    返回：
+        - 原因描述字符串
+    """
     return ", ".join(candidate.reason_flags) if candidate.reason_flags else "score_ranked"
 
 
 def _recommended_priority(candidate: CandidateRecord) -> str:
+    """根据评分推荐优先级。
+
+    参数：
+        - candidate: 候选记录
+
+    返回：
+        - 优先级标签（high/medium/low）
+    """
     if candidate.polarity == "positive":
         if candidate.score >= 0.25:
             return "high"
@@ -563,6 +885,14 @@ def _recommended_priority(candidate: CandidateRecord) -> str:
 
 
 def _selection_confidence(candidate: CandidateRecord) -> float:
+    """计算候选的选择置信度。
+
+    参数：
+        - candidate: 候选记录
+
+    返回：
+        - 置信度值（0~1）
+    """
     diagnostics = _safe_dict(candidate.raw_row.get("retrieval_diagnostics"))
     gate_diagnostics = _safe_dict(diagnostics.get("gate_diagnostics"))
     region_row = _safe_dict(candidate.raw_row.get("region_retrieval_row"))
@@ -583,6 +913,14 @@ def _selection_confidence(candidate: CandidateRecord) -> float:
 
 
 def _load_binary_mask(path: str | Path | None) -> Optional[np.ndarray]:
+    """从文件加载二值掩码。
+
+    参数：
+        - path: 掩码文件路径
+
+    返回：
+        - 二值掩码数组或 None
+    """
     if not path:
         return None
     target = Path(path)
@@ -595,6 +933,15 @@ def _load_binary_mask(path: str | Path | None) -> Optional[np.ndarray]:
 
 
 def _false_positive_bbox(gt_mask_path: str | Path | None, pred_mask_path: str | Path | None) -> Optional[list[int]]:
+    """计算假阳性区域的边界框。
+
+    参数：
+        - gt_mask_path: 真值掩码路径
+        - pred_mask_path: 预测掩码路径
+
+    返回：
+        - [x1,y1,x2,y2] 边界框或 None
+    """
     gt_mask = _load_binary_mask(gt_mask_path)
     pred_mask = _load_binary_mask(pred_mask_path)
     if gt_mask is None or pred_mask is None:
@@ -611,6 +958,16 @@ def _false_positive_bbox(gt_mask_path: str | Path | None, pred_mask_path: str | 
 
 
 def _save_crop(image_path: str | Path | None, bbox: Optional[list[int]], destination: Path) -> Optional[str]:
+    """根据边界框裁剪图像并保存。
+
+    参数：
+        - image_path: 图像路径
+        - bbox: [x1,y1,x2,y2] 边界框
+        - destination: 输出路径
+
+    返回：
+        - 输出路径字符串或 None
+    """
     if not image_path or bbox is None:
         return None
     target = Path(image_path)
@@ -623,6 +980,16 @@ def _save_crop(image_path: str | Path | None, bbox: Optional[list[int]], destina
 
 
 def _stage_candidate_assets(candidate: CandidateRecord, *, candidate_dir: Path, visualization_root: Optional[Path]) -> dict[str, str]:
+    """将候选相关的图像、掩码和可视化文件复制到审核目录。
+
+    参数：
+        - candidate: 候选记录
+        - candidate_dir: 候选审核子目录
+        - visualization_root: 可视化文件根目录
+
+    返回：
+        - 资产类型到路径的字典
+    """
     assets: dict[str, str] = {}
     image_path = Path(candidate.image_path) if candidate.image_path else None
     mask_path = Path(candidate.mask_path) if candidate.mask_path else None
@@ -665,6 +1032,18 @@ def _candidate_payload(
     bank_root: Path,
     train_bank_root: Path,
 ) -> dict[str, Any]:
+    """生成候选的输出载荷字典。
+
+    参数：
+        - candidate: 候选记录
+        - review_dir: 审核目录
+        - staged_assets: 已复制资产字典
+        - bank_root: 持续库根目录
+        - train_bank_root: 训练库根目录
+
+    返回：
+        - 载荷字典
+    """
     false_positive_bbox = _false_positive_bbox(staged_assets.get("mask") or candidate.mask_path, staged_assets.get("pred"))
     target_bank_path = _target_bank_path(candidate, bank_root=bank_root, train_bank_root=train_bank_root)
     selection_reason = _selection_reason(candidate)
@@ -726,6 +1105,19 @@ def _write_candidate_outputs(
     bank_root: Path,
     train_bank_root: Path,
 ) -> list[dict[str, Any]]:
+    """将选中的候选写入输出目录并复制相关资产。
+
+    参数：
+        - candidates: 候选记录列表
+        - polarity: 极性
+        - output_dir: 输出目录
+        - visualization_root: 可视化根目录
+        - bank_root: 持续库根目录
+        - train_bank_root: 训练库根目录
+
+    返回：
+        - 输出载荷字典列表
+    """
     polarity_dir = ensure_dir(output_dir / polarity)
     rows: list[dict[str, Any]] = []
     for index, candidate in enumerate(candidates, start=1):
@@ -753,6 +1145,17 @@ def _write_copy_commands(
     bank_root: Path,
     output_dir: Path,
 ) -> Path:
+    """生成已注释的复制命令脚本，供用户审核后执行。
+
+    参数：
+        - positive_rows: 正例行列表
+        - negative_rows: 负例行列表
+        - bank_root: 持续库根目录
+        - output_dir: 输出目录
+
+    返回：
+        - 脚本文件路径
+    """
     lines = [
         "#!/usr/bin/env bash",
         "set -euo pipefail",
@@ -812,6 +1215,28 @@ def select_bank_candidates(
     feature_similarity_threshold: float = 0.995,
     visualization_root: str | Path | None = None,
 ) -> dict[str, Any]:
+    """从评估产物中选择平衡的正负例持续库候选。
+
+    参数：
+        - per_image_metrics_path: 逐图像指标文件路径
+        - retrieval_diagnostics_path: 检索诊断文件路径
+        - region_retrieval_diagnostics_path: 区域检索诊断文件路径
+        - prompt_sensitivity_path: 提示敏感性文件路径
+        - output_dir: 输出目录
+        - bank_root: 持续库根目录
+        - train_bank_root: 训练库根目录
+        - positive_limit: 正例选择上限
+        - negative_limit: 负例选择上限
+        - per_site_limit: 每站点最大选择数
+        - min_positive_score: 正例最低评分
+        - min_negative_score: 负例最低评分
+        - max_hash_distance: 感知哈希最大允许距离
+        - feature_similarity_threshold: 特征相似度阈值
+        - visualization_root: 可视化文件根目录
+
+    返回：
+        - 选择结果汇总字典
+    """
     metrics_rows = _read_rows(per_image_metrics_path)
     diagnostics_rows = _read_rows(retrieval_diagnostics_path)
     region_rows = _read_rows(region_retrieval_diagnostics_path)
@@ -942,6 +1367,14 @@ def select_bank_candidates(
 
 
 def main() -> int:
+    """脚本命令行入口，从评估产物中选择平衡的持续库候选。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Select balanced continual-bank candidates from evaluation artifacts.")
     parser.add_argument("--per-image-metrics", required=True)
     parser.add_argument("--retrieval-diagnostics", default=None)
@@ -960,10 +1393,11 @@ def main() -> int:
     parser.add_argument("--max-hash-distance", type=int, default=3)
     parser.add_argument("--feature-similarity-threshold", type=float, default=0.995)
     parser.add_argument("--visualization-root", default=None)
+    parser.add_argument("--dummy", action="store_true")
     args = parser.parse_args()
-    positive_limit = 24 if args.positive_limit is None else args.positive_limit
-    negative_limit = 24 if args.negative_limit is None else args.negative_limit
 
+    positive_limit = args.positive_limit if args.positive_limit is not None else (args.max_positive if args.max_positive is not None else 24)
+    negative_limit = args.negative_limit if args.negative_limit is not None else (args.max_negative if args.max_negative is not None else 24)
     summary = select_bank_candidates(
         per_image_metrics_path=args.per_image_metrics,
         retrieval_diagnostics_path=args.retrieval_diagnostics,

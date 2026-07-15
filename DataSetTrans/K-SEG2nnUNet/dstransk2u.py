@@ -7,8 +7,18 @@ from pathlib import Path
 
 def convert_kvasir_to_nnunet(kvasir_images_dir, kvasir_masks_dir, nnunet_dataset_dir, dataset_id=501,
                              dataset_name="KvasirSEG"):
-    """
-    将 Kvasir-SEG 数据集转换为 nnU-Net v2 格式
+    """brief:
+        Convert kvasir to nnunet.
+
+    parameter:
+        - kvasir_images_dir: Input value for kvasir_images_dir.
+        - kvasir_masks_dir: Input value for kvasir_masks_dir.
+        - nnunet_dataset_dir: Input value for nnunet_dataset_dir.
+        - dataset_id: Input value for dataset_id.
+        - dataset_name: Input value for dataset_name.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
     """
     # 定义 nnU-Net 的输出目录
     task_name = f"Dataset{dataset_id:03d}_{dataset_name}"

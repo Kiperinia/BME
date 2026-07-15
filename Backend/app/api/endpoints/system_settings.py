@@ -21,6 +21,15 @@ router = APIRouter(prefix="/system")
 async def get_system_settings(
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[SystemSettingsResponseSchema]:
+    """brief:
+        Get system settings.
+
+    parameter:
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = SystemSettingsService()
     try:
         return ApiResponse(data=service.get_system_settings())
@@ -43,6 +52,16 @@ async def update_system_settings(
     payload: SystemSettingsPayloadSchema,
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[SystemSettingsResponseSchema]:
+    """brief:
+        Update system settings.
+
+    parameter:
+        - payload: Input value for payload.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = SystemSettingsService()
     try:
         return ApiResponse(data=service.update_system_settings(payload))

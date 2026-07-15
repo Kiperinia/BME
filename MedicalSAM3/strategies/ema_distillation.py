@@ -21,15 +21,21 @@ from typing import Dict
 
 
 class EMATeacher:
-    """
-    Exponential Moving Average 教师模型管理器
+    """EMA 教师模型，通过指数移动平均更新参数。
+
+    教师模型参数为学生模型的指数移动平均，提供稳定的软标签用于自蒸馏。
+
+    参数：
+        - student_model: 学生模型实例
+        - decay: EMA 衰减系数
     """
 
     def __init__(self, student_model: nn.Module, decay: float = 0.999):
-        """
-        Args:
-            student_model: 学生模型
-            decay: EMA 衰减系数 (越大越稳定)
+        """初始化 EMA 教师模型。
+
+        参数：
+            - student_model: 学生模型实例
+            - decay: EMA 衰减系数，默认 0.999
         """
         self.decay = decay
         self.teacher = copy.deepcopy(student_model)
@@ -40,30 +46,45 @@ class EMATeacher:
 
     @torch.no_grad()
     def update(self, student_model: nn.Module) -> None:
-        """使用学生模型的参数 EMA 更新教师"""
+        """用学生模型参数更新教师模型（EMA 加权平均）。
+
+        参数：
+            - student_model: 当前学生模型
+        """
         for t_param, s_param in zip(self.teacher.parameters(),
                                      student_model.parameters()):
             t_param.data.mul_(self.decay).add_(s_param.data, alpha=1 - self.decay)
 
     @torch.no_grad()
     def predict(self, **kwargs) -> Dict[str, torch.Tensor]:
-        """教师模型推理"""
+        """使用教师模型进行预测（前向传播）。
+
+        参数：
+            - **kwargs: 传递给教师模型的关键字参数
+
+        返回：
+            - 教师模型的预测结果字典
+        """
         self.teacher.eval()
         return self.teacher(**kwargs)
 
 
 class SelfDistillationLoss(nn.Module):
-    """
-    自蒸馏损失: 学生预测与教师软目标之间的一致性损失
+    """自蒸馏损失，计算学生与教师模型预测之间的 KL 散度。
 
-    L_distill = KL(σ(student/τ) || σ(teacher/τ))
+    通过软标签蒸馏使学生模型从教师模型的预测中学习。
+
+    参数：
+        - temperature: 蒸馏温度，控制软标签的平滑程度
+        - weight: 蒸馏损失的权重系数
     """
 
     def __init__(self, temperature: float = 4.0, weight: float = 0.5):
-        """
-        Args:
-            temperature: 蒸馏温度 (越高越平滑)
-            weight: 蒸馏损失权重
+        """初始化自蒸馏损失模块。
+
+        参数：
+            - temperature: 蒸馏温度，默认 4.0
+            - weight: 蒸馏损失权重，默认 0.5
         """
         super().__init__()
         self.temperature = temperature
@@ -71,10 +92,14 @@ class SelfDistillationLoss(nn.Module):
 
     def forward(self, student_logits: torch.Tensor,
                 teacher_logits: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            student_logits: (B, 1, H, W)
-            teacher_logits: (B, 1, H, W)
+        """计算学生和教师模型之间的二元 KL 散度蒸馏损失。
+
+        参数：
+            - student_logits: 学生模型的 logits 输出
+            - teacher_logits: 教师模型的 logits 输出
+
+        返回：
+            - 标量蒸馏损失值
         """
         T = self.temperature
 
@@ -91,27 +116,33 @@ class SelfDistillationLoss(nn.Module):
 
 
 class CurriculumScheduler:
-    """
-    课程学习调度器
+    """课程学习调度器，控制训练过程中样本难度的动态阈值。
 
-    控制训练过程中样本难度的渐进式提升:
-    - 前期: 使用简单样本 (大 bbox, 高对比度目标)
-    - 中期: 引入中等难度
-    - 后期: 全部样本 (含小目标、模糊边界)
+    在预热阶段线性增加难度阈值，使模型从简单样本逐步过渡到困难样本。
 
-    样本难度的度量:
-    - 目标面积比 (小面积 = 更难)
-    - 边界复杂度 (周长/面积比)
+    参数：
+        - total_epochs: 总训练轮数
+        - warmup_ratio: 预热阶段占总轮数的比例
     """
 
     def __init__(self, total_epochs: int, warmup_ratio: float = 0.3):
+        """初始化课程学习调度器。
+
+        参数：
+            - total_epochs: 总训练轮数
+            - warmup_ratio: 预热比例，默认 0.3
+        """
         self.total_epochs = total_epochs
         self.warmup_ratio = warmup_ratio
 
     def get_difficulty_threshold(self, epoch: int) -> float:
-        """
-        获取当前 epoch 允许的最大难度阈值 [0, 1]
-        0 = 仅最简单样本, 1 = 所有样本
+        """获取当前 epoch 的难度阈值。
+
+        参数：
+            - epoch: 当前训练轮次
+
+        返回：
+            - 0.3 到 1.0 之间的难度阈值
         """
         progress = epoch / max(self.total_epochs, 1)
         if progress < self.warmup_ratio:
@@ -121,9 +152,15 @@ class CurriculumScheduler:
 
     @staticmethod
     def compute_sample_difficulty(mask: torch.Tensor) -> float:
-        """
-        计算单个样本的难度 [0, 1]
-        基于目标区域面积占比 (越小越难)
+        """计算单个样本的难度分数。
+
+        基于前景区域占比评估样本难度，前景占比越小难度越大。
+
+        参数：
+            - mask: 二值掩码张量
+
+        返回：
+            - 0 到 1 之间的难度分数
         """
         area_ratio = mask.float().mean().item()
         # 面积比越小，难度越大

@@ -3,6 +3,16 @@ import { computed, ref } from 'vue'
 
 import MaskToggle from '@/components/segmentation/MaskToggle.vue'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   isSegmenting: boolean
   hasMaskImage: boolean
@@ -17,16 +27,106 @@ const props = defineProps<{
   selectedMaskFilename?: string
 }>()
 
+/**
+ * brief:
+ *   Handle input ref.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const inputRef = ref<HTMLInputElement | null>(null)
+/**
+ * brief:
+ *   Handle mask input ref.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const maskInputRef = ref<HTMLInputElement | null>(null)
 
+/**
+ * brief:
+ *   Handle has image.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const hasImage = computed(() => Boolean(props.imageUrl))
+/**
+ * brief:
+ *   Handle mask image src.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const maskImageSrc = computed(() => props.maskDataUrl || '')
+/**
+ * brief:
+ *   Handle has mask.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const hasMask = computed(() => Boolean(maskImageSrc.value) || props.maskCoordinates.length >= 3)
+/**
+ * brief:
+ *   Handle polygon points.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const polygonPoints = computed(() => props.maskCoordinates.map((point) => point.join(',')).join(' '))
+/**
+ * brief:
+ *   Handle svg view box.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const svgViewBox = computed(() => `0 0 ${props.imageWidth || 1} ${props.imageHeight || 1}`)
+/**
+ * brief:
+ *   Handle can toggle mask.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const canToggleMask = computed(() => Boolean(maskImageSrc.value) || props.maskCoordinates.length > 0)
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'toggle-mask'): void
   (event: 'select-file', file: File): void
@@ -35,16 +135,66 @@ const emit = defineEmits<{
   (event: 'apply-mask'): void
 }>()
 
+/**
+ * brief:
+ *   Handle pick file.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const pickFile = () => {
   inputRef.value?.click()
 }
 
+/**
+ * brief:
+ *   Handle pick mask file.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const pickMaskFile = () => {
   maskInputRef.value?.click()
 }
 
+/**
+ * brief:
+ *   Handle file selection.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleFileSelection = (event: Event) => {
+  /**
+   * brief:
+   *   Handle target.
+   *
+   * parameter:
+   *   - event: Input value for event.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const target = event.target as HTMLInputElement
+  /**
+   * brief:
+   *   Handle file.
+   *
+   * parameter:
+   *   - event: Input value for event.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const file = target.files?.[0]
   if (!file) {
     return
@@ -54,8 +204,38 @@ const handleFileSelection = (event: Event) => {
   target.value = ''
 }
 
+/**
+ * brief:
+ *   Handle mask file selection.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleMaskFileSelection = (event: Event) => {
+  /**
+   * brief:
+   *   Handle target.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const target = event.target as HTMLInputElement
+  /**
+   * brief:
+   *   Handle file.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const file = target.files?.[0]
   if (!file) {
     return

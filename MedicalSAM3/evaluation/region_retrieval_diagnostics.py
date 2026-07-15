@@ -1,4 +1,4 @@
-"""Structured region-aware retrieval diagnostics."""
+"""结构化区域感知检索诊断。"""
 
 from __future__ import annotations
 
@@ -11,6 +11,16 @@ import torch.nn.functional as F
 
 
 def _resize_map(value: Any, size: tuple[int, int], *, mode: str = "bilinear") -> torch.Tensor | None:
+    """调整特征图到目标空间尺寸，支持多种插值模式。
+
+    参数：
+        - value: 输入值（张量或其他类型）。
+        - size: 目标尺寸 (高, 宽)。
+        - mode: 插值模式，默认为 "bilinear"。
+
+    返回：
+        - 调整后的张量，无效输入返回 None。
+    """
     if not isinstance(value, torch.Tensor) or value.numel() == 0:
         return None
     tensor = value.detach().float()
@@ -27,6 +37,15 @@ def _resize_map(value: Any, size: tuple[int, int], *, mode: str = "bilinear") ->
 
 
 def _mean_in_mask(values: torch.Tensor | None, mask: torch.Tensor | None) -> float:
+    """计算掩码区域内的张量均值。
+
+    参数：
+        - values: 值张量。
+        - mask: 二值掩码张量。
+
+    返回：
+        - 掩码区域内的均值。
+    """
     if values is None or mask is None:
         return 0.0
     value_tensor = values.detach().float()
@@ -38,6 +57,15 @@ def _mean_in_mask(values: torch.Tensor | None, mask: torch.Tensor | None) -> flo
 
 
 def _scalar_tensor(value: Any, default: float = 0.0) -> float:
+    """将张量或标量值统一转换为浮点数。
+
+    参数：
+        - value: 输入值。
+        - default: 默认值，转换失败时返回。
+
+    返回：
+        - 浮点数结果。
+    """
     if isinstance(value, torch.Tensor) and value.numel() > 0:
         return float(value.detach().float().mean().item())
     try:
@@ -47,6 +75,14 @@ def _scalar_tensor(value: Any, default: float = 0.0) -> float:
 
 
 def _region_type_statistics(adapter_aux: dict[str, Any]) -> dict[str, float]:
+    """从适配器辅助输出中提取区域类型统计信息。
+
+    参数：
+        - adapter_aux: 适配器辅助输出字典。
+
+    返回：
+        - 包含各区域类型均值的字典。
+    """
     payload = adapter_aux.get("region_type_statistics")
     if not isinstance(payload, dict):
         return {
@@ -71,6 +107,20 @@ def build_region_retrieval_diagnostics(
     gt_mask: torch.Tensor | None = None,
     sample_metadata: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
+    """构建区域感知的检索诊断，分析检索区域激活、熵、置信度、病变增益等。
+
+    参数：
+        - image_id: 图像 ID。
+        - retrieval: 检索结果字典。
+        - adapter_aux: 适配器辅助输出。
+        - baseline_mask_logits: 基线掩码 logits。
+        - corrected_mask_logits: 修正后掩码 logits。
+        - gt_mask: 真实掩码。
+        - sample_metadata: 样本元数据。
+
+    返回：
+        - 包含各项区域诊断指标的字典。
+    """
     size = tuple(int(item) for item in corrected_mask_logits.shape[-2:])
     baseline_logits = baseline_mask_logits.detach().float() if isinstance(baseline_mask_logits, torch.Tensor) and baseline_mask_logits.numel() > 0 else torch.zeros_like(corrected_mask_logits.detach().float())
     corrected_logits = corrected_mask_logits.detach().float()
@@ -128,6 +178,14 @@ def build_region_retrieval_diagnostics(
 
 
 def summarize_region_retrieval_diagnostics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """汇总区域检索诊断结果，计算各数值指标的均值、最小值和最大值。
+
+    参数：
+        - rows: 诊断行列表。
+
+    返回：
+        - 汇总统计字典。
+    """
     if not rows:
         return {}
     numeric_keys = [
@@ -164,6 +222,15 @@ def summarize_region_retrieval_diagnostics(rows: list[dict[str, Any]]) -> dict[s
 
 
 def write_region_retrieval_diagnostics(path: str | Path, rows: list[dict[str, Any]]) -> Path:
+    """将区域检索诊断行写入 JSONL 文件。
+
+    参数：
+        - path: 输出文件路径。
+        - rows: 诊断行列表。
+
+    返回：
+        - 写入的文件路径。
+    """
     target = Path(path)
     target.write_text("\n".join(json.dumps(row) for row in rows), encoding="utf-8")
     return target

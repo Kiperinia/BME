@@ -15,9 +15,28 @@ from core.config import Config
 
 
 class RuleOnlyLLM(HelloAgentsLLM):
-    """规则模式占位 LLM，用于兼容 hello_agents.Agent 基类初始化。"""
+    """brief:
+        Represent RuleOnlyLLM state and behavior.
+
+    parameter:
+        - model: Input value for model.
+        - provider: Input value for provider.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     def __init__(self, model: str = "rule-only", provider: str = "rule-only"):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - model: Input value for model.
+            - provider: Input value for provider.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.model = model
         self.provider = provider
         self.api_key = None
@@ -29,10 +48,35 @@ class RuleOnlyLLM(HelloAgentsLLM):
         self.last_call_stats = None
 
     def chat(self, messages, temperature: float | None = None, max_tokens: int | None = None) -> str:
+        """brief:
+            Handle chat.
+
+        parameter:
+            - messages: Input value for messages.
+            - temperature: Input value for temperature.
+            - max_tokens: Input value for max_tokens.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         raise RuntimeError("RuleOnlyLLM does not support chat; enable a real LLM provider first.")
 
 
 class MyLLM(HelloAgentsLLM):
+    """brief:
+        Represent MyLLM state and behavior.
+
+    parameter:
+        - config: Input value for config.
+        - model: Input value for model.
+        - api_key: Input value for api_key.
+        - base_url: Input value for base_url.
+        - provider: Input value for provider.
+        - **kwargs: Input value for kwargs.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(
         self,
         config: Optional[Config] = None,
@@ -42,6 +86,20 @@ class MyLLM(HelloAgentsLLM):
         provider: Optional[str] = "auto",
         **kwargs,
     ):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - config: Input value for config.
+            - model: Input value for model.
+            - api_key: Input value for api_key.
+            - base_url: Input value for base_url.
+            - provider: Input value for provider.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         resolved_config = config or Config.from_env()
         resolved_provider = self._resolve_provider(provider, resolved_config)
         resolved_model = model or resolved_config.default_model
@@ -97,6 +155,17 @@ class MyLLM(HelloAgentsLLM):
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> str:
+        """brief:
+            Handle chat.
+
+        parameter:
+            - messages: Input value for messages.
+            - temperature: Input value for temperature.
+            - max_tokens: Input value for max_tokens.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if hasattr(self, "_client") and self.provider == "modelscope":
             request = {
                 "model": self.model,
@@ -120,6 +189,15 @@ class MyLLM(HelloAgentsLLM):
 
     @staticmethod
     def _stringify_content(content) -> str:
+        """brief:
+            Handle stringify content.
+
+        parameter:
+            - content: Input value for content.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if isinstance(content, str):
             return content
         if isinstance(content, list):
@@ -128,6 +206,16 @@ class MyLLM(HelloAgentsLLM):
 
     @staticmethod
     def _resolve_provider(provider: Optional[str], config: Config) -> str:
+        """brief:
+            Resolve provider.
+
+        parameter:
+            - provider: Input value for provider.
+            - config: Input value for config.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if provider and provider != "auto":
             return provider
         return config.default_provider

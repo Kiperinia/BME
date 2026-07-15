@@ -10,9 +10,39 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 WORKSPACE_DIR = BACKEND_DIR.parent
 RUNTIME_SETTINGS_PATH = BACKEND_DIR / "runtime" / "system_settings.json"
+WORKSPACE_PATH_OVERRIDE_KEYS = {
+    "model_checkpoint_path",
+    "model_lora_path",
+    "model_yolo_weights_path",
+}
+
+
+def resolve_workspace_path(path_value: str | Path) -> Path:
+    """brief:
+        Resolve workspace path.
+
+    parameter:
+        - path_value: Input value for path_value.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
+    candidate = Path(path_value).expanduser()
+    if candidate.is_absolute():
+        return candidate
+    return (WORKSPACE_DIR / candidate).resolve()
 
 
 class Settings(BaseSettings):
+    """brief:
+        Represent Settings state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     app_name: str = Field(default="BME Async SAM3 Backend")
     debug: bool = Field(default=False)
     api_v1_prefix: str = Field(default="/api")
@@ -101,28 +131,77 @@ class Settings(BaseSettings):
 
     @property
     def broker_url(self) -> str:
+        """brief:
+            Handle broker url.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.celery_broker_url or self.redis_url
 
     @property
     def result_backend(self) -> str:
+        """brief:
+            Handle result backend.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.celery_result_backend or self.redis_url
 
 
 def get_runtime_settings_path() -> Path:
+    """brief:
+        Get runtime settings path.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return RUNTIME_SETTINGS_PATH
 
 
 def load_settings_overrides() -> dict[str, Any]:
+    """brief:
+        Load settings overrides.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     if not RUNTIME_SETTINGS_PATH.exists():
         return {}
 
     raw = json.loads(RUNTIME_SETTINGS_PATH.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise RuntimeError(f"runtime settings file must be a JSON object: {RUNTIME_SETTINGS_PATH}")
+    for key in WORKSPACE_PATH_OVERRIDE_KEYS:
+        value = raw.get(key)
+        if isinstance(value, str) and value.strip():
+            raw[key] = str(resolve_workspace_path(value))
     return raw
 
 
 def save_settings_overrides(overrides: dict[str, Any]) -> None:
+    """brief:
+        Save settings overrides.
+
+    parameter:
+        - overrides: Input value for overrides.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     RUNTIME_SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     RUNTIME_SETTINGS_PATH.write_text(
         json.dumps(overrides, ensure_ascii=False, indent=2),
@@ -131,9 +210,27 @@ def save_settings_overrides(overrides: dict[str, Any]) -> None:
 
 
 def refresh_settings_cache() -> None:
+    """brief:
+        Handle refresh settings cache.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     get_settings.cache_clear()
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """brief:
+        Get settings.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return Settings(**load_settings_overrides())

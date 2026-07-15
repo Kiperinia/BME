@@ -1,4 +1,4 @@
-"""Retrieved mask prior aggregation for localized retrieval guidance."""
+"""检索掩码先验聚合，用于局部检索引导。"""
 
 from __future__ import annotations
 
@@ -11,6 +11,15 @@ import torch
 
 
 def _load_mask(mask_path: str | None, spatial_size: tuple[int, int]) -> torch.Tensor | None:
+    """从文件路径加载掩码图像并调整到指定空间尺寸。
+
+    参数：
+        - mask_path: 掩码文件路径。
+        - spatial_size: 目标空间尺寸 (高, 宽)。
+
+    返回：
+        - 加载并二值化的掩码张量，若路径无效则返回 None。
+    """
     if not mask_path:
         return None
     target = Path(mask_path)
@@ -23,6 +32,16 @@ def _load_mask(mask_path: str | None, spatial_size: tuple[int, int]) -> torch.Te
 
 
 def _weighted_mask_prior(entries: list[list[Any]], weights: torch.Tensor | None, spatial_size: tuple[int, int]) -> torch.Tensor | None:
+    """根据权重对检索条目的掩码进行加权聚合，生成掩码先验。
+
+    参数：
+        - entries: 批次的检索条目列表。
+        - weights: 每个条目对应的权重张量。
+        - spatial_size: 目标空间尺寸 (高, 宽)。
+
+    返回：
+        - 加权聚合后的掩码先验张量，若无有效掩码则返回 None。
+    """
     if weights is None or not isinstance(weights, torch.Tensor) or not entries:
         return None
     priors = []
@@ -51,6 +70,15 @@ def _weighted_mask_prior(entries: list[list[Any]], weights: torch.Tensor | None,
 
 
 def attach_retrieved_mask_priors(retrieval: dict[str, Any], spatial_size: tuple[int, int]) -> dict[str, Any]:
+    """将检索到的正/负样本掩码先验附加到检索结果字典中。
+
+    参数：
+        - retrieval: 原始检索结果字典。
+        - spatial_size: 目标空间尺寸 (高, 宽)。
+
+    返回：
+        - 更新后的检索结果字典，包含 mask_prior 相关字段。
+    """
     updated = dict(retrieval)
     positive_prior = _weighted_mask_prior(
         retrieval.get("positive_entries", []),

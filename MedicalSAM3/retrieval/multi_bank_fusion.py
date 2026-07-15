@@ -1,4 +1,4 @@
-"""Adaptive multi-bank retrieval fusion utilities."""
+"""自适应多库检索融合工具。"""
 
 from __future__ import annotations
 
@@ -10,12 +10,30 @@ from MedicalSAM3.retrieval.site_bank_resolver import SiteBankResolution
 
 
 def _tensor_or_zeros(value: Any, *, like: torch.Tensor) -> torch.Tensor:
+    """将值转换为张量，无效时返回与参考张量形状相同的零张量。
+
+    参数：
+        - value: 输入值，可以是张量或其他类型。
+        - like: 参考张量，用于确定设备和数据类型。
+
+    返回：
+        - 有效张量或形状匹配的零张量。
+    """
     if isinstance(value, torch.Tensor) and value.numel() > 0:
         return value.to(device=like.device, dtype=like.dtype)
     return torch.zeros(like.shape[0], device=like.device, dtype=like.dtype)
 
 
 def _batch_similarity(retrieval: dict[str, Any], *, like: torch.Tensor) -> dict[str, torch.Tensor]:
+    """从检索结果中提取批次的相似度信息（正均值、负均值、边界）。
+
+    参数：
+        - retrieval: 检索结果字典。
+        - like: 参考张量。
+
+    返回：
+        - 包含 positive_mean、negative_mean 和 margin 的字典。
+    """
     similarity_score = retrieval.get("similarity_score", {})
     stability = retrieval.get("retrieval_stability", {})
     positive = _tensor_or_zeros(
@@ -35,6 +53,15 @@ def _batch_similarity(retrieval: dict[str, Any], *, like: torch.Tensor) -> dict[
 
 
 def _bank_presence(retrieval: dict[str, Any], *, like: torch.Tensor) -> torch.Tensor:
+    """检查检索结果中是否存在有效的正/负样本特征（非零权重）。
+
+    参数：
+        - retrieval: 检索结果字典。
+        - like: 参考张量。
+
+    返回：
+        - 指示银行是否存在的二值张量。
+    """
     positive_weights = retrieval.get("positive_weights")
     negative_weights = retrieval.get("negative_weights")
     positive_sum = (
@@ -56,6 +83,16 @@ def _bank_weights(
     *,
     score_temperature: float = 0.125,
 ) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor], torch.Tensor, torch.Tensor]:
+    """计算训练库和站点库的融合权重，基于各自的正样本相似度和边界。
+
+    参数：
+        - train_retrieval: 训练库的检索结果。
+        - site_retrieval: 站点库的检索结果。
+        - score_temperature: softmax 温度参数，默认为 0.125。
+
+    返回：
+        - (train_similarity, site_similarity, train_contribution, site_contribution) 四元组。
+    """
     reference = train_retrieval.get("positive_prototype")
     if not isinstance(reference, torch.Tensor):
         raise TypeError("train_retrieval must contain positive_prototype")
@@ -89,6 +126,19 @@ def _combine_token_stream(
     train_contribution: torch.Tensor,
     site_contribution: torch.Tensor,
 ) -> tuple[torch.Tensor, torch.Tensor]:
+    """融合训练库和站点库的特征 Token 流，按贡献加权连接并归一化权重。
+
+    参数：
+        - train_features: 训练库特征张量。
+        - site_features: 站点库特征张量。
+        - train_weights: 训练库权重张量。
+        - site_weights: 站点库权重张量。
+        - train_contribution: 训练库贡献分数。
+        - site_contribution: 站点库贡献分数。
+
+    返回：
+        - (combined_features, normalized_weights) 融合后的特征和归一化权重。
+    """
     scaled_train = train_weights * train_contribution.unsqueeze(1)
     scaled_site = site_weights * site_contribution.unsqueeze(1)
     combined_features = torch.cat([train_features, site_features], dim=1)
@@ -104,12 +154,32 @@ def _combine_prototype(
     train_contribution: torch.Tensor,
     site_contribution: torch.Tensor,
 ) -> torch.Tensor:
+    """加权融合训练库和站点库的原型向量，并做归一化。
+
+    参数：
+        - train_prototype: 训练库原型特征。
+        - site_prototype: 站点库原型特征。
+        - train_contribution: 训练库贡献分数。
+        - site_contribution: 站点库贡献分数。
+
+    返回：
+        - 融合后的归一化原型张量。
+    """
     fused = train_prototype * train_contribution.unsqueeze(1) + site_prototype * site_contribution.unsqueeze(1)
     norm = fused.norm(dim=1, keepdim=True)
     return torch.where(norm > 0, fused / norm.clamp_min(1e-6), fused)
 
 
 def _combine_score_lists(train_scores: list[Any], site_scores: list[Any]) -> list[torch.Tensor]:
+    """将训练库和站点库的分数列表按批次连接。
+
+    参数：
+        - train_scores: 训练库分数列表。
+        - site_scores: 站点库分数列表。
+
+    返回：
+        - 连接后的分数张量列表。
+    """
     result: list[torch.Tensor] = []
     batch_size = max(len(train_scores), len(site_scores))
     for batch_index in range(batch_size):
@@ -122,6 +192,15 @@ def _combine_score_lists(train_scores: list[Any], site_scores: list[Any]) -> lis
 
 
 def _combine_entries(train_entries: list[list[Any]], site_entries: list[list[Any]]) -> list[list[Any]]:
+    """将训练库和站点库的条目列表按批次连接。
+
+    参数：
+        - train_entries: 训练库条目列表。
+        - site_entries: 站点库条目列表。
+
+    返回：
+        - 连接后的条目列表。
+    """
     result: list[list[Any]] = []
     batch_size = max(len(train_entries), len(site_entries))
     for batch_index in range(batch_size):
@@ -140,6 +219,19 @@ def _weighted_stability(
     *,
     like: torch.Tensor,
 ) -> torch.Tensor:
+    """对训练库和站点库的稳定性指标进行加权融合。
+
+    参数：
+        - train_retrieval: 训练库检索结果。
+        - site_retrieval: 站点库检索结果。
+        - train_contribution: 训练库贡献分数。
+        - site_contribution: 站点库贡献分数。
+        - key: 稳定性指标的名称。
+        - like: 参考张量。
+
+    返回：
+        - 加权融合后的稳定性张量。
+    """
     train_value = _tensor_or_zeros(train_retrieval.get("retrieval_stability", {}).get(key), like=like)
     site_value = _tensor_or_zeros(site_retrieval.get("retrieval_stability", {}).get(key), like=like)
     return train_value * train_contribution + site_value * site_contribution
@@ -152,6 +244,17 @@ def annotate_single_bank_retrieval(
     bank_label: str,
     bank_path: str,
 ) -> dict[str, Any]:
+    """为单库检索结果添加 multi_bank_fusion 注释信息，标记该次检索来自训练库或站点库。
+
+    参数：
+        - retrieval: 检索结果字典。
+        - resolution: 站点银行解析结果。
+        - bank_label: 银行标签 ("train" 或其他)。
+        - bank_path: 银行路径。
+
+    返回：
+        - 添加了 multi_bank_fusion 字段的检索结果字典。
+    """
     updated = dict(retrieval)
     reference = updated.get("positive_prototype")
     if not isinstance(reference, torch.Tensor):
@@ -205,6 +308,19 @@ def fuse_multi_bank_retrieval(
     site_bank_path: Optional[str],
     score_temperature: float = 0.125,
 ) -> dict[str, Any]:
+    """融合训练库和站点库的检索结果，基于相似度自适应加权合并特征、原型和分数。
+
+    参数：
+        - train_retrieval: 训练库检索结果。
+        - site_retrieval: 站点库检索结果。
+        - resolution: 站点银行解析结果。
+        - train_bank_path: 训练库路径。
+        - site_bank_path: 站点库路径。
+        - score_temperature: softmax 温度参数。
+
+    返回：
+        - 融合后的检索结果字典，包含 multi_bank_fusion 元信息。
+    """
     reference = train_retrieval.get("positive_prototype")
     if not isinstance(reference, torch.Tensor):
         raise TypeError("train_retrieval must contain positive_prototype")

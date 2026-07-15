@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 # 请替换为你转换后的实际路径
-test_path = 'afterdata\PolypGen-nnunet_raw\Dataset502_PolypGen\labelsTr\C1_100H0050.png'
+test_path = "afterdata/PolypGen-nnunet_raw/Dataset502_PolypGen/labelsTr/C1_100H0050.png"
 
 if os.path.exists(test_path):
     print(f"✅ 找到文件了: {test_path}")

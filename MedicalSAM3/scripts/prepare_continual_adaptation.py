@@ -1,4 +1,4 @@
-"""Mine hard cases and build continual adaptation inputs."""
+"""挖掘困难案例并构建持续适应输入。"""
 
 from __future__ import annotations
 
@@ -20,11 +20,27 @@ SUPPORTED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 
 def _normalize_image_key(value: str | Path) -> str:
+    """标准化图像键名（转为小写并去除尾部编号）。
+
+    参数：
+        - value: 图像路径或名称
+
+    返回：
+        - 标准化后的键名字符串
+    """
     stem = Path(value).stem.lower()
     return re.sub(r"(?:_0+)?$", "", stem)
 
 
 def _load_jsonl(path: str | Path) -> list[dict[str, Any]]:
+    """从 JSONL 文件加载行数据。
+
+    参数：
+        - path: 文件路径
+
+    返回：
+        - 字典列表
+    """
     target = Path(path)
     if not target.exists():
         raise FileNotFoundError(target)
@@ -37,10 +53,26 @@ def _load_jsonl(path: str | Path) -> list[dict[str, Any]]:
 
 
 def _records_by_image_id(split_file: str | Path) -> dict[str, dict[str, Any]]:
+    """从拆分文件读取记录并按 image_id 索引。
+
+    参数：
+        - split_file: 拆分文件路径
+
+    返回：
+        - image_id 到记录字典的映射
+    """
     return {str(record.get("image_id", "")): record for record in read_records(split_file)}
 
 
 def _suggest_polarity(record: dict[str, Any]) -> str:
+    """根据是否有掩码建议极性（有掩码为正例，无为负例）。
+
+    参数：
+        - record: 记录字典
+
+    返回：
+        - "positive" 或 "negative"
+    """
     mask_path = str(record.get("mask_path", "") or "")
     return "positive" if mask_path else "negative"
 
@@ -54,6 +86,19 @@ def _mine_hard_cases(
     fpr_threshold: float,
     max_cases: int | None,
 ) -> Path:
+    """挖掘困难案例（低 Dice 或高 FPR），生成审核清单并复制预览文件。
+
+    参数：
+        - metrics_path: 逐图像指标文件路径
+        - split_file: 拆分文件路径
+        - output_dir: 输出目录
+        - dice_threshold: Dice 阈值（低于此视为困难）
+        - fpr_threshold: FPR 阈值（高于此视为困难）
+        - max_cases: 最大挖掘数量
+
+    返回：
+        - 审核清单文件路径
+    """
     rows = _load_jsonl(metrics_path)
     records = _records_by_image_id(split_file)
     destination = ensure_dir(output_dir)
@@ -99,6 +144,16 @@ def _mine_hard_cases(
 
 
 def _apply_reviewed_manifest(manifest_path: str | Path, continual_bank: str | Path, output_dir: str | Path) -> dict[str, Any]:
+    """应用审核后的清单，将接受的示例复制到持续库并生成训练记录。
+
+    参数：
+        - manifest_path: 审核清单文件路径
+        - continual_bank: 持续库路径
+        - output_dir: 输出目录
+
+    返回：
+        - 应用结果汇总字典
+    """
     manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
     if not isinstance(manifest, list):
         raise ValueError("review manifest must be a list")
@@ -148,6 +203,16 @@ def _apply_reviewed_manifest(manifest_path: str | Path, continual_bank: str | Pa
 
 
 def _collect_bank_training_records(continual_bank: str | Path, split_file: str | Path, output_dir: str | Path) -> dict[str, Any]:
+    """收集持续库中图像对应的训练记录（通过文件名匹配）。
+
+    参数：
+        - continual_bank: 持续库路径
+        - split_file: 拆分文件路径
+        - output_dir: 输出目录
+
+    返回：
+        - 收集结果汇总字典
+    """
     bank_root = Path(continual_bank)
     if not bank_root.exists():
         raise FileNotFoundError(bank_root)
@@ -209,6 +274,14 @@ def _collect_bank_training_records(continual_bank: str | Path, split_file: str |
 
 
 def main() -> int:
+    """脚本命令行入口，挖掘困难案例、应用审核清单或收集训练记录。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Prepare continual adaptation review queues and apply reviewed exemplars.")
     parser.add_argument("--per-image-metrics", default=None)
     parser.add_argument("--split-file", default=None)

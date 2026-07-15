@@ -7,6 +7,14 @@ import torch.nn.functional as F
 
 
 def _boundary_band(mask: torch.Tensor) -> torch.Tensor:
+    """计算掩码的边界带状区域（膨胀减腐蚀）。
+
+    参数：
+        - mask: 二值掩码张量，形状 (B, 1, H, W)
+
+    返回：
+        - 形状相同的边界区域张量
+    """
     kernel = torch.ones(1, 1, 3, 3, device=mask.device, dtype=mask.dtype)
     eroded = (F.conv2d(mask, kernel, padding=1) >= 9.0).float()
     dilated = (F.conv2d(mask, kernel, padding=1) > 0.0).float()
@@ -14,6 +22,10 @@ def _boundary_band(mask: torch.Tensor) -> torch.Tensor:
 
 
 class QualityEvaluator:
+    """分割质量与失败类型评估器。
+
+    支持有真实掩码和无真实掩码两种评估模式，输出多项质量指标和失败类型。
+    """
     def evaluate(
         self,
         mask_logits: torch.Tensor,
@@ -21,6 +33,19 @@ class QualityEvaluator:
         score: torch.Tensor | float,
         gt_mask: torch.Tensor | None = None,
     ) -> dict[str, float | str]:
+        """对分割结果进行质量评估和失败分类。
+
+        无真实掩码时基于置信度和不确定性推断；有真实掩码时计算 Dice、边界质量等指标。
+
+        参数：
+            - mask_logits: 模型输出的 logits 张量
+            - mask: 二值预测掩码
+            - score: 置信度分数（张量或标量）
+            - gt_mask: 可选；真实掩码张量
+
+        返回：
+            - 包含 mask_quality、boundary_quality、uncertainty、failure_type 等的字典
+        """
         prob = torch.sigmoid(mask_logits)
         pred = (prob > 0.5).float()
         uncertainty = float((4.0 * prob * (1.0 - prob)).mean().item())

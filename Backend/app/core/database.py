@@ -14,6 +14,15 @@ _active_backend = "mysql"
 
 
 def _build_mysql_engine() -> AsyncEngine:
+    """brief:
+        Build mysql engine.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return create_async_engine(
         settings.mysql_url,
         echo=settings.debug,
@@ -23,6 +32,15 @@ def _build_mysql_engine() -> AsyncEngine:
 
 
 def _build_sqlite_engine() -> AsyncEngine:
+    """brief:
+        Build sqlite engine.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return create_async_engine(
         settings.sqlite_url,
         echo=settings.debug,
@@ -47,28 +65,73 @@ SQLiteSessionLocal = async_sessionmaker(
 
 
 def get_active_db_backend() -> str:
+    """brief:
+        Get active db backend.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return _active_backend
 
 
 def _switch_to_sqlite(reason: Exception) -> None:
+    """brief:
+        Handle switch to sqlite.
+
+    parameter:
+        - reason: Input value for reason.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     global _active_backend
     _active_backend = "sqlite"
     logger.warning("MySQL is unavailable, switched database backend to SQLite: %s", reason)
 
 
 def _get_session_factory() -> async_sessionmaker[AsyncSession]:
+    """brief:
+        Get session factory.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     if _active_backend == "sqlite":
         return SQLiteSessionLocal
     return MySQLSessionLocal
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """brief:
+        Get db session.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     session_factory = _get_session_factory()
     async with session_factory() as session:
         yield session
 
 
 async def init_models() -> None:
+    """brief:
+        Handle init models.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     from app.models import analysis_task  # noqa: F401
     from app.models import patient  # noqa: F401
     from app.models.base import Base
@@ -94,4 +157,13 @@ async def init_models() -> None:
 
 
 def get_app_session_factory() -> async_sessionmaker[AsyncSession]:
+    """brief:
+        Get app session factory.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return _get_session_factory()

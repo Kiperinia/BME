@@ -1,4 +1,4 @@
-"""CLI helpers for enabling YOLO bbox prompts in SAM3 scripts."""
+"""CLI 辅助工具，用于在 SAM3 脚本中启用 YOLO 边界框提示。"""
 
 from __future__ import annotations
 
@@ -10,6 +10,11 @@ from .bbox_provider import create_box_provider
 
 
 def add_yolo_bbox_args(parser: argparse.ArgumentParser) -> None:
+    """向 ArgumentParser 添加 YOLO 边界框相关的命令行参数。
+
+    参数：
+        - parser: 要添加参数的命令行解析器。
+    """
     parser.add_argument("--bbox-source", choices=["none", "mask", "yolo"], default="mask")
     parser.add_argument("--yolo-weights", default="yolo/models/yolov8_polyp.pt")
     parser.add_argument("--yolo-conf", type=float, default=0.25)
@@ -21,6 +26,15 @@ def add_yolo_bbox_args(parser: argparse.ArgumentParser) -> None:
 
 
 def build_box_provider_from_args(args: Any, *, default_cache_name: str | None = None) -> Any | None:
+    """根据解析后的命令行参数构建边界框提供器。
+
+    参数：
+        - args: 解析后的命令行参数对象。
+        - default_cache_name: 默认缓存文件名（可选）。
+
+    返回：
+        - 边界框提供器实例；若无可用提供器则返回 None。
+    """
     cache_path = getattr(args, "yolo_cache", None)
     if cache_path is None and default_cache_name:
         cache_path = Path("MedicalSAM3/outputs/medex_sam3/yolo_bbox_cache") / default_cache_name

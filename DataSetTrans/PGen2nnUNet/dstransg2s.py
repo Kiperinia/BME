@@ -7,7 +7,15 @@ import numpy as np
 from tqdm import tqdm
 
 def decode_supervisely_bitmap(b64_string):
-    """解码 Supervisely Bitmap 字符串为二值 Mask [0, 1]"""
+    """brief:
+        Decode supervisely bitmap.
+
+    parameter:
+        - b64_string: Input value for b64_string.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     try:
         zlib_bytes = base64.b64decode(b64_string)
         img_bytes = zlib.decompress(zlib_bytes)
@@ -24,7 +32,15 @@ def decode_supervisely_bitmap(b64_string):
         return None
 
 def get_bbox_from_mask(mask):
-    """从二值 Mask 中提取 [xmin, ymin, xmax, ymax] 格式的 BBox"""
+    """brief:
+        Get bbox from mask.
+
+    parameter:
+        - mask: Input value for mask.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     y_indices, x_indices = np.where(mask > 0)
     if len(x_indices) == 0:
         return None  # 无病灶
@@ -35,7 +51,18 @@ def get_bbox_from_mask(mask):
     return [xmin, ymin, xmax, ymax]
 
 def convert_polypgen_to_sam3(images_dir, json_dir, output_dir, target_size=(1024, 1024)):
-    """将 PolypGen 转换为 SAM3 格式并生成提示文件"""
+    """brief:
+        Convert polypgen to sam3.
+
+    parameter:
+        - images_dir: Input value for images_dir.
+        - json_dir: Input value for json_dir.
+        - output_dir: Input value for output_dir.
+        - target_size: Input value for target_size.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     # 1. 路径准备
     sam_images = os.path.join(output_dir, "images")
     sam_masks = os.path.join(output_dir, "masks")
@@ -51,10 +78,10 @@ def convert_polypgen_to_sam3(images_dir, json_dir, output_dir, target_size=(1024
     for json_name in tqdm(json_files, desc="PolypGen to SAM3"):
         img_name = json_name.replace('.json', '')
         case_id = os.path.splitext(img_name)[0]
-        
+
         img_path = os.path.join(images_dir, img_name)
         json_path = os.path.join(json_dir, json_name)
-        
+
         if not os.path.exists(img_path): continue
 
         # --- 1. 处理原图 (Resizing) ---
@@ -69,15 +96,15 @@ def convert_polypgen_to_sam3(images_dir, json_dir, output_dir, target_size=(1024
         # --- 2. 处理 JSON 并生成全尺寸 Mask ---
         with open(json_path, 'r', encoding='utf-8') as f:
             ann_data = json.load(f)
-            
+
         full_mask_orig = np.zeros((h_orig, w_orig), dtype=np.uint8)
         has_polyp = False
-        
+
         for obj in ann_data.get('objects', []):
             if obj['classTitle'] == 'polyp' and 'bitmap' in obj:
                 b64_data = obj['bitmap']['data']
                 origin = obj['bitmap']['origin'] # [列(x), 行(y)]
-                
+
                 local_mask = decode_supervisely_bitmap(b64_data)
                 if local_mask is not None:
                     has_polyp = True
@@ -94,7 +121,7 @@ def convert_polypgen_to_sam3(images_dir, json_dir, output_dir, target_size=(1024
 
         # 计算在 1024x1024 尺度下的 BBox (训练提示)
         bbox = get_bbox_from_mask(mask_resized)
-        
+
         if bbox:
             # 记录提示信息：图片ID -> BBox
             prompt_dict[save_img_name] = bbox
@@ -108,7 +135,7 @@ def convert_polypgen_to_sam3(images_dir, json_dir, output_dir, target_size=(1024
     with open(prompt_json_path, "w", encoding='utf-8') as f:
         # indent=4 方便人阅读
         json.dump(prompt_dict, f, indent=4)
-        
+
     print(f"SAM3 数据集准备完成！文件夹: {output_dir}")
     print(f"提示信息文件已生成: {prompt_json_path}")
 
@@ -118,7 +145,7 @@ if __name__ == "__main__":
     IMAGES_DIR = r".\predata\PolypGen\img"
     JSON_DIR = r".\predata\PolypGen\ann"
     # 输出到全新的 SAM3 专属目录
-    SAM3_OUTPUT_DIR = r".\afterdata\PolypGen-SAM3" 
-    
+    SAM3_OUTPUT_DIR = r".\afterdata\PolypGen-SAM3"
+
     # 执行转换
     convert_polypgen_to_sam3(IMAGES_DIR, JSON_DIR, SAM3_OUTPUT_DIR, target_size=(1024, 1024))

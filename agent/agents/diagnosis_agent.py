@@ -24,6 +24,15 @@ logger = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class LesionInput:
+    """brief:
+        Represent LesionInput state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     image: np.ndarray
     mask: np.ndarray
     bbox: tuple[int, int, int, int] | None = None
@@ -33,6 +42,15 @@ class LesionInput:
 
 @dataclass(slots=True)
 class DiagnosisResult:
+    """brief:
+        Represent DiagnosisResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     lesion_id: str
     label: str
     confidence: float
@@ -44,6 +62,15 @@ class DiagnosisResult:
     report: ReportData
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "lesion_id": self.lesion_id,
             "label": self.label,
@@ -64,10 +91,28 @@ class DiagnosisResult:
 
 @dataclass(slots=True)
 class BatchDiagnosisResult:
+    """brief:
+        Represent BatchDiagnosisResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     lesions: list[DiagnosisResult]
     report: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "lesions": [lesion.to_dict() for lesion in self.lesions],
             "report": self.report,
@@ -75,7 +120,22 @@ class BatchDiagnosisResult:
 
 
 class DiagnosisAgent(HelloAgent):
-    """业务侧医学诊断 Agent，底层复用 hello_agents.Agent。"""
+    """brief:
+        Represent DiagnosisAgent state and behavior.
+
+    parameter:
+        - llm: Input value for llm.
+        - config: Input value for config.
+        - pixel_size_mm: Input value for pixel_size_mm.
+        - use_llm_report: Input value for use_llm_report.
+        - feature_extractor: Input value for feature_extractor.
+        - tool_registry: Input value for tool_registry.
+        - enable_report_reflection: Input value for enable_report_reflection.
+        - reflection_max_iterations: Input value for reflection_max_iterations.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     _RISK_PRIORITY = {
         RiskLevel.LOW: 0,
@@ -95,6 +155,22 @@ class DiagnosisAgent(HelloAgent):
         enable_report_reflection: bool = True,
         reflection_max_iterations: int = 3,
     ):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - llm: Input value for llm.
+            - config: Input value for config.
+            - pixel_size_mm: Input value for pixel_size_mm.
+            - use_llm_report: Input value for use_llm_report.
+            - feature_extractor: Input value for feature_extractor.
+            - tool_registry: Input value for tool_registry.
+            - enable_report_reflection: Input value for enable_report_reflection.
+            - reflection_max_iterations: Input value for reflection_max_iterations.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         resolved_config = config or Config.from_env()
         resolved_llm = llm or RuleOnlyLLM(
             model=resolved_config.default_model,
@@ -124,7 +200,7 @@ class DiagnosisAgent(HelloAgent):
             llm_client=llm_client,
             use_llm=use_llm_report and llm_client is not None,
         )
-        
+
         # Initialize reflection agent if enabled and LLM is available
         self.enable_report_reflection = enable_report_reflection and llm_client is not None
         if self.enable_report_reflection:
@@ -139,6 +215,16 @@ class DiagnosisAgent(HelloAgent):
 
     @classmethod
     def from_env(cls, use_llm: bool = False, **kwargs: Any) -> "DiagnosisAgent":
+        """brief:
+            Handle from env.
+
+        parameter:
+            - use_llm: Input value for use_llm.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         config = kwargs.pop("config", None) or Config.from_env()
         llm_kwargs = kwargs.pop("llm_kwargs", {})
 
@@ -156,6 +242,16 @@ class DiagnosisAgent(HelloAgent):
         return cls(llm=llm, config=config, **kwargs)
 
     def run(self, input_text: str, **kwargs: Any) -> str:
+        """brief:
+            Handle run.
+
+        parameter:
+            - input_text: Input value for input_text.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         payload = kwargs.pop("input_data", None)
         if payload is None:
             if kwargs:
@@ -171,6 +267,16 @@ class DiagnosisAgent(HelloAgent):
         return json.dumps(result, ensure_ascii=False)
 
     def run_payload(self, input_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        """brief:
+            Run payload.
+
+        parameter:
+            - input_data: Input value for input_data.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         payload = dict(input_data or {})
         payload.update(kwargs)
 
@@ -194,6 +300,16 @@ class DiagnosisAgent(HelloAgent):
         return result.to_dict()
 
     async def arun_payload(self, input_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        """brief:
+            Handle arun payload.
+
+        parameter:
+            - input_data: Input value for input_data.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         payload = dict(input_data or {})
         payload.update(kwargs)
 
@@ -217,9 +333,28 @@ class DiagnosisAgent(HelloAgent):
         return result.to_dict()
 
     def run_sync(self, input_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        """brief:
+            Run sync.
+
+        parameter:
+            - input_data: Input value for input_data.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.run_payload(input_data, **kwargs)
 
     def summary(self) -> dict[str, Any]:
+        """brief:
+            Handle summary.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "name": self.name,
             "description": self.description,
@@ -235,6 +370,19 @@ class DiagnosisAgent(HelloAgent):
         context: dict[str, Any] | None = None,
         lesion_id: str = "lesion-1",
     ) -> DiagnosisResult:
+        """brief:
+            Handle diagnose single.
+
+        parameter:
+            - image: Input value for image.
+            - mask: Input value for mask.
+            - bbox: Input value for bbox.
+            - context: Input value for context.
+            - lesion_id: Input value for lesion_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         normalized_context = self._normalize_context(context)
         features = self.feature_extractor.extract(image, mask)
         morphology = self.morphology_classifier.classify(features)
@@ -249,7 +397,7 @@ class DiagnosisAgent(HelloAgent):
             risk=risk_assessment,
             features=features,
         )
-        
+
         # Apply report reflection (ReAct agent thinking) if enabled
         if self.enable_report_reflection and self.reflection_agent is not None:
             logger.info(f"Applying report reflection for lesion {lesion_id}...")
@@ -279,6 +427,16 @@ class DiagnosisAgent(HelloAgent):
         lesions: Iterable[LesionInput | dict[str, Any]],
         patient_context: dict[str, Any] | None = None,
     ) -> BatchDiagnosisResult:
+        """brief:
+            Handle diagnose batch.
+
+        parameter:
+            - lesions: Input value for lesions.
+            - patient_context: Input value for patient_context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         normalized_context = self._normalize_context(patient_context)
         normalized_lesions = [
             self._normalize_lesion(lesion, index)
@@ -311,6 +469,19 @@ class DiagnosisAgent(HelloAgent):
         context: dict[str, Any] | None = None,
         lesion_id: str = "lesion-1",
     ) -> DiagnosisResult:
+        """brief:
+            Handle diagnose single sync.
+
+        parameter:
+            - image: Input value for image.
+            - mask: Input value for mask.
+            - bbox: Input value for bbox.
+            - context: Input value for context.
+            - lesion_id: Input value for lesion_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self._run_coroutine(
             self.diagnose_single(
                 image=image,
@@ -326,10 +497,29 @@ class DiagnosisAgent(HelloAgent):
         lesions: Iterable[LesionInput | dict[str, Any]],
         patient_context: dict[str, Any] | None = None,
     ) -> BatchDiagnosisResult:
+        """brief:
+            Handle diagnose batch sync.
+
+        parameter:
+            - lesions: Input value for lesions.
+            - patient_context: Input value for patient_context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self._run_coroutine(self.diagnose_batch(lesions, patient_context))
 
     @staticmethod
     def _normalize_context(context: dict[str, Any] | None) -> dict[str, Any]:
+        """brief:
+            Handle normalize context.
+
+        parameter:
+            - context: Input value for context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         normalized = {
             "patient_id": "demo-patient",
             "study_id": "demo-study",
@@ -341,6 +531,16 @@ class DiagnosisAgent(HelloAgent):
 
     @staticmethod
     def _normalize_lesion(lesion: LesionInput | dict[str, Any], index: int) -> LesionInput:
+        """brief:
+            Handle normalize lesion.
+
+        parameter:
+            - lesion: Input value for lesion.
+            - index: Input value for index.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if isinstance(lesion, LesionInput):
             return lesion
         if not isinstance(lesion, dict):
@@ -362,6 +562,16 @@ class DiagnosisAgent(HelloAgent):
 
     @classmethod
     def _build_batch_report(cls, results: list[DiagnosisResult], context: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Build batch report.
+
+        parameter:
+            - results: Input value for results.
+            - context: Input value for context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not results:
             return {
                 "patient_id": context["patient_id"],
@@ -399,6 +609,16 @@ class DiagnosisAgent(HelloAgent):
 
     @staticmethod
     def _build_label(paris_typing: ParisTypingResult, risk_assessment: RiskAssessmentResult) -> str:
+        """brief:
+            Build label.
+
+        parameter:
+            - paris_typing: Input value for paris_typing.
+            - risk_assessment: Input value for risk_assessment.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return f"{paris_typing.paris_type.value}/{risk_assessment.risk_level.value}"
 
     @staticmethod
@@ -407,6 +627,17 @@ class DiagnosisAgent(HelloAgent):
         paris_typing: ParisTypingResult,
         risk_assessment: RiskAssessmentResult,
     ) -> float:
+        """brief:
+            Handle combine confidence.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - paris_typing: Input value for paris_typing.
+            - risk_assessment: Input value for risk_assessment.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return round(
             (morphology.confidence + paris_typing.confidence + risk_assessment.confidence) / 3.0,
             4,
@@ -414,6 +645,15 @@ class DiagnosisAgent(HelloAgent):
 
     @staticmethod
     def _parse_input_text(input_text: str) -> dict[str, Any]:
+        """brief:
+            Handle parse input text.
+
+        parameter:
+            - input_text: Input value for input_text.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         try:
             return json.loads(input_text)
         except json.JSONDecodeError:
@@ -421,6 +661,15 @@ class DiagnosisAgent(HelloAgent):
 
     @staticmethod
     def _run_coroutine(coroutine: Any) -> Any:
+        """brief:
+            Run coroutine.
+
+        parameter:
+            - coroutine: Input value for coroutine.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         try:
             asyncio.get_running_loop()
         except RuntimeError:

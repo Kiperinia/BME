@@ -9,12 +9,30 @@ from app.schemas.agent_workflow import AgentWorkflowSchema
 
 
 class WorkspacePatientSchema(BaseModel):
+    """brief:
+        Represent WorkspacePatientSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     patientId: str = Field(default="workspace-patient", min_length=1, max_length=64)
     patientName: str = Field(default="", max_length=128)
     examDate: str = Field(default="", max_length=32)
 
 
 class WorkspaceImageSchema(BaseModel):
+    """brief:
+        Represent WorkspaceImageSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     filename: str = Field(min_length=1, max_length=256)
     contentType: str = Field(default="image/png", max_length=128)
     dataUrl: str = Field(min_length=1)
@@ -23,6 +41,15 @@ class WorkspaceImageSchema(BaseModel):
 
 
 class WorkspaceSegmentationSchema(BaseModel):
+    """brief:
+        Represent WorkspaceSegmentationSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     maskDataUrl: str = Field(default="")
     maskCoordinates: list[tuple[int, int]] = Field(default_factory=list)
     boundingBox: tuple[int, int, int, int] = Field(default_factory=lambda: (0, 0, 0, 0))
@@ -32,6 +59,15 @@ class WorkspaceSegmentationSchema(BaseModel):
 
 
 class ParisDetailSchema(BaseModel):
+    """brief:
+        Represent ParisDetailSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     morphologyGroup: Literal["elevated", "flat", "depressed"] = "flat"
     selectedSubtypeIndex: int = Field(default=0, ge=0, le=12)
     subtypeCode: str = Field(default="0-IIb", max_length=32)
@@ -41,6 +77,15 @@ class ParisDetailSchema(BaseModel):
 
 
 class ExpertConfigurationSchema(BaseModel):
+    """brief:
+        Represent ExpertConfigurationSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     parisClassification: str = Field(default="", max_length=128)
     parisDetail: ParisDetailSchema = Field(default_factory=ParisDetailSchema)
     lesionType: str = Field(default="", max_length=128)
@@ -50,6 +95,15 @@ class ExpertConfigurationSchema(BaseModel):
 
 
 class WorkspaceFeatureTagSchema(BaseModel):
+    """brief:
+        Represent WorkspaceFeatureTagSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     id: str = Field(min_length=1, max_length=128)
     label: str = Field(min_length=1, max_length=64)
     category: str = Field(min_length=1, max_length=64)
@@ -57,6 +111,15 @@ class WorkspaceFeatureTagSchema(BaseModel):
 
 
 class AgentTraceStepSchema(BaseModel):
+    """brief:
+        Represent AgentTraceStepSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     id: str = Field(min_length=1, max_length=128)
     kind: Literal["thought", "tool_call", "tool_result", "final"] = "thought"
     title: str = Field(min_length=1, max_length=128)
@@ -66,6 +129,15 @@ class AgentTraceStepSchema(BaseModel):
 
 
 class WorkspaceReportRequestSchema(BaseModel):
+    """brief:
+        Represent WorkspaceReportRequestSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     patient: WorkspacePatientSchema = Field(default_factory=WorkspacePatientSchema)
     image: WorkspaceImageSchema
     segmentation: WorkspaceSegmentationSchema
@@ -73,6 +145,15 @@ class WorkspaceReportRequestSchema(BaseModel):
 
 
 class WorkspaceReportResponseSchema(BaseModel):
+    """brief:
+        Represent WorkspaceReportResponseSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     findings: str
     conclusion: str
     recommendation: str
@@ -83,6 +164,15 @@ class WorkspaceReportResponseSchema(BaseModel):
 
 
 class ExemplarBankRequestSchema(BaseModel):
+    """brief:
+        Represent ExemplarBankRequestSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     patient: WorkspacePatientSchema = Field(default_factory=WorkspacePatientSchema)
     image: WorkspaceImageSchema
     segmentation: WorkspaceSegmentationSchema
@@ -94,6 +184,15 @@ class ExemplarBankRequestSchema(BaseModel):
 
 
 class ExemplarBankDecisionSchema(BaseModel):
+    """brief:
+        Represent ExemplarBankDecisionSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     sampleId: str | None = None
     accepted: bool
     score: float = Field(ge=0.0, le=1.0)
@@ -108,6 +207,15 @@ class ExemplarBankDecisionSchema(BaseModel):
 
 
 class ExemplarRetrievalRequestSchema(BaseModel):
+    """brief:
+        Represent ExemplarRetrievalRequestSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     patient: WorkspacePatientSchema = Field(default_factory=WorkspacePatientSchema)
     image: WorkspaceImageSchema
     segmentation: WorkspaceSegmentationSchema
@@ -117,6 +225,15 @@ class ExemplarRetrievalRequestSchema(BaseModel):
 
 
 class ExemplarRetrievalCandidateSchema(BaseModel):
+    """brief:
+        Represent ExemplarRetrievalCandidateSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     exemplarId: str = Field(min_length=1, max_length=128)
     polarity: Literal["positive", "negative", "boundary"]
     similarity: float
@@ -126,6 +243,15 @@ class ExemplarRetrievalCandidateSchema(BaseModel):
 
 
 class ExemplarRetrievalResponseSchema(BaseModel):
+    """brief:
+        Represent ExemplarRetrievalResponseSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     bankId: str = Field(default="default-bank", max_length=128)
     confidence: float = Field(ge=0.0, le=1.0)
     uncertainty: float = Field(ge=0.0, le=1.0)
@@ -137,6 +263,15 @@ class ExemplarRetrievalResponseSchema(BaseModel):
 
 
 class ExemplarFeedbackRequestSchema(BaseModel):
+    """brief:
+        Represent ExemplarFeedbackRequestSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     exemplarId: str = Field(min_length=1, max_length=128)
     bankId: str = Field(default="default-bank", max_length=128)
     failureMode: Literal["false_positive", "false_negative", "uncertain", "success"] = "success"
@@ -146,6 +281,15 @@ class ExemplarFeedbackRequestSchema(BaseModel):
 
 
 class ExemplarFeedbackResponseSchema(BaseModel):
+    """brief:
+        Represent ExemplarFeedbackResponseSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     exemplarId: str = Field(min_length=1, max_length=128)
     bankId: str = Field(default="default-bank", max_length=128)
     updatedState: str = Field(min_length=1, max_length=64)

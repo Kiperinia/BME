@@ -12,6 +12,15 @@ from .exemplar_bank_schemas import ExemplarLifecycleState, MedicalExemplarRecord
 
 @dataclass(slots=True)
 class PrototypeQualityScore:
+    """brief:
+        Represent PrototypeQualityScore state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     overall: float
     clinical_quality: float
     boundary_quality: float
@@ -25,6 +34,15 @@ class PrototypeQualityScore:
 
 @dataclass(slots=True)
 class PrototypeEvolutionConfig:
+    """brief:
+        Represent PrototypeEvolutionConfig state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     ema_momentum: float = 0.95
     prototype_momentum: float = 0.90
     keep_threshold: float = 0.75
@@ -36,6 +54,15 @@ class PrototypeEvolutionConfig:
 
 @dataclass(slots=True)
 class PrototypeEvolutionDecision:
+    """brief:
+        Represent PrototypeEvolutionDecision state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     exemplar_id: str
     next_state: ExemplarLifecycleState
     quality: PrototypeQualityScore
@@ -43,10 +70,37 @@ class PrototypeEvolutionDecision:
 
 
 class PrototypeQualityController:
+    """brief:
+        Represent PrototypeQualityController state and behavior.
+
+    parameter:
+        - config: Input value for config.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self, config: PrototypeEvolutionConfig | None = None) -> None:
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - config: Input value for config.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.config = config or PrototypeEvolutionConfig()
 
     def score(self, record: MedicalExemplarRecord) -> PrototypeQualityScore:
+        """brief:
+            Handle score.
+
+        parameter:
+            - record: Input value for record.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         freshness = self._freshness_score(record.updated_at)
         retrieval_success = self._safe_ratio(
             record.retrieval_statistics.positive_hits + record.retrieval_statistics.boundary_hits,
@@ -86,6 +140,15 @@ class PrototypeQualityController:
         )
 
     def decide(self, record: MedicalExemplarRecord) -> PrototypeEvolutionDecision:
+        """brief:
+            Handle decide.
+
+        parameter:
+            - record: Input value for record.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         quality = self.score(record)
         if quality.overall >= self.config.keep_threshold:
             return PrototypeEvolutionDecision(record.exemplar_id, ExemplarLifecycleState.ACTIVE, quality, ["high_quality"])
@@ -97,10 +160,32 @@ class PrototypeQualityController:
 
     @staticmethod
     def update_ema_prototype(previous: torch.Tensor, current: torch.Tensor, momentum: float) -> torch.Tensor:
+        """brief:
+            Update ema prototype.
+
+        parameter:
+            - previous: Input value for previous.
+            - current: Input value for current.
+            - momentum: Input value for momentum.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return momentum * previous + (1.0 - momentum) * current
 
     @staticmethod
     def update_cluster_centroid(cluster: PrototypeClusterRecord, semantic_centroid: list[float], momentum: float) -> PrototypeClusterRecord:
+        """brief:
+            Update cluster centroid.
+
+        parameter:
+            - cluster: Input value for cluster.
+            - semantic_centroid: Input value for semantic_centroid.
+            - momentum: Input value for momentum.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not cluster.member_ids:
             return cluster
         cluster.prototype_quality = momentum * cluster.prototype_quality + (1.0 - momentum) * float(sum(semantic_centroid) / max(len(semantic_centroid), 1))
@@ -109,15 +194,43 @@ class PrototypeQualityController:
 
     @staticmethod
     def curriculum_weight(record: MedicalExemplarRecord, temperature: float) -> float:
+        """brief:
+            Handle curriculum weight.
+
+        parameter:
+            - record: Input value for record.
+            - temperature: Input value for temperature.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         difficulty = max(0.0, min(record.difficulty_score, 1.0))
         return float(exp(-(difficulty / max(temperature, 1e-4))))
 
     @staticmethod
     def _novelty_score(record: MedicalExemplarRecord) -> float:
+        """brief:
+            Handle novelty score.
+
+        parameter:
+            - record: Input value for record.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return min((len(record.morphology_tags) + len(record.semantic_tags) + len(record.pathology_tags)) / 12.0, 1.0)
 
     @staticmethod
     def _freshness_score(updated_at: str) -> float:
+        """brief:
+            Handle freshness score.
+
+        parameter:
+            - updated_at: Input value for updated_at.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not updated_at:
             return 0.0
         age_days = max((datetime.now(timezone.utc) - datetime.fromisoformat(updated_at)).days, 0)
@@ -125,14 +238,52 @@ class PrototypeQualityController:
 
     @staticmethod
     def _safe_ratio(numerator: float, denominator: float) -> float:
+        """brief:
+            Handle safe ratio.
+
+        parameter:
+            - numerator: Input value for numerator.
+            - denominator: Input value for denominator.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return 0.0 if denominator <= 0 else min(max(numerator / denominator, 0.0), 1.0)
 
 
 class PrototypeEvolutionManager:
+    """brief:
+        Represent PrototypeEvolutionManager state and behavior.
+
+    parameter:
+        - controller: Input value for controller.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self, controller: PrototypeQualityController | None = None) -> None:
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - controller: Input value for controller.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.controller = controller or PrototypeQualityController()
 
     def evolve_record(self, record: MedicalExemplarRecord, feedback: dict[str, Any]) -> PrototypeEvolutionDecision:
+        """brief:
+            Handle evolve record.
+
+        parameter:
+            - record: Input value for record.
+            - feedback: Input value for feedback.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         failure_mode = str(feedback.get("failure_mode", "")).lower()
         if failure_mode == "false_positive":
             record.state = ExemplarLifecycleState.HARD_NEGATIVE

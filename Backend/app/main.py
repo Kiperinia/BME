@@ -37,11 +37,29 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
+    """brief:
+        Handle healthz.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return {"status": "ok"}
 
 
 @app.on_event("startup")
 async def on_startup() -> None:
+    """brief:
+        Handle on startup.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
     try:
         await init_models()
@@ -56,5 +74,14 @@ async def on_startup() -> None:
 
 
 async def _seed_patients(session: AsyncSession) -> None:
+    """brief:
+        Handle seed patients.
+
+    parameter:
+        - session: Input value for session.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     service = ReportContextService(session=session)
     await service.ensure_seed_data()

@@ -8,15 +8,29 @@ import torch.nn as nn
 
 
 class MultiScaleFeatureAdapter(nn.Module):
-    """
-    Multi-Scale Feature Adapter (MSFA)
+    """多尺度特征适配器，聚合多膨胀率分支与全局上下文并做通道重标定。
 
-    对编码器输出的特征图进行多尺度空洞卷积 + 通道注意力融合。
-    类似 ASPP 但更轻量化，适合嵌入到 SAM 架构中。
+    参数：
+        - in_channels: 输入特征通道数。
+        - out_channels: 输出特征通道数。
+        - dilations: 各膨胀分支的膨胀率元组。
+
+    返回：
+        - 构建可用的多尺度特征适配模块实例。
     """
 
     def __init__(self, in_channels: int = 256, out_channels: int = 256,
                  dilations: tuple = (1, 6, 12, 18)):
+        """初始化多尺度膨胀分支、全局池化分支、融合层与通道注意力。
+
+        参数：
+            - in_channels: 输入特征通道数。
+            - out_channels: 输出特征通道数。
+            - dilations: 各膨胀分支的膨胀率元组。
+
+        返回：
+            - 无返回值，完成各子模块的构建。
+        """
         super().__init__()
         self.branches = nn.ModuleList()
         for d in dilations:
@@ -52,7 +66,14 @@ class MultiScaleFeatureAdapter(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """融合多尺度分支特征，并通过残差形式返回增强结果。"""
+        """对输入特征做多尺度聚合、通道注意力加权并叠加残差。
+
+        参数：
+            - x: 形状为 [B, C, H, W] 的输入特征张量。
+
+        返回：
+            - 与输入同形状的融合后特征张量。
+        """
 
         residual = x
         branch_outs = [branch(x) for branch in self.branches]

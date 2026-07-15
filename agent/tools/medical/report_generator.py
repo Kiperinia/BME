@@ -38,7 +38,15 @@ PROMPT_DIR = Path(__file__).resolve().parents[3] / "prompts" / "medical"
 
 @dataclass(slots=True)
 class ReportData:
-    """完整报告数据"""
+    """brief:
+        Represent ReportData state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     patient_id: str = ""
     study_id: str = ""
     exam_date: str = ""
@@ -56,6 +64,15 @@ class ReportData:
     report_score: dict[str, Any] = field(default_factory=dict)       # 报告评分
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "patient_id": self.patient_id,
             "study_id": self.study_id,
@@ -74,7 +91,15 @@ class ReportData:
         }
 
     def to_api_response(self) -> dict[str, str]:
-        """对齐前端 GenerateReportDraftResponse 格式"""
+        """brief:
+            Handle to api response.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "findings": self.findings,
             "conclusion": self.conclusion,
@@ -87,12 +112,33 @@ class ReportData:
 # ---------------------------------------------------------------------------
 
 class LLMClient(Protocol):
+    """brief:
+        Represent LLMClient state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def chat(
         self,
         messages: list[dict[str, str]],
         temperature: float = 0.4,
         max_tokens: int = 1024,
-    ) -> str: ...
+    ) -> str:
+        """brief:
+            Handle chat.
+
+        parameter:
+            - messages: Input value for messages.
+            - temperature: Input value for temperature.
+            - max_tokens: Input value for max_tokens.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
+        ...
 
 
 # ---------------------------------------------------------------------------
@@ -100,23 +146,17 @@ class LLMClient(Protocol):
 # ---------------------------------------------------------------------------
 
 class ReportGenerator:
-    """
-    诊断报告生成器。
+    """brief:
+        Represent ReportGenerator state and behavior.
 
-    两种模式：
-      1. 模板模式（默认）：基于规则拼接结构化报告
-      2. LLM 模式：调用 LLM 生成更自然的报告文本
+    parameter:
+        - llm_client: Input value for llm_client.
+        - use_llm: Input value for use_llm.
+        - prompt_path: Input value for prompt_path.
+        - report_tool_registry: Input value for report_tool_registry.
 
-    Usage::
-
-        generator = ReportGenerator()
-        report = generator.generate(
-            patient_id="PATIENT_001",
-            morphology=morph_result,
-            paris=paris_result,
-            risk=risk_result,
-            features=features,
-        )
+    retrival:
+        - Provides instances used by the surrounding workflow.
     """
 
     def __init__(
@@ -126,12 +166,17 @@ class ReportGenerator:
         prompt_path: Path | None = None,
         report_tool_registry: ReportToolRegistry | None = None,
     ):
-        """
-        Args:
-            llm_client: LLM 客户端。
-            use_llm: 是否使用 LLM 生成报告（否则用模板）。
-            prompt_path: 自定义 prompt 路径。
-            report_tool_registry: 自定义工具注册中心。
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - llm_client: Input value for llm_client.
+            - use_llm: Input value for use_llm.
+            - prompt_path: Input value for prompt_path.
+            - report_tool_registry: Input value for report_tool_registry.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
         """
         self.llm_client = llm_client
         self.use_llm = use_llm
@@ -151,20 +196,20 @@ class ReportGenerator:
         study_id: str = "",
         exam_date: str = "",
     ) -> ReportData:
-        """
-        生成完整诊断报告。
+        """brief:
+            Handle generate.
 
-        Args:
-            patient_id: 患者ID
-            morphology: 形态分类结果
-            paris: Paris 分型结果
-            risk: 风险评估结果
-            features: 定量特征
-            study_id: 检查编号
-            exam_date: 检查日期
+        parameter:
+            - patient_id: Input value for patient_id.
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+            - features: Input value for features.
+            - study_id: Input value for study_id.
+            - exam_date: Input value for exam_date.
 
-        Returns:
-            ReportData
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         if self.use_llm and self.llm_client is not None:
             return self._generate_with_llm(
@@ -187,7 +232,21 @@ class ReportGenerator:
         study_id: str,
         exam_date: str,
     ) -> ReportData:
-        """基于工具链生成结构化报告"""
+        """brief:
+            Handle generate with template.
+
+        parameter:
+            - patient_id: Input value for patient_id.
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+            - features: Input value for features.
+            - study_id: Input value for study_id.
+            - exam_date: Input value for exam_date.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
 
         self.report_tool_registry.reset_logs()
         findings = self.report_tool_registry.call(
@@ -252,7 +311,21 @@ class ReportGenerator:
         study_id: str,
         exam_date: str,
     ) -> ReportData:
-        """调用 LLM 生成自然语言报告"""
+        """brief:
+            Handle generate with llm.
+
+        parameter:
+            - patient_id: Input value for patient_id.
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+            - features: Input value for features.
+            - study_id: Input value for study_id.
+            - exam_date: Input value for exam_date.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         prompt = self._build_llm_prompt(
             patient_id, morphology, paris, risk, features, study_id, exam_date
         )
@@ -322,13 +395,17 @@ class ReportGenerator:
         paris: ParisTypingResult,
         risk: RiskAssessmentResult,
     ) -> ReportData:
-        """
-        ReAct 范式：对初步报告进行 LLM-驱动的反思、精修、评分。
+        """brief:
+            Handle apply react refinement.
 
-        流程：
-          1. 反思（Thinking）：LLM 分析报告问题
-          2. 改进（Acting）：LLM 根据分析精修报告
-          3. 评分（Scoring）：LLM 给出多维度评分
+        parameter:
+            - report_data: Input value for report_data.
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         try:
             # ---- 第一步：ReAct Thinking - LLM 反思与分析 ----
@@ -398,6 +475,21 @@ class ReportGenerator:
         study_id: str,
         exam_date: str,
     ) -> str:
+        """brief:
+            Build llm prompt.
+
+        parameter:
+            - patient_id: Input value for patient_id.
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+            - features: Input value for features.
+            - study_id: Input value for study_id.
+            - exam_date: Input value for exam_date.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         morph_text = "\n".join(f"  {k}: {v}" for k, v in morphology.to_dict().items())
         paris_text = "\n".join(f"  {k}: {v}" for k, v in paris.to_dict().items())
         risk_text = "\n".join(f"  {k}: {v}" for k, v in risk.to_dict().items())
@@ -418,6 +510,15 @@ class ReportGenerator:
 
     @staticmethod
     def _parse_llm_report(response: str) -> dict[str, str]:
+        """brief:
+            Handle parse llm report.
+
+        parameter:
+            - response: Input value for response.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         import json
 
         text = response.strip()
@@ -440,7 +541,17 @@ class ReportGenerator:
         paris: ParisTypingResult,
         risk: RiskAssessmentResult,
     ) -> str:
-        """生成报告排版建议（供前端 ReportPreviewPanel 使用）"""
+        """brief:
+            Handle generate layout suggestion.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         suggestions: list[str] = []
 
         # 风险等级决定整体色调
@@ -477,6 +588,15 @@ class ReportGenerator:
 
     @staticmethod
     def _pedicle_cn(pedicle: str) -> str:
+        """brief:
+            Handle pedicle cn.
+
+        parameter:
+            - pedicle: Input value for pedicle.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "pedunculated": "有蒂型",
             "sessile": "无蒂型",
@@ -487,6 +607,15 @@ class ReportGenerator:
 
     @staticmethod
     def _surface_cn(surface: str) -> str:
+        """brief:
+            Handle surface cn.
+
+        parameter:
+            - surface: Input value for surface.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "smooth": "光滑",
             "irregular": "不规则",
@@ -497,6 +626,15 @@ class ReportGenerator:
 
     @staticmethod
     def _vessel_cn(density: float) -> str:
+        """brief:
+            Handle vessel cn.
+
+        parameter:
+            - density: Input value for density.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if density < 0.02:
             return "稀疏"
         elif density < 0.05:
@@ -509,6 +647,15 @@ class ReportGenerator:
 
     @staticmethod
     def _color_cn(color: str) -> str:
+        """brief:
+            Handle color cn.
+
+        parameter:
+            - color: Input value for color.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "red": "充血发红",
             "pale": "色泽苍白",
@@ -520,6 +667,15 @@ class ReportGenerator:
 
     @staticmethod
     def _contrast_cn(contrast: float) -> str:
+        """brief:
+            Handle contrast cn.
+
+        parameter:
+            - contrast: Input value for contrast.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if contrast < 0.05:
             return "低"
         elif contrast < 0.10:
@@ -530,6 +686,15 @@ class ReportGenerator:
 
     @staticmethod
     def _load_prompt(custom_path: Path | None) -> str:
+        """brief:
+            Load prompt.
+
+        parameter:
+            - custom_path: Input value for custom_path.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         path = custom_path or (PROMPT_DIR / "report_generation.txt")
         if path.exists():
             return path.read_text(encoding="utf-8")

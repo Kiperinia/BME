@@ -10,14 +10,15 @@ from typing import Dict
 
 def dice_coefficient(pred: torch.Tensor, target: torch.Tensor,
                      smooth: float = 1e-6) -> torch.Tensor:
-    """
-    计算 Dice 系数
-    Args:
-        pred: 预测 mask (B, H, W) 或 (B, 1, H, W)，值为 0/1
-        target: 真实 mask，同 shape
-        smooth: 平滑因子，避免除零
-    Returns:
-        per-sample Dice 系数 (B,)
+    """计算 Dice 系数，衡量预测与目标的重叠程度。
+
+    参数：
+        - pred: 预测掩码张量
+        - target: 目标掩码张量
+        - smooth: 平滑因子，默认 1e-6
+
+    返回：
+        - 每个样本的 Dice 系数张量
     """
     pred = pred.float().flatten(1)
     target = target.float().flatten(1)
@@ -27,8 +28,15 @@ def dice_coefficient(pred: torch.Tensor, target: torch.Tensor,
 
 def iou_score(pred: torch.Tensor, target: torch.Tensor,
               smooth: float = 1e-6) -> torch.Tensor:
-    """
-    计算 Intersection over Union (IoU / Jaccard Index)
+    """计算 IoU（交并比）分数。
+
+    参数：
+        - pred: 预测掩码张量
+        - target: 目标掩码张量
+        - smooth: 平滑因子，默认 1e-6
+
+    返回：
+        - 每个样本的 IoU 张量
     """
     pred = pred.float().flatten(1)
     target = target.float().flatten(1)
@@ -39,7 +47,16 @@ def iou_score(pred: torch.Tensor, target: torch.Tensor,
 
 def precision_score(pred: torch.Tensor, target: torch.Tensor,
                     smooth: float = 1e-6) -> torch.Tensor:
-    """计算精确率"""
+    """计算精确率（Precision）。
+
+    参数：
+        - pred: 预测掩码张量
+        - target: 目标掩码张量
+        - smooth: 平滑因子，默认 1e-6
+
+    返回：
+        - 每个样本的精确率张量
+    """
     pred = pred.float().flatten(1)
     target = target.float().flatten(1)
     tp = (pred * target).sum(dim=1)
@@ -49,7 +66,16 @@ def precision_score(pred: torch.Tensor, target: torch.Tensor,
 
 def recall_score(pred: torch.Tensor, target: torch.Tensor,
                  smooth: float = 1e-6) -> torch.Tensor:
-    """计算召回率"""
+    """计算召回率（Recall）。
+
+    参数：
+        - pred: 预测掩码张量
+        - target: 目标掩码张量
+        - smooth: 平滑因子，默认 1e-6
+
+    返回：
+        - 每个样本的召回率张量
+    """
     pred = pred.float().flatten(1)
     target = target.float().flatten(1)
     tp = (pred * target).sum(dim=1)
@@ -59,12 +85,15 @@ def recall_score(pred: torch.Tensor, target: torch.Tensor,
 
 def compute_all_metrics(pred: torch.Tensor, target: torch.Tensor,
                         threshold: float = 0.5) -> Dict[str, float]:
-    """
-    计算所有指标，返回字典
-    Args:
-        pred: 模型输出的 logits 或概率图 (B, 1, H, W) 或 (B, H, W)
-        target: 二值 mask
-        threshold: 二值化阈值
+    """计算 Dice、IoU、精确率和召回率所有指标。
+
+    参数：
+        - pred: 预测掩码张量（logits 或二值）
+        - target: 目标掩码张量
+        - threshold: 二值化阈值，默认 0.5
+
+    返回：
+        - 包含 dice、iou、precision、recall 的字典
     """
     if pred.dim() == 4:
         pred = pred.squeeze(1)

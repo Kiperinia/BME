@@ -24,6 +24,18 @@ async def submit_task(
     service: AnalysisService = Depends(get_analysis_service),
     current_user: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[SubmitTaskResponseSchema]:
+    """brief:
+        Handle submit task.
+
+    parameter:
+        - payload: Input value for payload.
+        - image: Input value for image.
+        - service: Input value for service.
+        - current_user: Input value for current_user.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     try:
         data = await service.submit_task(payload=payload, image=image, current_user=current_user)
         return ApiResponse(data=data)
@@ -47,6 +59,17 @@ async def get_task_status(
     service: AnalysisService = Depends(get_analysis_service),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[TaskStatusResponseSchema]:
+    """brief:
+        Get task status.
+
+    parameter:
+        - task_id: Input value for task_id.
+        - service: Input value for service.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     try:
         data = await service.get_task_status(task_id=task_id)
         return ApiResponse(data=data)

@@ -27,6 +27,16 @@ async def preload_sam3_model(
     settings: Settings = Depends(get_settings),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[Sam3PreloadStatusSchema]:
+    """brief:
+        Handle preload sam3 model.
+
+    parameter:
+        - settings: Input value for settings.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     status_payload = SAM3RuntimeSingleton.ensure_preload_started(settings=settings)
     return ApiResponse(data=Sam3PreloadStatusSchema(**status_payload))
 
@@ -39,11 +49,30 @@ async def preload_sam3_model(
 async def preload_sam3_model_status(
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[Sam3PreloadStatusSchema]:
+    """brief:
+        Handle preload sam3 model status.
+
+    parameter:
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     status_payload = SAM3RuntimeSingleton.get_preload_status()
     return ApiResponse(data=Sam3PreloadStatusSchema(**status_payload))
 
 
 def _validate_segment_upload(image: UploadFile, settings: Settings) -> None:
+    """brief:
+        Validate segment upload.
+
+    parameter:
+        - image: Input value for image.
+        - settings: Input value for settings.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     filename = image.filename or "upload.bin"
     suffix = FilePath(filename).suffix.lower()
     if suffix not in StorageService.allowed_suffixes:
@@ -84,6 +113,22 @@ async def segment_frame(
     settings: Settings = Depends(get_settings),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[SegmentFrameResponseSchema]:
+    """brief:
+        Segment frame.
+
+    parameter:
+        - image: Input value for image.
+        - patient_payload: Input value for patient_payload.
+        - expert_config_payload: Input value for expert_config_payload.
+        - bank_id: Input value for bank_id.
+        - retrieval_top_k: Input value for retrieval_top_k.
+        - engine: Input value for engine.
+        - settings: Input value for settings.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     _validate_segment_upload(image=image, settings=settings)
 
     try:

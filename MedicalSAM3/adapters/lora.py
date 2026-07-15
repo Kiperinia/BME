@@ -1,4 +1,8 @@
-"""LoRA injection helpers for MedEx-SAM3."""
+"""MedEx-SAM3 的 LoRA（低秩适配）注入辅助工具。
+
+本模块提供 LoRA 配置、线性层替换、权重保存/加载/合并等工具函数，
+用于在 SAM3 模型的指定作用域与阶段中注入可训练的低秩增量。
+"""
 
 from __future__ import annotations
 
@@ -27,10 +31,27 @@ _STATE_DICT_PREFIXES = ("wrapper.model.", "model.", "module.")
 
 
 def _infer_scope_from_name(name: str, scope_aliases: dict[str, list[str]] | None = None) -> str:
+    """根据模块名称推断其所属的作用域。
+
+    参数：
+        - name: 模块的完整名称
+        - scope_aliases: 作用域别名映射，用于将名称中的关键字归入对应作用域
+
+    返回：
+        - 推断得到的作用域标识字符串
+    """
     return classify_scope(name, scope_aliases=scope_aliases)
 
 
 def _parse_block_index(name: str) -> Optional[int]:
+    """从模块名称中解析所属的 block 索引。
+
+    参数：
+        - name: 模块的完整名称
+
+    返回：
+        - 解析到的 block 索引整数；若无法识别则返回 None
+    """
     parts = name.split(".")
     for index, part in enumerate(parts[:-1]):
         if part == "blocks" and parts[index + 1].isdigit():
@@ -43,6 +64,15 @@ def _parse_block_index(name: str) -> Optional[int]:
 
 
 def _collect_scope_block_depths(model: nn.Module, scope_aliases: dict[str, list[str]] | None = None) -> dict[str, int]:
+    """统计每个作用域下的 block 总深度。
+
+    参数：
+        - model: 待统计的模型
+        - scope_aliases: 作用域别名映射
+
+    返回：
+        - 字典，键为作用域名称，值为该作用域下 block 的最大深度
+    """
     depths: dict[str, int] = {}
     for name, _ in model.named_modules():
         block_index = _parse_block_index(name)
@@ -55,6 +85,11 @@ def _collect_scope_block_depths(model: nn.Module, scope_aliases: dict[str, list[
 
 @dataclass
 class LoRAConfig:
+    """LoRA 注入配置数据类，包含秩、缩放、目标模块、目标作用域与阶段等参数。
+
+    该配置用于控制 LoRA 注入的范围与训练行为，实例化后传入注入函数使用。
+    """
+
     rank: int = 8
     alpha: int = 16
     dropout: float = 0.05
@@ -88,7 +123,23 @@ class LoRAConfig:
 
 
 class LoRALinear(nn.Module):
+    """在已有 nn.Linear 基础上注入低秩适配（LoRA）的模块。
+
+    参数：
+        - base_linear: 被适配的原始线性层
+        - config: LoRA 配置对象
+    """
+
     def __init__(self, base_linear: nn.Linear, config: LoRAConfig) -> None:
+        """初始化 LoRA 线性层，冻结基座权重并构造 A、B 两个低秩矩阵。
+
+        参数：
+            - base_linear: 被适配的原始线性层
+            - config: LoRA 配置对象
+
+        返回：
+            - 无返回值，完成模块参数与子层的初始化
+        """
         super().__init__()
         self.base_linear = base_linear
         self.rank = config.rank
@@ -111,13 +162,31 @@ class LoRALinear(nn.Module):
 
     @property
     def in_features(self) -> int:
+        """返回基座线性层的输入特征维度。
+
+        返回：
+            - 输入特征维度整数
+        """
         return self.base_linear.in_features
 
     @property
     def out_features(self) -> int:
+        """返回基座线性层的输出特征维度。
+
+        返回：
+            - 输出特征维度整数
+        """
         return self.base_linear.out_features
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """前向计算：基座线性层输出加上缩放后的低秩更新。
+
+        参数：
+            - x: 输入张量
+
+        返回：
+            - 经 LoRA 调整后的输出张量
+        """
         base = self.base_linear(x)
         if self.merged:
             return base
@@ -125,6 +194,11 @@ class LoRALinear(nn.Module):
         return base + update
 
     def merge(self) -> None:
+        """将低秩增量合并回基座线性层权重，消除额外计算开销。
+
+        返回：
+            - 无返回值，合并后基座权重被原地更新
+        """
         if self.merged:
             return
         delta = torch.matmul(self.lora_B.weight, self.lora_A.weight) * self.scale
@@ -133,6 +207,16 @@ class LoRALinear(nn.Module):
 
 
 def is_target_module(name: str, module: nn.Module, config: LoRAConfig) -> bool:
+    """判断给定模块是否应被替换为 LoRA 层。
+
+    参数：
+        - name: 模块名称
+        - module: 模块实例
+        - config: LoRA 配置对象
+
+    返回：
+        - 若该模块符合 LoRA 目标条件返回 True，否则返回 False
+    """
     if not isinstance(module, nn.Linear) or isinstance(module, LoRALinear):
         return False
     lowered = name.lower()
@@ -150,6 +234,16 @@ def is_target_module(name: str, module: nn.Module, config: LoRAConfig) -> bool:
 
 
 def _matches_stage_rule(module_name: str, config: LoRAConfig, scope_depths: dict[str, int]) -> bool:
+    """判断模块是否匹配当前训练阶段（stage_a/b/c）的 LoRA 注入规则。
+
+    参数：
+        - module_name: 模块名称
+        - config: LoRA 配置对象
+        - scope_depths: 各作用域的 block 深度统计
+
+    返回：
+        - 若匹配当前阶段规则返回 True，否则返回 False
+    """
     scope = _infer_scope_from_name(module_name, scope_aliases=config.scope_aliases)
     lowered = module_name.lower()
     stage = config.stage.lower()
@@ -190,6 +284,15 @@ def _matches_stage_rule(module_name: str, config: LoRAConfig, scope_depths: dict
 
 
 def _scope_allowed(scope: str, config: LoRAConfig) -> bool:
+    """判断给定作用域是否被配置允许注入 LoRA。
+
+    参数：
+        - scope: 作用域名称
+        - config: LoRA 配置对象
+
+    返回：
+        - 若该作用域允许注入返回 True，否则返回 False
+    """
     if scope == "text_encoder":
         return False
     if scope == "unknown" and not config.allow_unknown_scope:
@@ -198,6 +301,15 @@ def _scope_allowed(scope: str, config: LoRAConfig) -> bool:
 
 
 def _load_target_catalog(model: nn.Module, config: LoRAConfig) -> tuple[list[dict[str, Any]], str, bool]:
+    """加载或生成 LoRA 目标模块清单。
+
+    参数：
+        - model: 待注入的模型
+        - config: LoRA 配置对象
+
+    返回：
+        - 由三元组组成：(目标清单列表, 清单来源标识, 是否为过期重新生成)
+    """
     current_linear_names = sorted(name for name, module in model.named_modules() if isinstance(module, nn.Linear))
     target_path = DEFAULT_TARGETS_JSON
     stale = True
@@ -226,12 +338,29 @@ def _load_target_catalog(model: nn.Module, config: LoRAConfig) -> tuple[list[dic
 
 
 def _write_lora_report(report: dict[str, Any]) -> Path:
+    """将 LoRA 注入报告写入磁盘文件。
+
+    参数：
+        - report: 包含注入统计信息的字典
+
+    返回：
+        - 写入的报告文件路径
+    """
     DEFAULT_LORA_REPORT.parent.mkdir(parents=True, exist_ok=True)
     DEFAULT_LORA_REPORT.write_text(json.dumps(report, indent=2), encoding="utf-8")
     return DEFAULT_LORA_REPORT
 
 
 def _get_parent_module(model: nn.Module, module_name: str) -> tuple[nn.Module, str]:
+    """根据点分模块名获取其父模块与末级属性名。
+
+    参数：
+        - model: 顶层模型
+        - module_name: 点分模块名称
+
+    返回：
+        - 由二元组组成：(父模块实例, 末级属性名)
+    """
     parent = model
     parts = module_name.split(".")
     for part in parts[:-1]:
@@ -240,6 +369,16 @@ def _get_parent_module(model: nn.Module, module_name: str) -> tuple[nn.Module, s
 
 
 def replace_linear_with_lora(model: nn.Module, module_name: str, config: LoRAConfig) -> LoRALinear:
+    """将指定名称的 nn.Linear 替换为 LoRALinear。
+
+    参数：
+        - model: 顶层模型
+        - module_name: 待替换模块的点分名称
+        - config: LoRA 配置对象
+
+    返回：
+        - 新创建的 LoRALinear 实例
+    """
     parent, child_name = _get_parent_module(model, module_name)
     current_module = getattr(parent, child_name)
     if not isinstance(current_module, nn.Linear):
@@ -250,6 +389,15 @@ def replace_linear_with_lora(model: nn.Module, module_name: str, config: LoRACon
 
 
 def apply_lora_to_model(model: nn.Module, config: LoRAConfig) -> list[str]:
+    """按配置向模型注入 LoRA，并输出注入报告。
+
+    参数：
+        - model: 待注入的模型
+        - config: LoRA 配置对象
+
+    返回：
+        - 已被替换为 LoRA 的模块名称列表
+    """
     scope_depths = _collect_scope_block_depths(model, scope_aliases=config.scope_aliases)
     replaced: list[str] = []
     catalog, catalog_source, catalog_stale = _load_target_catalog(model, config)
@@ -314,12 +462,28 @@ def apply_lora_to_model(model: nn.Module, config: LoRAConfig) -> list[str]:
 
 
 def mark_only_lora_as_trainable(model: nn.Module) -> nn.Module:
+    """将模型中仅 LoRA 相关参数标记为可训练，其余冻结。
+
+    参数：
+        - model: 待设置的模型
+
+    返回：
+        - 设置完成后的模型
+    """
     for name, parameter in model.named_parameters():
         parameter.requires_grad = ".lora_A." in name or ".lora_B." in name
     return model
 
 
 def get_lora_state_dict(model: nn.Module) -> dict[str, torch.Tensor]:
+    """提取模型中所有 LoRA 相关参数的状态字典。
+
+    参数：
+        - model: 待提取的模型
+
+    返回：
+        - 仅包含 lora_A、lora_B 参数的字典
+    """
     return {
         name: tensor
         for name, tensor in model.state_dict().items()
@@ -328,12 +492,29 @@ def get_lora_state_dict(model: nn.Module) -> dict[str, torch.Tensor]:
 
 
 def save_lora_weights(model: nn.Module, path: str | Path) -> None:
+    """将 LoRA 权重保存到指定路径。
+
+    参数：
+        - model: 待保存的模型
+        - path: 保存目标路径
+
+    返回：
+        - 无返回值，权重文件被写入磁盘
+    """
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     torch.save(get_lora_state_dict(model), destination)
 
 
 def _extract_state_dict(payload: Any) -> dict[str, torch.Tensor]:
+    """从加载的检查点载荷中提取张量状态字典。
+
+    参数：
+        - payload: torch.load 返回的原始载荷
+
+    返回：
+        - 由参数名到张量映射组成的状态字典
+    """
     if isinstance(payload, dict) and all(isinstance(key, str) for key in payload):
         direct_tensor_map = {
             key: value
@@ -358,6 +539,14 @@ def _extract_state_dict(payload: Any) -> dict[str, torch.Tensor]:
 
 
 def _strip_known_prefixes(key: str) -> list[str]:
+    """生成去除已知状态字典前缀后的所有键变体。
+
+    参数：
+        - key: 原始参数键名
+
+    返回：
+        - 去除前缀后的所有候选键列表
+    """
     variants = [key]
     pending = [key]
     seen = {key}
@@ -378,6 +567,15 @@ def _strip_known_prefixes(key: str) -> list[str]:
 
 
 def _normalize_lora_state_dict(model: nn.Module, state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    """将加载的状态字典键名归一化为与模型一致的形式。
+
+    参数：
+        - model: 目标模型
+        - state_dict: 原始状态字典
+
+    返回：
+        - 键名归一化后的状态字典
+    """
     model_state_keys = set(model.state_dict().keys())
     normalized: dict[str, torch.Tensor] = {}
 
@@ -393,6 +591,16 @@ def _normalize_lora_state_dict(model: nn.Module, state_dict: dict[str, torch.Ten
 
 
 def load_lora_weights(model: nn.Module, path: str | Path, strict: bool = False) -> tuple[list[str], list[str]]:
+    """从磁盘加载 LoRA 权重并注入到模型中。
+
+    参数：
+        - model: 目标模型
+        - path: 权重文件路径
+        - strict: 是否严格匹配模型参数键
+
+    返回：
+        - 由二元组组成：(缺失键列表, 多余键列表)
+    """
     payload = torch.load(path, map_location="cpu", weights_only=False)
     raw_state_dict = _extract_state_dict(payload)
     state_dict = _normalize_lora_state_dict(model, raw_state_dict)
@@ -403,6 +611,14 @@ def load_lora_weights(model: nn.Module, path: str | Path, strict: bool = False) 
 
 
 def merge_lora_weights(model: nn.Module) -> nn.Module:
+    """将模型中所有 LoRALinear 的低秩增量合并回基座权重。
+
+    参数：
+        - model: 待合并的模型
+
+    返回：
+        - 合并完成后的模型
+    """
     for module in model.modules():
         if isinstance(module, LoRALinear):
             module.merge()

@@ -12,6 +12,15 @@ from app.models.base import Base
 
 
 class AnalysisTask(Base):
+    """brief:
+        Represent AnalysisTask state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     __tablename__ = "analysis_tasks"
 
     task_id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -46,6 +55,15 @@ class AnalysisTask(Base):
 
 
 class AnalysisLesion(Base):
+    """brief:
+        Represent AnalysisLesion state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     __tablename__ = "analysis_lesions"
 
     lesion_id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))

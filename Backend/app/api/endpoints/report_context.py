@@ -24,6 +24,16 @@ async def list_patient_previews(
     session: AsyncSession = Depends(get_db_session),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[list[PatientContextSchema]]:
+    """brief:
+        List patient previews.
+
+    parameter:
+        - session: Input value for session.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = ReportContextService(session=session)
     try:
         return ApiResponse(data=await service.list_patient_previews())
@@ -48,6 +58,18 @@ async def get_report_context(
     session: AsyncSession = Depends(get_db_session),
     _: AuthenticatedUserSchema = Depends(get_current_user),
 ) -> ApiResponse[ReportContextSchema]:
+    """brief:
+        Get report context.
+
+    parameter:
+        - report_id: Input value for report_id.
+        - patient_id: Input value for patient_id.
+        - session: Input value for session.
+        - _: Input value for _.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     service = ReportContextService(session=session)
     try:
         return ApiResponse(data=await service.get_report_context(report_id=report_id, patient_id=patient_id))

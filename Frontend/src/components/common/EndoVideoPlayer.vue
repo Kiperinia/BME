@@ -5,9 +5,39 @@ import type { CaptureFramePayload, PolygonMask, TumorMaskData } from '@/types/ei
 
 type PlayStateSource = 'control' | 'video' | 'upload'
 
+/**
+ * brief:
+ *   Handle upload prompt base width.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const uploadPromptBaseWidth = 520
+/**
+ * brief:
+ *   Handle upload prompt base height.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const uploadPromptBaseHeight = 420
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = withDefaults(
   defineProps<{
     videoSrc?: string
@@ -23,39 +53,239 @@ const props = withDefaults(
   },
 )
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'play-state-change', payload: { isPlaying: boolean; source: PlayStateSource }): void
   (event: 'capture-frame', payload: CaptureFramePayload): void
   (event: 'update:showMask', showMask: boolean): void
 }>()
 
+/**
+ * brief:
+ *   Handle video element.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const videoElement = ref<HTMLVideoElement>()
+/**
+ * brief:
+ *   Handle canvas element.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const canvasElement = ref<HTMLCanvasElement>()
+/**
+ * brief:
+ *   Handle file input element.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const fileInputElement = ref<HTMLInputElement>()
+/**
+ * brief:
+ *   Handle mask image element.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const maskImageElement = ref<HTMLImageElement>()
+/**
+ * brief:
+ *   Handle upload viewport element.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const uploadViewportElement = ref<HTMLElement>()
+/**
+ * brief:
+ *   Handle uploaded video url.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const uploadedVideoUrl = ref('')
+/**
+ * brief:
+ *   Handle has metadata.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const hasMetadata = ref(false)
+/**
+ * brief:
+ *   Handle is buffering.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isBuffering = ref(false)
+/**
+ * brief:
+ *   Handle is dragging.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isDragging = ref(false)
+/**
+ * brief:
+ *   Handle mask visible.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const maskVisible = ref(props.showMask)
+/**
+ * brief:
+ *   Handle media aspect ratio.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const mediaAspectRatio = ref(1)
+/**
+ * brief:
+ *   Handle upload prompt scale.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const uploadPromptScale = ref(1)
 
 let animationFrameId: number | null = null
 let uploadResizeObserver: ResizeObserver | null = null
 
+/**
+ * brief:
+ *   Handle current video src.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const currentVideoSrc = computed(() => props.videoSrc || uploadedVideoUrl.value)
+/**
+ * brief:
+ *   Handle mask polygons.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const maskPolygons = computed<PolygonMask[]>(() => (Array.isArray(props.maskData) ? props.maskData : []))
+/**
+ * brief:
+ *   Handle mask image src.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const maskImageSrc = computed(() => (typeof props.maskData === 'string' ? props.maskData : ''))
+/**
+ * brief:
+ *   Handle mask group count.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const maskGroupCount = computed(() => (Array.isArray(props.maskData) ? props.maskData.length : (props.maskData ? 1 : 0)))
+/**
+ * brief:
+ *   Handle show upload state.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const showUploadState = computed(() => !currentVideoSrc.value)
+/**
+ * brief:
+ *   Handle upload surface style.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const uploadSurfaceStyle = computed(() => {
   return {
     width: `${uploadPromptBaseWidth * uploadPromptScale.value}px`,
     height: `${uploadPromptBaseHeight * uploadPromptScale.value}px`,
   }
 })
+/**
+ * brief:
+ *   Handle playback label.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const playbackLabel = computed(() => {
   if (!currentVideoSrc.value) {
     return '待上传'
@@ -64,6 +294,16 @@ const playbackLabel = computed(() => {
   return props.isPlaying ? '播放中' : '已暂停'
 })
 
+/**
+ * brief:
+ *   Handle revoke uploaded video.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const revokeUploadedVideo = () => {
   if (uploadedVideoUrl.value) {
     URL.revokeObjectURL(uploadedVideoUrl.value)
@@ -71,6 +311,16 @@ const revokeUploadedVideo = () => {
   }
 }
 
+/**
+ * brief:
+ *   Handle stop observing upload surface.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const stopObservingUploadSurface = () => {
   if (uploadResizeObserver) {
     uploadResizeObserver.disconnect()
@@ -78,7 +328,27 @@ const stopObservingUploadSurface = () => {
   }
 }
 
+/**
+ * brief:
+ *   Handle sync upload prompt scale.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const syncUploadPromptScale = () => {
+  /**
+   * brief:
+   *   Handle viewport.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const viewport = uploadViewportElement.value
   if (!viewport) {
     uploadPromptScale.value = 1
@@ -86,10 +356,30 @@ const syncUploadPromptScale = () => {
   }
 
   const { width, height } = viewport.getBoundingClientRect()
+  /**
+   * brief:
+   *   Handle next scale.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const nextScale = Math.min(width / uploadPromptBaseWidth, height / uploadPromptBaseHeight)
   uploadPromptScale.value = Math.max(0.76, Math.min(nextScale, 1.24))
 }
 
+/**
+ * brief:
+ *   Handle start observing upload surface.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const startObservingUploadSurface = async () => {
   stopObservingUploadSurface()
 
@@ -106,14 +396,64 @@ const startObservingUploadSurface = async () => {
   uploadResizeObserver.observe(uploadViewportElement.value)
 }
 
+/**
+ * brief:
+ *   Handle sync canvas size.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const syncCanvasSize = () => {
   if (!canvasElement.value || !videoElement.value) {
     return
   }
 
+  /**
+   * brief:
+   *   Handle canvas.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const canvas = canvasElement.value
+  /**
+   * brief:
+   *   Handle video.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const video = videoElement.value
+  /**
+   * brief:
+   *   Handle rect.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const rect = video.getBoundingClientRect()
+  /**
+   * brief:
+   *   Handle pixel ratio.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const pixelRatio = window.devicePixelRatio || 1
 
   canvas.width = rect.width * pixelRatio
@@ -121,6 +461,16 @@ const syncCanvasSize = () => {
   canvas.style.width = `${rect.width}px`
   canvas.style.height = `${rect.height}px`
 
+  /**
+   * brief:
+   *   Handle context.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const context = canvas.getContext('2d')
   if (!context) {
     return
@@ -129,8 +479,38 @@ const syncCanvasSize = () => {
   context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
 }
 
+/**
+ * brief:
+ *   Clear canvas.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const clearCanvas = () => {
+  /**
+   * brief:
+   *   Handle canvas.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const canvas = canvasElement.value
+  /**
+   * brief:
+   *   Handle context.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const context = canvas?.getContext('2d')
 
   if (!canvas || !context) {
@@ -140,6 +520,16 @@ const clearCanvas = () => {
   context.clearRect(0, 0, canvas.width, canvas.height)
 }
 
+/**
+ * brief:
+ *   Handle draw mask.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const drawMask = () => {
   if (!canvasElement.value || !videoElement.value) {
     return
@@ -152,14 +542,54 @@ const drawMask = () => {
     return
   }
 
+  /**
+   * brief:
+   *   Handle canvas.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const canvas = canvasElement.value
+  /**
+   * brief:
+   *   Handle context.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const context = canvas.getContext('2d')
 
   if (!context) {
     return
   }
 
+  /**
+   * brief:
+   *   Handle display width.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const displayWidth = canvas.clientWidth
+  /**
+   * brief:
+   *   Handle display height.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const displayHeight = canvas.clientHeight
 
   for (const polygon of maskPolygons.value) {
@@ -167,12 +597,52 @@ const drawMask = () => {
       continue
     }
 
+    /**
+     * brief:
+     *   Handle scale x.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const scaleX = displayWidth / polygon.frameWidth
+    /**
+     * brief:
+     *   Handle scale y.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const scaleY = displayHeight / polygon.frameHeight
 
     context.beginPath()
     polygon.points.forEach(([x, y], index) => {
+      /**
+       * brief:
+       *   Handle target x.
+       *
+       * parameter:
+       *   - None.
+       *
+       * retrival:
+       *   - Returns the computed value or updates local application state.
+       */
       const targetX = x * scaleX
+      /**
+       * brief:
+       *   Handle target y.
+       *
+       * parameter:
+       *   - None.
+       *
+       * retrival:
+       *   - Returns the computed value or updates local application state.
+       */
       const targetY = y * scaleY
 
       if (index === 0) {
@@ -190,6 +660,16 @@ const drawMask = () => {
   }
 }
 
+/**
+ * brief:
+ *   Handle stop draw loop.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const stopDrawLoop = () => {
   if (animationFrameId !== null) {
     window.cancelAnimationFrame(animationFrameId)
@@ -197,9 +677,29 @@ const stopDrawLoop = () => {
   }
 }
 
+/**
+ * brief:
+ *   Handle start draw loop.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const startDrawLoop = () => {
   stopDrawLoop()
 
+  /**
+   * brief:
+   *   Handle step.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const step = () => {
     drawMask()
 
@@ -211,6 +711,16 @@ const startDrawLoop = () => {
   animationFrameId = window.requestAnimationFrame(step)
 }
 
+/**
+ * brief:
+ *   Handle play video.
+ *
+ * parameter:
+ *   - source: Input value for source.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const playVideo = async (source: PlayStateSource) => {
   if (!videoElement.value || !currentVideoSrc.value) {
     return
@@ -225,6 +735,16 @@ const playVideo = async (source: PlayStateSource) => {
   }
 }
 
+/**
+ * brief:
+ *   Handle pause video.
+ *
+ * parameter:
+ *   - source: Input value for source.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const pauseVideo = (source: PlayStateSource) => {
   if (!videoElement.value) {
     return
@@ -236,6 +756,16 @@ const pauseVideo = (source: PlayStateSource) => {
   emit('play-state-change', { isPlaying: false, source })
 }
 
+/**
+ * brief:
+ *   Handle toggle playback.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleTogglePlayback = async () => {
   if (!currentVideoSrc.value || !videoElement.value) {
     return
@@ -249,6 +779,16 @@ const handleTogglePlayback = async () => {
   pauseVideo('control')
 }
 
+/**
+ * brief:
+ *   Handle video selected.
+ *
+ * parameter:
+ *   - file: Input value for file.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleVideoSelected = async (file?: File) => {
   if (!file) {
     return
@@ -264,38 +804,128 @@ const handleVideoSelected = async (file?: File) => {
   drawMask()
 }
 
+/**
+ * brief:
+ *   Handle sync video metadata.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const syncVideoMetadata = () => {
   mediaAspectRatio.value = 1
 }
 
+/**
+ * brief:
+ *   Handle file change.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleFileChange = async (event: Event) => {
+  /**
+   * brief:
+   *   Handle target.
+   *
+   * parameter:
+   *   - event: Input value for event.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const target = event.target as HTMLInputElement
   await handleVideoSelected(target.files?.[0])
   target.value = ''
 }
 
+/**
+ * brief:
+ *   Handle drop.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleDrop = async (event: DragEvent) => {
   event.preventDefault()
   isDragging.value = false
   await handleVideoSelected(event.dataTransfer?.files?.[0])
 }
 
+/**
+ * brief:
+ *   Toggle mask visibility.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toggleMaskVisibility = () => {
   maskVisible.value = !maskVisible.value
   emit('update:showMask', maskVisible.value)
   drawMask()
 }
 
+/**
+ * brief:
+ *   Handle capture frame.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleCaptureFrame = () => {
   if (!videoElement.value || !hasMetadata.value) {
     return
   }
 
+  /**
+   * brief:
+   *   Handle video.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const video = videoElement.value
+  /**
+   * brief:
+   *   Handle export canvas.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const exportCanvas = document.createElement('canvas')
   exportCanvas.width = video.videoWidth || 1280
   exportCanvas.height = video.videoHeight || 720
 
+  /**
+   * brief:
+   *   Handle context.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const context = exportCanvas.getContext('2d')
   if (!context) {
     return
@@ -312,12 +942,52 @@ const handleCaptureFrame = () => {
           continue
         }
 
+        /**
+         * brief:
+         *   Handle scale x.
+         *
+         * parameter:
+         *   - None.
+         *
+         * retrival:
+         *   - Returns the computed value or updates local application state.
+         */
         const scaleX = exportCanvas.width / polygon.frameWidth
+        /**
+         * brief:
+         *   Handle scale y.
+         *
+         * parameter:
+         *   - None.
+         *
+         * retrival:
+         *   - Returns the computed value or updates local application state.
+         */
         const scaleY = exportCanvas.height / polygon.frameHeight
 
         context.beginPath()
         polygon.points.forEach(([x, y], index) => {
+          /**
+           * brief:
+           *   Handle target x.
+           *
+           * parameter:
+           *   - None.
+           *
+           * retrival:
+           *   - Returns the computed value or updates local application state.
+           */
           const targetX = x * scaleX
+          /**
+           * brief:
+           *   Handle target y.
+           *
+           * parameter:
+           *   - None.
+           *
+           * retrival:
+           *   - Returns the computed value or updates local application state.
+           */
           const targetY = y * scaleY
 
           if (index === 0) {

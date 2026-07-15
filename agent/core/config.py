@@ -11,7 +11,15 @@ from hello_agents.core.config import Config as HelloAgentsConfig
 
 
 class Config(HelloAgentsConfig):
-    """基于 hello_agents.Config 的项目配置。"""
+    """brief:
+        Represent Config state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     api_key: Optional[str] = None
     base_url: Optional[str] = None
@@ -31,7 +39,15 @@ class Config(HelloAgentsConfig):
 
     @classmethod
     def from_env(cls) -> "Config":
-        """从配置文件和环境变量创建配置，并保留 hello_agents 的默认字段。"""
+        """brief:
+            Handle from env.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         data = HelloAgentsConfig.from_env().dict()
         file_overrides, profile_name, config_path = cls._load_profile_overrides()
         data.update(file_overrides)
@@ -42,6 +58,15 @@ class Config(HelloAgentsConfig):
 
     @classmethod
     def _load_profile_overrides(cls) -> tuple[Dict[str, Any], Optional[str], Optional[Path]]:
+        """brief:
+            Load profile overrides.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         config_path = cls._resolve_config_path()
         if not config_path.exists():
             return {}, None, config_path
@@ -75,6 +100,15 @@ class Config(HelloAgentsConfig):
 
     @staticmethod
     def _resolve_config_path() -> Path:
+        """brief:
+            Resolve config path.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         custom_path = os.getenv("LLM_CONFIG_FILE")
         if custom_path:
             return Path(custom_path).expanduser().resolve()
@@ -82,6 +116,15 @@ class Config(HelloAgentsConfig):
 
     @staticmethod
     def _load_env_overrides(current: Dict[str, Any]) -> Dict[str, Any]:
+        """brief:
+            Load env overrides.
+
+        parameter:
+            - current: Input value for current.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         provider = os.getenv("LLM_PROVIDER", current.get("default_provider", "openai"))
         tencent_key = os.getenv("TENCENT_API_KEY") or os.getenv("HUNYUAN_API_KEY")
         tencent_base = os.getenv("TENCENT_BASE_URL") or os.getenv("HUNYUAN_BASE_URL")
@@ -106,5 +149,13 @@ class Config(HelloAgentsConfig):
         }
 
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典。"""
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.dict()

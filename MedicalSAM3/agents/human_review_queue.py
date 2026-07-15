@@ -10,6 +10,17 @@ from MedicalSAM3.exemplar.memory_bank import ExemplarMemoryBank
 
 
 def _resolve_bank(memory_bank: Union[ExemplarMemoryBank, str, Path, None], review_csv: Optional[Path] = None) -> ExemplarMemoryBank:
+    """解析并返回范例记忆库实例。
+
+    支持直接传入 ExemplarMemoryBank 对象、路径字符串、Path 对象或 None。
+
+    参数：
+        - memory_bank: 范例记忆库对象或可加载路径
+        - review_csv: 可选的审核 CSV 路径，用于推断记忆库目录
+
+    返回：
+        - 解析后的 ExemplarMemoryBank 实例
+    """
     if isinstance(memory_bank, ExemplarMemoryBank):
         return memory_bank
     if memory_bank is not None:
@@ -20,6 +31,17 @@ def _resolve_bank(memory_bank: Union[ExemplarMemoryBank, str, Path, None], revie
 
 
 def export_review_queue(memory_bank: ExemplarMemoryBank, output_html_or_csv: str | Path) -> Path:
+    """将待审核队列导出为 CSV 或 HTML 文件。
+
+    自动根据输出文件后缀决定格式（.csv 或 .html），包含所有未人工验证的候选条目。
+
+    参数：
+        - memory_bank: 范例记忆库对象
+        - output_html_or_csv: 输出文件路径（.csv 或 .html）
+
+    返回：
+        - 输出文件的 Path 对象
+    """
     destination = Path(output_html_or_csv)
     destination.parent.mkdir(parents=True, exist_ok=True)
     candidates = memory_bank.get_items(human_verified=False)
@@ -66,6 +88,17 @@ def import_human_review(
     review_csv: str | Path,
     memory_bank: Union[ExemplarMemoryBank, str, Path, None] = None,
 ) -> ExemplarMemoryBank:
+    """导入人工审核结果 CSV 并更新记忆库状态。
+
+    逐行读取审核决定，将接受的条目标记为已人工验证，拒绝的条目从库中移除。
+
+    参数：
+        - review_csv: 审核结果 CSV 文件路径
+        - memory_bank: 可选；范例记忆库对象或可加载路径
+
+    返回：
+        - 更新后的 ExemplarMemoryBank 实例
+    """
     review_path = Path(review_csv)
     bank = _resolve_bank(memory_bank, review_csv=review_path)
     with review_path.open("r", newline="", encoding="utf-8") as handle:

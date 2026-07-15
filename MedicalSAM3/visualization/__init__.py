@@ -1,4 +1,4 @@
-"""Visualization helpers for retrieval-conditioned MedEx-SAM3 analysis."""
+"""基于检索条件的 MedEx-SAM3 分析的可视化辅助工具。"""
 
 from .retrieval_vis import (
     save_false_positive_overlay,

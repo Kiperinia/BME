@@ -1,4 +1,4 @@
-"""Generate a YOLO bbox cache for MedEx-SAM3 split files."""
+"""为 MedEx-SAM3 分割文件生成 YOLO 边界框缓存。"""
 
 from __future__ import annotations
 
@@ -15,6 +15,14 @@ from MedicalSAM3.yolo_adapter.detector import UltralyticsYoloDetector
 
 
 def main() -> int:
+    """命令行入口，根据分割记录文件生成 YOLO 边界框缓存。
+
+    解析命令行参数，读取分割记录，对每张图像运行 YOLO 检测，
+    将结果写入 JSON 缓存文件，并记录缺失和错误项。
+
+    返回：
+        - 退出码（0 表示成功）。
+    """
     parser = argparse.ArgumentParser(description="Generate YOLO bbox cache from MedEx-SAM3 split records.")
     parser.add_argument("--split-file", required=True)
     parser.add_argument("--output", required=True)

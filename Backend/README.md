@@ -42,6 +42,18 @@ cd E:\BME\Backend
 celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo --concurrency=1
 ```
 
+Ubuntu server example:
+
+```bash
+cd /share/home/huafuchen01/huangwei/WangRuiFeng/EvoSAM3/Backend
+conda run -n sam3wangruifeng uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+```bash
+cd /share/home/huafuchen01/huangwei/WangRuiFeng/EvoSAM3/Backend
+conda run -n sam3wangruifeng celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo --concurrency=1
+```
+
 ## 接口契约
 
 ### POST /api/analysis/segment-frame

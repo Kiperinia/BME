@@ -1,4 +1,4 @@
-"""Run MedEx-SAM3 ablation experiments or deterministic dummy ablations."""
+"""运行 MedEx-SAM3 消融实验或确定性虚拟消融。"""
 
 from __future__ import annotations
 
@@ -137,6 +137,16 @@ ABLATIONS = [
 
 
 def _dummy_metrics(index: int, retrieval_mode: str, retrieval_policy: str) -> dict[str, float]:
+    """生成基于指定策略的确定性虚拟指标值。
+
+    参数：
+        - index: 消融配置索引
+        - retrieval_mode: 检索模式
+        - retrieval_policy: 检索策略
+
+    返回：
+        - 各项分割指标字典
+    """
     policy_adjustments = {
         "always-on": {"dice": -0.006, "boundary": 0.02, "fnr": 0.014, "fpr": -0.008, "sensitivity": 0.06},
         "similarity-threshold": {"dice": -0.001, "boundary": 0.018, "fnr": 0.006, "fpr": -0.004, "sensitivity": 0.05},
@@ -165,6 +175,14 @@ def _dummy_metrics(index: int, retrieval_mode: str, retrieval_policy: str) -> di
 
 
 def main() -> int:
+    """脚本命令行入口，运行消融实验并输出各配置的指标。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Run MedEx-SAM3 ablations.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--output-dir", default="MedicalSAM3/outputs/medex_sam3/ablation")

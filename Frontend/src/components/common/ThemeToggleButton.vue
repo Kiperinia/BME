@@ -6,6 +6,16 @@ defineProps<{
   mode: ThemeMode
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'toggle'): void
 }>()

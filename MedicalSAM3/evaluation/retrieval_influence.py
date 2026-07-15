@@ -1,4 +1,4 @@
-"""Quantify whether retrieval changes segmentation behavior and external robustness."""
+"""量化检索是否改变分割行为及外部鲁棒性。"""
 
 from __future__ import annotations
 
@@ -53,10 +53,27 @@ from MedicalSAM3.visualization.retrieval_vis import (
 
 
 def _binary_mask(mask_logits: torch.Tensor) -> torch.Tensor:
+    """将 logits 转换为二值掩码（sigmoid > 0.5）。
+
+    参数：
+        - mask_logits: 模型输出的原始 logits。
+
+    返回：
+        - 二值掩码张量。
+    """
     return (torch.sigmoid(mask_logits.detach().float()) > 0.5).float()
 
 
 def _mask_difference_ratio(mask_a: torch.Tensor, mask_b: torch.Tensor) -> float:
+    """计算两个掩码的差异比率（异或像素 / 并集像素）。
+
+    参数：
+        - mask_a: 第一个掩码 logits。
+        - mask_b: 第二个掩码 logits。
+
+    返回：
+        - 差异比率浮点数。
+    """
     pred_a = _binary_mask(mask_a)
     pred_b = _binary_mask(mask_b)
     xor = ((pred_a > 0.5) ^ (pred_b > 0.5)).float().sum()
@@ -67,16 +84,41 @@ def _mask_difference_ratio(mask_a: torch.Tensor, mask_b: torch.Tensor) -> float:
 
 
 def _mean_logit_difference(mask_a: torch.Tensor, mask_b: torch.Tensor) -> float:
+    """计算两个掩码 logits 的平均绝对差异。
+
+    参数：
+        - mask_a: 第一个掩码 logits。
+        - mask_b: 第二个掩码 logits。
+
+    返回：
+        - 平均绝对差异浮点数。
+    """
     return float((mask_a.detach().float() - mask_b.detach().float()).abs().mean().item())
 
 
 def _safe_mean(values: list[float]) -> float:
+    """安全计算浮点数列表的均值，空列表返回 0.0。
+
+    参数：
+        - values: 浮点数列表。
+
+    返回：
+        - 均值。
+    """
     if not values:
         return 0.0
     return float(sum(values) / len(values))
 
 
 def _tensor_stats(values: Optional[torch.Tensor]) -> dict[str, float | None]:
+    """计算张量的多种统计量（均值、绝对值均值、标准差、最小值、最大值）。
+
+    参数：
+        - values: 输入张量。
+
+    返回：
+        - 包含 mean、abs_mean、std、min、max 的字典。
+    """
     if values is None or not isinstance(values, torch.Tensor) or values.numel() == 0:
         return {
             "mean": None,
@@ -96,6 +138,16 @@ def _tensor_stats(values: Optional[torch.Tensor]) -> dict[str, float | None]:
 
 
 def _create_dummy_exemplar_memory_bank(bank_dir: Path, hidden_dim: int, seed: int) -> ExemplarMemoryBank:
+    """创建用于测试的虚拟样本记忆库。
+
+    参数：
+        - bank_dir: 银行库输出目录。
+        - hidden_dim: 特征维度。
+        - seed: 随机种子。
+
+    返回：
+        - 创建的 ExemplarMemoryBank 实例。
+    """
     generator = torch.Generator().manual_seed(seed)
     ensure_dir(bank_dir)
     bank = ExemplarMemoryBank()
@@ -146,6 +198,18 @@ def _load_or_create_exemplar_memory_bank(
     seed: int,
     fallback_dir: Path,
 ) -> Optional[ExemplarMemoryBank]:
+    """加载现有样本记忆库，必要时创建虚拟样本记忆库。
+
+    参数：
+        - path: 银行库路径。
+        - hidden_dim: 特征维度。
+        - dummy: 是否允许创建虚拟库。
+        - seed: 随机种子。
+        - fallback_dir: 回退目录。
+
+    返回：
+        - 加载或创建的 ExemplarMemoryBank 实例，不可用时返回 None。
+    """
     if path is None:
         if not dummy:
             return None
@@ -165,6 +229,16 @@ def _prompt_adapter_diagnostics(
     bank: Optional[ExemplarMemoryBank],
     prompt_adapter: Optional[ExemplarPromptAdapter],
 ) -> dict[str, Any]:
+    """计算提示适配器的诊断信息，包括正/负/边界样本的融合强度。
+
+    参数：
+        - query_feature: 查询特征图。
+        - bank: 样本记忆库。
+        - prompt_adapter: 样本提示适配器。
+
+    返回：
+        - 包含各融合强度和选定条目 ID 的字典。
+    """
     if bank is None or prompt_adapter is None or not bank.trainable_items:
         return {
             "positive_fusion_strength": None,
@@ -191,6 +265,14 @@ def _prompt_adapter_diagnostics(
         }
 
     def _batchify(proto: Any) -> Optional[torch.Tensor]:
+        """将原型转换为批次张量（添加 batch 维度）。
+
+        参数：
+            - proto: 原型张量或 None。
+
+        返回：
+            - 添加 batch 维度的张量，输入为 None 时返回 None。
+        """
         if proto is None:
             return None
         tensor = proto if isinstance(proto, torch.Tensor) else torch.tensor(proto)
@@ -215,6 +297,14 @@ def _prompt_adapter_diagnostics(
 
 
 def _summarize_prototype_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """汇总原型条目信息，提取关键字段用于日志记录。
+
+    参数：
+        - entries: 原型条目字典列表。
+
+    返回：
+        - 摘要后的字典列表。
+    """
     summarized = []
     for entry in entries:
         summarized.append(
@@ -232,6 +322,14 @@ def _summarize_prototype_entries(entries: list[dict[str, Any]]) -> list[dict[str
 
 
 def _variant_retrieval_entries(retrieval: Optional[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """从检索结果中提取正/负样本条目的摘要信息。
+
+    参数：
+        - retrieval: 检索结果字典。
+
+    返回：
+        - (positive_summaries, negative_summaries) 二元组。
+    """
     if retrieval is None:
         return [], []
     positive = []
@@ -287,6 +385,26 @@ def _run_variant(
     prompt_bank: Optional[ExemplarMemoryBank],
     prompt_adapter: Optional[ExemplarPromptAdapter],
 ) -> dict[str, Any]:
+    """运行单个检索变体的前向传播，包含提示适配器诊断和融合诊断。
+
+    参数：
+        - adapter: 检索空间语义适配器。
+        - wrapper: SAM3 张量前向包装器。
+        - similarity_builder: 相似度热力图构建器。
+        - images: 输入图像张量。
+        - masks: 真实掩码张量。
+        - boxes: 边界框张量。
+        - text_prompt: 文本提示列表。
+        - query_feature: 查询特征图。
+        - baseline_outputs: 基线模型输出。
+        - retrieval: 检索结果。
+        - retrieval_mode: 检索模式。
+        - prompt_bank: 样本记忆库。
+        - prompt_adapter: 样本提示适配器。
+
+    返回：
+        - 包含输出、指标、融合诊断和条目信息的字典。
+    """
     prompt_diag = _prompt_adapter_diagnostics(query_feature, prompt_bank, prompt_adapter)
     if retrieval is None:
         outputs = baseline_outputs
@@ -360,6 +478,14 @@ def _run_variant(
 
 
 def _pairwise_mask_differences(variants: dict[str, dict[str, Any]]) -> dict[str, float]:
+    """计算所有变体两两之间的掩码差异比率。
+
+    参数：
+        - variants: 变体名称到输出的映射字典。
+
+    返回：
+        - 变体对名称到差异比率的字典。
+    """
     output: dict[str, float] = {}
     for left_name, right_name in itertools.combinations(["positive_exemplar", "negative_exemplar", "random_exemplar", "empty_exemplar"], 2):
         output[f"{left_name}__vs__{right_name}"] = _mask_difference_ratio(
@@ -370,6 +496,14 @@ def _pairwise_mask_differences(variants: dict[str, dict[str, Any]]) -> dict[str,
 
 
 def _prompt_sensitivity_from_pairs(pairwise: dict[str, float]) -> dict[str, Any]:
+    """从成对差异计算提示敏感性分数（平均差异）。
+
+    参数：
+        - pairwise: 成对差异比率字典。
+
+    返回：
+        - 包含 pairwise 和 prompt_sensitivity_score 的字典。
+    """
     values = list(pairwise.values())
     return {
         "pairwise_mask_difference_ratio": pairwise,
@@ -378,6 +512,14 @@ def _prompt_sensitivity_from_pairs(pairwise: dict[str, float]) -> dict[str, Any]
 
 
 def _average_metrics(rows: list[dict[str, float]]) -> dict[str, float]:
+    """对多个指标字典按 key 取平均。
+
+    参数：
+        - rows: 指标字典列表。
+
+    返回：
+        - 各 key 的平均值字典。
+    """
     if not rows:
         return {}
     summary: dict[str, float] = {}
@@ -388,6 +530,14 @@ def _average_metrics(rows: list[dict[str, float]]) -> dict[str, float]:
 
 
 def _group_metric_rows(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    """按域分组指标行并计算各组的平均指标。
+
+    参数：
+        - rows: 包含 "domain" 和 "metrics" 的字典列表。
+
+    返回：
+        - 域名称到平均指标字典的映射。
+    """
     grouped: dict[str, list[dict[str, float]]] = {}
     for row in rows:
         grouped.setdefault(row["domain"], []).append(row["metrics"])
@@ -395,6 +545,15 @@ def _group_metric_rows(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]
 
 
 def _delta_metrics(current: dict[str, dict[str, float]], baseline: dict[str, dict[str, float]]) -> dict[str, dict[str, float]]:
+    """计算当前指标相对于基线的差值。
+
+    参数：
+        - current: 当前指标字典。
+        - baseline: 基线指标字典。
+
+    返回：
+        - 各域的差值字典。
+    """
     delta: dict[str, dict[str, float]] = {}
     for domain, metrics in current.items():
         baseline_metrics = baseline.get(domain, {})
@@ -410,6 +569,16 @@ def _visualize_image_case(
     variants: dict[str, dict[str, Any]],
     negative_ablation: dict[str, dict[str, Any]],
 ) -> None:
+    """为单个图像生成可视化结果，包括原型面板、相似度热力图、掩码差异和假阳性叠加。
+
+    参数：
+        - vis_dir: 可视化输出目录。
+        - image_id: 图像 ID。
+        - image_tensor: 图像张量。
+        - gt_mask: 真实掩码。
+        - variants: 各变体的结果字典。
+        - negative_ablation: 负样本消融实验结果。
+    """
     case_dir = ensure_dir(vis_dir / image_id)
     positive_variant = variants["positive_exemplar"]
     save_retrieved_prototype_panel(
@@ -464,6 +633,14 @@ def _visualize_image_case(
 
 
 def main() -> int:
+    """命令行入口：验证检索对 MedEx-SAM3 分割行为的影响并生成报告和可视化。
+
+    参数：
+        - 无。
+
+    返回：
+        - 退出码（0 表示成功）。
+    """
     parser = argparse.ArgumentParser(description="Verify retrieval influence on MedEx-SAM3 segmentation behavior.")
     parser.add_argument("--device", default="auto")
     parser.add_argument("--internal-split-file", default="MedicalSAM3/outputs/medex_sam3/splits/fold_0/val_ids.txt")

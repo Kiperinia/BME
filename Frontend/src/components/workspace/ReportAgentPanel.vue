@@ -20,6 +20,16 @@ const toneClasses: Record<FeatureTagTone, string> = {
   violet: 'bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-200',
 }
 
+/**
+ * brief:
+ *   Resolve tag tone.
+ *
+ * parameter:
+ *   - tag: Input value for tag.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const resolveTagTone = (tag: WorkspaceFeatureTag) => toneClasses[tag.tone] ?? toneClasses.sky
 
 const traceToneClasses: Record<AgentTraceStep['kind'], string> = {
@@ -29,6 +39,16 @@ const traceToneClasses: Record<AgentTraceStep['kind'], string> = {
   final: 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100',
 }
 
+/**
+ * brief:
+ *   Resolve trace tone.
+ *
+ * parameter:
+ *   - step: Input value for step.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const resolveTraceTone = (step: AgentTraceStep) => traceToneClasses[step.kind]
 </script>
 

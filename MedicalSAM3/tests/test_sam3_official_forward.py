@@ -7,7 +7,9 @@ from MedicalSAM3.sam3_official.tensor_forward import Sam3TensorForwardWrapper
 
 
 class TestSam3OfficialForward(unittest.TestCase):
+    """测试官方 SAM3 模型前向推理流程。"""
     def test_sam3_official_forward_returns_mask_logits(self) -> None:
+        """验证前向推理返回 mask_logits 并具有正确的形状。"""
         model = build_official_sam3_image_model(
             checkpoint_path=None,
             device="cpu",
@@ -24,6 +26,7 @@ class TestSam3OfficialForward(unittest.TestCase):
         self.assertEqual(outputs["masks"].shape[-2:], outputs["mask_logits"].shape[-2:])
 
     def test_sam3_official_forward_accepts_exemplar_tokens(self) -> None:
+        """验证模型能够接受示例提示令牌进行前向推理。"""
         model = build_official_sam3_image_model(
             checkpoint_path=None,
             device="cpu",
@@ -45,6 +48,7 @@ class TestSam3OfficialForward(unittest.TestCase):
         self.assertEqual(tuple(outputs["scores"].shape), (1, 1))
 
     def test_sam3_official_forward_accepts_retrieval_prior(self) -> None:
+        """验证模型能够接受检索先验信息进行前向推理。"""
         model = build_official_sam3_image_model(
             checkpoint_path=None,
             device="cpu",

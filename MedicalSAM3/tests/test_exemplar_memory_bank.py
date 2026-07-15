@@ -6,6 +6,16 @@ from MedicalSAM3.exemplar.memory_bank import ExemplarItem, ExemplarMemoryBank
 
 
 def _make_item(item_id: str, dataset: str, human_verified: bool) -> ExemplarItem:
+    """创建用于测试的 ExemplarItem 辅助函数。
+
+    参数：
+        - item_id: 样本 ID
+        - dataset: 数据集名称
+        - human_verified: 人工验证标志
+
+    返回：
+        - 配置好的 ExemplarItem 实例
+    """
     return ExemplarItem(
         item_id=item_id,
         image_id=f"img-{item_id}",
@@ -30,7 +40,9 @@ def _make_item(item_id: str, dataset: str, human_verified: bool) -> ExemplarItem
 
 
 class TestExemplarMemoryBank(unittest.TestCase):
+    """测试示例记忆库的添加、拒绝、保存和加载功能。"""
     def test_add_reject_save_and_load(self) -> None:
+        """验证记忆库的添加项、拒绝外部数据集、保存和加载往返功能。"""
         bank = ExemplarMemoryBank()
         bank.add_item(_make_item("p1", "Kvasir-SEG", True))
         self.assertEqual(len(bank.trainable_items), 1)

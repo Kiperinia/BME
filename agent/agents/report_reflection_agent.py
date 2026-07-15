@@ -31,7 +31,15 @@ logger = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class ReflectionStep:
-    """单次反思循环的记录"""
+    """brief:
+        Represent ReflectionStep state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     iteration: int
     thinking: str  # Agent 的思考
     decision: str  # Agent 的决策（该做什么）
@@ -45,7 +53,15 @@ class ReflectionStep:
 
 @dataclass(slots=True)
 class ReflectionResult:
-    """完整反思流程的结果"""
+    """brief:
+        Represent ReflectionResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     initial_report: ReportData
     final_report: ReportData
     reflection_steps: list[ReflectionStep] = field(default_factory=list)
@@ -55,21 +71,17 @@ class ReflectionResult:
 
 
 class ReportReflectionAgent(HelloAgent):
-    """
-    报告反思 Agent。
-    
-    实现完整的 ReAct 循环，让 Agent 自己思考如何改进报告。
-    Agent 的思考由 LLM 驱动，不是硬编码逻辑。
-    
-    Usage::
-    
-        agent = ReportReflectionAgent(llm=my_llm)
-        result = agent.reflect(
-            report=initial_report,
-            morphology=morph,
-            paris=paris,
-            risk=risk,
-        )
+    """brief:
+        Represent ReportReflectionAgent state and behavior.
+
+    parameter:
+        - llm: Input value for llm.
+        - max_iterations: Input value for max_iterations.
+        - quality_threshold: Input value for quality_threshold.
+        - report_tool_registry: Input value for report_tool_registry.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
     """
 
     def __init__(
@@ -80,24 +92,29 @@ class ReportReflectionAgent(HelloAgent):
         quality_threshold: float = 8.0,
         report_tool_registry: ReportToolRegistry | None = None,
     ):
-        """
-        Args:
-            llm: LLM 客户端。如为 None，使用规则模式（无反思）。
-            max_iterations: 最大反思迭代次数。
-            quality_threshold: 质量评分满足度（0-10）。达到则停止。
-            report_tool_registry: 报告工具注册中心。
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - llm: Input value for llm.
+            - max_iterations: Input value for max_iterations.
+            - quality_threshold: Input value for quality_threshold.
+            - report_tool_registry: Input value for report_tool_registry.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
         """
         resolved_llm = llm or RuleOnlyLLM(
             model="rule-only",
             provider="rule-only",
         )
-        
+
         super().__init__(
             name="report-reflection-agent",
             llm=resolved_llm,
             system_prompt="你是一名医学诊断报告质量改进专家。你的任务是通过反思和改进使诊断报告更加准确、完整和清晰。",
         )
-        
+
         self.max_iterations = max_iterations
         self.quality_threshold = quality_threshold
         self.report_tool_registry = report_tool_registry or create_default_report_tool_registry(llm_client=resolved_llm)
@@ -111,17 +128,17 @@ class ReportReflectionAgent(HelloAgent):
         paris: ParisTypingResult,
         risk: RiskAssessmentResult,
     ) -> ReflectionResult:
-        """
-        对报告进行反思和改进。
+        """brief:
+            Handle reflect.
 
-        Args:
-            report: 初步生成的报告。
-            morphology: 形态分类结果。
-            paris: Paris 分型结果。
-            risk: 风险评估结果。
+        parameter:
+            - report: Input value for report.
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
 
-        Returns:
-            ReflectionResult：包含所有反思步骤和最终改进的报告。
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         if not self.reflection_enabled:
             logger.warning("Reflection disabled (LLM not available); returning original report")
@@ -134,12 +151,12 @@ class ReportReflectionAgent(HelloAgent):
 
         current_report = report
         reflection_steps: list[ReflectionStep] = []
-        
+
         logger.info(f"Starting report reflection (max {self.max_iterations} iterations)")
-        
+
         for iteration in range(1, self.max_iterations + 1):
             logger.info(f"=== Reflection iteration {iteration} ===")
-            
+
             # ---- Step 1: Thinking ----
             thinking = self._generate_thinking(
                 current_report,
@@ -149,11 +166,11 @@ class ReportReflectionAgent(HelloAgent):
                 iteration,
             )
             logger.info(f"Agent thinking: {thinking[:150]}...")
-            
+
             # ---- Step 2: Acting ----
             action = self._decide_action(thinking)
             logger.info(f"Agent decided action: {action}")
-            
+
             if action == "stop":
                 reflection_steps.append(
                     ReflectionStep(
@@ -169,16 +186,16 @@ class ReportReflectionAgent(HelloAgent):
                 )
                 logger.info(f"Agent decided to stop (quality satisfied)")
                 break
-            
+
             # ---- Step 3: Execute tool ----
             report_before_findings = current_report.findings
             report_before_conclusion = current_report.conclusion
-            
+
             try:
                 if action == "analyze":
                     observation = self._execute_analyze(current_report, paris, risk)
                     current_report.react_analysis = observation
-                    
+
                 elif action == "refine_findings":
                     observation = self._execute_refine_findings(
                         current_report,
@@ -186,7 +203,7 @@ class ReportReflectionAgent(HelloAgent):
                     )
                     if observation.get("refined_text"):
                         current_report.findings = observation["refined_text"]
-                    
+
                 elif action == "refine_conclusion":
                     observation = self._execute_refine_conclusion(
                         current_report,
@@ -194,7 +211,7 @@ class ReportReflectionAgent(HelloAgent):
                     )
                     if observation.get("refined_text"):
                         current_report.conclusion = observation["refined_text"]
-                    
+
                 elif action == "score":
                     observation = self._execute_score(
                         current_report,
@@ -204,20 +221,20 @@ class ReportReflectionAgent(HelloAgent):
                         current_report.react_analysis or {},
                     )
                     current_report.report_score = observation
-                    
+
                 else:
                     observation = {"error": f"Unknown action: {action}"}
-                
+
                 logger.info(f"Tool {action} executed: {str(observation)[:150]}")
-                
+
             except Exception as exc:
                 logger.warning(f"Tool execution failed: {exc}")
                 observation = {"error": str(exc)}
-            
+
             # ---- Step 4: Observing & Record ----
             quality_score = current_report.report_score.get("overall_score") if current_report.report_score else None
             should_continue = iteration < self.max_iterations and (quality_score is None or quality_score < self.quality_threshold)
-            
+
             reflection_steps.append(
                 ReflectionStep(
                     iteration=iteration,
@@ -231,14 +248,14 @@ class ReportReflectionAgent(HelloAgent):
                     should_continue=should_continue,
                 )
             )
-            
+
             if not should_continue:
                 logger.info(f"Stopping reflection: quality={quality_score}, threshold={self.quality_threshold}")
                 break
-        
+
         # ---- Final: Update tool_calls ----
         current_report.tool_calls = self.report_tool_registry.get_call_logs()
-        
+
         return ReflectionResult(
             initial_report=report,
             final_report=current_report,
@@ -256,8 +273,18 @@ class ReportReflectionAgent(HelloAgent):
         risk: RiskAssessmentResult,
         iteration: int,
     ) -> str:
-        """
-        Agent Thinking：LLM 思考当前报告的问题。
+        """brief:
+            Handle generate thinking.
+
+        parameter:
+            - report: Input value for report.
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+            - iteration: Input value for iteration.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         thinking_prompt = f"""你现在在进行第 {iteration} 轮报告质量改进。
 
@@ -292,28 +319,34 @@ class ReportReflectionAgent(HelloAgent):
             return f"Thinking failed: {str(exc)}"
 
     def _decide_action(self, thinking: str) -> str:
-        """
-        Agent Decision：根据 thinking 决定下一步行动。
+        """brief:
+            Handle decide action.
+
+        parameter:
+            - thinking: Input value for thinking.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         thinking_lower = thinking.lower()
-        
+
         # 检查 Agent 是否决定停止
         if any(phrase in thinking_lower for phrase in ["已达", "满足", "停止", "完成", "足够"]):
             return "stop"
-        
+
         # 检查 Agent 建议的改进方向
         if "分析" in thinking or "问题" in thinking or "identify" in thinking_lower:
             return "analyze"
-        
+
         if "findings" in thinking_lower or "所见" in thinking:
             return "refine_findings"
-        
+
         if "conclusion" in thinking_lower or "结论" in thinking:
             return "refine_conclusion"
-        
+
         if "评" in thinking or "score" in thinking_lower or "质量" in thinking:
             return "score"
-        
+
         # 默认：先分析再评分
         return "analyze"
 
@@ -323,7 +356,17 @@ class ReportReflectionAgent(HelloAgent):
         paris: ParisTypingResult,
         risk: RiskAssessmentResult,
     ) -> dict[str, Any]:
-        """执行分析工具。"""
+        """brief:
+            Handle execute analyze.
+
+        parameter:
+            - report: Input value for report.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.report_tool_registry.call(
             "analyze_report",
             findings=report.findings,
@@ -337,7 +380,16 @@ class ReportReflectionAgent(HelloAgent):
         report: ReportData,
         analysis_result: dict[str, Any],
     ) -> dict[str, Any]:
-        """执行 findings 精修工具。"""
+        """brief:
+            Handle execute refine findings.
+
+        parameter:
+            - report: Input value for report.
+            - analysis_result: Input value for analysis_result.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.report_tool_registry.call(
             "refine_report",
             original_text=report.findings,
@@ -350,7 +402,16 @@ class ReportReflectionAgent(HelloAgent):
         report: ReportData,
         analysis_result: dict[str, Any],
     ) -> dict[str, Any]:
-        """执行 conclusion 精修工具。"""
+        """brief:
+            Handle execute refine conclusion.
+
+        parameter:
+            - report: Input value for report.
+            - analysis_result: Input value for analysis_result.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.report_tool_registry.call(
             "refine_report",
             original_text=report.conclusion,
@@ -366,7 +427,19 @@ class ReportReflectionAgent(HelloAgent):
         risk: RiskAssessmentResult,
         analysis_result: dict[str, Any],
     ) -> dict[str, Any]:
-        """执行评分工具。"""
+        """brief:
+            Handle execute score.
+
+        parameter:
+            - report: Input value for report.
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+            - analysis_result: Input value for analysis_result.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.report_tool_registry.call(
             "score_report",
             findings=report.findings,
@@ -377,29 +450,40 @@ class ReportReflectionAgent(HelloAgent):
         )
 
     def _summarize_completion(self, steps: list[ReflectionStep]) -> str:
-        """总结反思完成原因。"""
+        """brief:
+            Handle summarize completion.
+
+        parameter:
+            - steps: Input value for steps.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not steps:
             return "未执行反思"
-        
+
         last_step = steps[-1]
         if last_step.decision == "stop":
             return "质量满足要求"
-        
+
         if len(steps) >= self.max_iterations:
             return f"达到最大迭代次数 ({self.max_iterations})"
-        
+
         return "未知原因"
 
     def run(self, input_text: str, **kwargs) -> str:
-        """
-        实现 HelloAgent.run() 接口。
-        
-        支持的输入格式：
-        - JSON 字符串，包含 report, morphology, paris, risk 字段
-        - 或通过 kwargs 传递这些字段
+        """brief:
+            Handle run.
+
+        parameter:
+            - input_text: Input value for input_text.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         import json
-        
+
         # Parse input
         try:
             if input_text and input_text.strip().startswith("{"):
@@ -408,7 +492,7 @@ class ReportReflectionAgent(HelloAgent):
                 data = kwargs
         except Exception:
             data = kwargs
-        
+
         # This is a minimal implementation for HelloAgent interface
         # The main entry point is still reflect() method
         return "ReportReflectionAgent: use reflect() method instead of run()"

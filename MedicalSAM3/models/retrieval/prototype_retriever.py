@@ -1,4 +1,4 @@
-"""Prototype retrieval for retrieval-conditioned domain adaptation."""
+"""用于检索条件化域适应的原型检索模块。"""
 
 from __future__ import annotations
 
@@ -12,12 +12,29 @@ from MedicalSAM3.exemplar_bank.bank import PrototypeBankEntry, RSSDABank
 
 
 def _weighted_average(features: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
+    """按权重对特征做加权和并做 L2 归一化。
+
+    参数：
+        - features: 形状为 [B, K, C] 的特征张量。
+        - weights: 形状为 [B, K] 的权重张量。
+
+    返回：
+        - 形状为 [B, C] 的归一化加权平均特征张量。
+    """
     if features.numel() == 0:
         return torch.empty(features.shape[0], 0, device=features.device)
     return F.normalize((weights.unsqueeze(-1) * features).sum(dim=1), dim=-1)
 
 
 def _entropy(weights: torch.Tensor) -> torch.Tensor:
+    """计算归一化权重的香农熵。
+
+    参数：
+        - weights: 权重张量。
+
+    返回：
+        - 权重分布的熵标量。
+    """
     if weights.numel() == 0:
         return weights.new_tensor(0.0)
     normalized = weights / weights.sum().clamp_min(1e-6)
@@ -25,6 +42,15 @@ def _entropy(weights: torch.Tensor) -> torch.Tensor:
 
 
 def _match_feature_dim(features: torch.Tensor, target_dim: int) -> torch.Tensor:
+    """通过截断或零填充将特征最后一维对齐到目标维度。
+
+    参数：
+        - features: 输入特征张量。
+        - target_dim: 目标特征维度。
+
+    返回：
+        - 最后一维等于 target_dim 的特征张量。
+    """
     if features.shape[-1] == target_dim:
         return features
     if features.shape[-1] > target_dim:
@@ -34,6 +60,17 @@ def _match_feature_dim(features: torch.Tensor, target_dim: int) -> torch.Tensor:
 
 
 class PrototypeRetriever(nn.Module):
+    """原型检索器，从原型库中检索最相关的正负原型用于条件化分割。
+
+    参数：
+        - bank: 原型库实例。
+        - feature_dim: 特征维度。
+        - top_k_positive: 正原型检索数量。
+        - top_k_negative: 负原型检索数量。
+
+    返回：
+        - 构建可用的原型检索器模块实例。
+    """
     def __init__(
         self,
         bank: RSSDABank,
@@ -41,6 +78,17 @@ class PrototypeRetriever(nn.Module):
         top_k_positive: int = 1,
         top_k_negative: int = 1,
     ) -> None:
+        """初始化原型库引用、检索数量与查询投影子模块。
+
+        参数：
+            - bank: 原型库实例。
+            - feature_dim: 特征维度。
+            - top_k_positive: 正原型检索数量。
+            - top_k_negative: 负原型检索数量。
+
+        返回：
+            - 无返回值，完成子模块与属性的构建。
+        """
         super().__init__()
         self.bank = bank
         self.feature_dim = feature_dim
@@ -54,6 +102,14 @@ class PrototypeRetriever(nn.Module):
 
     @staticmethod
     def global_average_pool(query_feature: torch.Tensor) -> torch.Tensor:
+        """对查询特征做全局平均池化并 L2 归一化。
+
+        参数：
+            - query_feature: 形状为 [B, C, H, W] 的查询特征张量。
+
+        返回：
+            - 形状为 [B, C] 的归一化全局查询向量。
+        """
         if query_feature.dim() != 4:
             raise ValueError("query_feature must have shape [B, C, H, W]")
         return F.normalize(F.adaptive_avg_pool2d(query_feature, 1).flatten(1), dim=1)
@@ -64,6 +120,16 @@ class PrototypeRetriever(nn.Module):
         entries: list[PrototypeBankEntry],
         top_k: int,
     ) -> tuple[torch.Tensor, torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor]:
+        """对单个查询向量从候选条目中检索 top-k 最相似原型。
+
+        参数：
+            - query_global: 单个归一化查询向量。
+            - entries: 候选原型库条目列表。
+            - top_k: 检索数量。
+
+        返回：
+            - 由选中特征、softmax 权重、选中条目、加权原型、相似度组成的元组。
+        """
         if not entries or top_k <= 0:
             dim = int(query_global.shape[-1])
             return (
@@ -92,6 +158,18 @@ class PrototypeRetriever(nn.Module):
         query_source_datasets: Optional[list[str]] = None,
         prefer_cross_domain_positive: bool = False,
     ) -> dict[str, Any]:
+        """对批量查询特征检索正负原型并汇总为结果字典。
+
+        参数：
+            - query_feature: 形状为 [B, C, H, W] 的查询特征张量。
+            - top_k_positive: 可选正原型检索数量覆盖。
+            - top_k_negative: 可选负原型检索数量覆盖。
+            - query_source_datasets: 可选各样本来源数据集名称列表。
+            - prefer_cross_domain_positive: 是否优先检索跨域正原型。
+
+        返回：
+            - 包含正负原型特征、权重、原型向量及检索稳定性统计的字典。
+        """
         query_global = self.global_average_pool(query_feature)
         projected_query = F.normalize(self.query_projection(query_global), dim=1)
         positive_entries = self.bank.get_entries(polarity="positive", human_verified=True)

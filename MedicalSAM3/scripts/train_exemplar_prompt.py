@@ -1,4 +1,4 @@
-"""Train exemplar prompt adapter and prototype fusion for MedEx-SAM3."""
+"""训练 MedEx-SAM3 的示例提示适配器与原型融合模块。"""
 
 from __future__ import annotations
 
@@ -40,6 +40,14 @@ from MedicalSAM3.yolo_adapter.cli import add_yolo_bbox_args, build_box_provider_
 
 
 def _prototype_summary(proto: torch.Tensor | None) -> torch.Tensor | None:
+    """将原型张量压缩为单行摘要向量。
+
+    参数：
+        - proto: 原型张量，可能为 None
+
+    返回：
+        - 摘要向量张量，输入为 None 时返回 None
+    """
     if proto is None:
         return None
     if proto.dim() == 2:
@@ -53,6 +61,17 @@ def _infer_hidden_dim(
     device: str,
     image_size: int,
 ) -> int:
+    """推断 SAM3 模型的隐藏维度，优先从属性获取，否则通过前向探测。
+
+    参数：
+        - base_model: SAM3 基础模型
+        - wrapper: SAM3 张量前向包装器
+        - device: 设备字符串
+        - image_size: 探测用图像尺寸
+
+    返回：
+        - 推断出的隐藏维度整数
+    """
     hidden_dim = getattr(base_model, "hidden_dim", None)
     if hidden_dim is None:
         hidden_dim = getattr(base_model, "_medex_hidden_dim", None)
@@ -80,6 +99,17 @@ def _infer_hidden_dim(
 
 
 def _select_top_items(builder: PrototypeBuilder, query: torch.Tensor, items: list[ExemplarItem], top_k: int) -> list[tuple[float, ExemplarItem, torch.Tensor]]:
+    """按得分选择与查询最相关的 top-k 示例项。
+
+    参数：
+        - builder: 原型构建器
+        - query: 查询嵌入张量
+        - items: 候选示例项列表
+        - top_k: 选取数量
+
+    返回：
+        - 由 (得分, 示例项, 归一化嵌入) 组成的列表
+    """
     scored: list[tuple[float, ExemplarItem, torch.Tensor]] = []
     for item in items:
         embedding = builder._load_embedding(item).float().to(query.device)  # noqa: SLF001
@@ -96,6 +126,18 @@ def _build_type_prototype(
     top_k: int,
     mode: str,
 ) -> dict[str, object]:
+    """按指定模式构建某一类型的原型（正例/负例/边界）。
+
+    参数：
+        - builder: 原型构建器
+        - query: 查询嵌入张量
+        - items: 候选示例项列表
+        - top_k: 选取数量
+        - mode: 原型构建模式，可选 "mean"/"weighted_mean"/"attention_fusion"/"clustered_subprototypes"
+
+    返回：
+        - 包含 prototype、selected_item_ids、weights、variance 的字典
+    """
     selected = _select_top_items(builder, query, items, top_k)
     if not selected:
         return {"prototype": None, "selected_item_ids": [], "weights": [], "variance": None}
@@ -126,12 +168,29 @@ def _build_type_prototype(
 
 
 def _expand_proto_for_batch(proto: torch.Tensor | None) -> torch.Tensor | None:
+    """将原型张量扩展一个批次维度。
+
+    参数：
+        - proto: 原型张量，可能为 None
+
+    返回：
+        - 扩展批次维度后的张量，输入为 None 时返回 None
+    """
     if proto is None:
         return None
     return proto.unsqueeze(0)
 
 
 def _write_preflight_report(path: Path, payload: dict[str, object]) -> Path:
+    """将预飞行检查报告以 JSON 格式写入文件。
+
+    参数：
+        - path: 输出文件路径
+        - payload: 报告内容字典
+
+    返回：
+        - 写入后的文件 Path 对象
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return path
@@ -145,6 +204,18 @@ def _save_prompt_checkpoint(
     metrics: dict[str, float] | None = None,
     suffix: str = "latest",
 ) -> Path:
+    """保存示例提示适配器的检查点。
+
+    参数：
+        - output_dir: 输出目录
+        - prompt_adapter: 示例提示适配器
+        - epoch: 当前轮次
+        - metrics: 评估指标字典
+        - suffix: 检查点文件名后缀
+
+    返回：
+        - 保存的检查点文件路径
+    """
     checkpoint_path = output_dir / f"prompt_adapter_{suffix}.pt"
     torch.save(
         {
@@ -159,6 +230,14 @@ def _save_prompt_checkpoint(
 
 
 def main() -> int:
+    """脚本命令行入口，执行示例提示适配器训练。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功，130 表示被中断
+    """
     parser = argparse.ArgumentParser(description="Train exemplar prompt adapter for MedEx-SAM3.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--memory-bank", default="MedicalSAM3/outputs/medex_sam3/exemplar_bank")

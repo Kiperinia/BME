@@ -31,6 +31,15 @@ MODEL_RUNTIME_PRECISION = "fp32"
 
 @dataclass(slots=True)
 class PreprocessResult:
+    """brief:
+        Represent PreprocessResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     original_width: int
     original_height: int
     resized_width: int
@@ -44,7 +53,25 @@ class PreprocessResult:
 
 
 class SAM3Engine:
+    """brief:
+        Represent SAM3Engine state and behavior.
+
+    parameter:
+        - settings: Input value for settings.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self, settings: Settings):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - settings: Input value for settings.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.settings = settings
         self.device = settings.model_device
         self.input_size = settings.model_input_size
@@ -60,9 +87,27 @@ class SAM3Engine:
 
     @property
     def is_mock_mode(self) -> bool:
+        """brief:
+            Handle is mock mode.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.settings.model_load_mode == "mock"
 
     def preprocess(self, image: np.ndarray) -> PreprocessResult:
+        """brief:
+            Handle preprocess.
+
+        parameter:
+            - image: Input value for image.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not isinstance(image, np.ndarray) or image.size == 0:
             raise ValueError("invalid or corrupted image")
 
@@ -122,9 +167,28 @@ class SAM3Engine:
         )
 
     def predict(self, image: np.ndarray) -> dict[str, Any]:
+        """brief:
+            Handle predict.
+
+        parameter:
+            - image: Input value for image.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return self.predict_with_context(image=image, retrieval_context=None)
 
     def predict_with_context(self, image: np.ndarray, retrieval_context: dict[str, Any] | None) -> dict[str, Any]:
+        """brief:
+            Handle predict with context.
+
+        parameter:
+            - image: Input value for image.
+            - retrieval_context: Input value for retrieval_context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         preprocess_result = self.preprocess(image=image)
         if self.is_mock_mode:
             return self.mock_predict(
@@ -188,6 +252,17 @@ class SAM3Engine:
         preprocess_result: PreprocessResult,
         retrieval_response: Any | None = None,
     ) -> dict[str, Any]:
+        """brief:
+            Handle postprocess.
+
+        parameter:
+            - binary_mask: Input value for binary_mask.
+            - preprocess_result: Input value for preprocess_result.
+            - retrieval_response: Input value for retrieval_response.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         mask = (binary_mask > 0).astype(np.uint8)
         if mask.ndim != 2:
             raise ValueError("invalid mask shape")
@@ -257,6 +332,16 @@ class SAM3Engine:
         return result
 
     def mock_predict(self, image_width: int, image_height: int) -> dict[str, Any]:
+        """brief:
+            Handle mock predict.
+
+        parameter:
+            - image_width: Input value for image_width.
+            - image_height: Input value for image_height.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if self.settings.model_mock_delay_ms > 0:
             time.sleep(self.settings.model_mock_delay_ms / 1000)
 
@@ -296,6 +381,18 @@ class SAM3Engine:
         content_type: str | None = None,
         retrieval_context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """brief:
+            Handle predict bytes.
+
+        parameter:
+            - image_bytes: Input value for image_bytes.
+            - filename: Input value for filename.
+            - content_type: Input value for content_type.
+            - retrieval_context: Input value for retrieval_context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         image = self._decode_image(image_bytes=image_bytes)
         normalized_context = dict(retrieval_context or {})
         if filename:
@@ -306,12 +403,30 @@ class SAM3Engine:
         return self.predict_with_context(image=image, retrieval_context=normalized_context)
 
     def predict_path(self, image_path: str) -> dict[str, Any]:
+        """brief:
+            Handle predict path.
+
+        parameter:
+            - image_path: Input value for image_path.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
         if image is None:
             raise ValueError("invalid or corrupted image")
         return self.predict(image=image)
 
     def _load_model(self) -> Any | None:
+        """brief:
+            Load model.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if self.is_mock_mode:
             logger.info("Loading SAM3Engine in mock mode")
             return None
@@ -381,6 +496,15 @@ class SAM3Engine:
         return model
 
     def _warmup(self) -> None:
+        """brief:
+            Handle warmup.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         warmup_image = np.zeros((self.input_size, self.input_size, 3), dtype=np.uint8)
         if self.is_mock_mode:
             self.mock_predict(image_width=self.input_size, image_height=self.input_size)
@@ -391,6 +515,15 @@ class SAM3Engine:
         logger.info("SAM3Engine warm-up finished")
 
     def _load_yolo_detector(self) -> Any | None:
+        """brief:
+            Load yolo detector.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not self.settings.model_yolo_bbox_enabled:
             return None
         try:
@@ -408,6 +541,15 @@ class SAM3Engine:
             return None
 
     def _build_prompt_bbox(self, preprocess_result: PreprocessResult) -> Any:
+        """brief:
+            Build prompt bbox.
+
+        parameter:
+            - preprocess_result: Input value for preprocess_result.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if torch is None:
             raise RuntimeError("PyTorch runtime is unavailable")
 
@@ -432,6 +574,15 @@ class SAM3Engine:
 
     @staticmethod
     def _decode_image(image_bytes: bytes) -> np.ndarray:
+        """brief:
+            Handle decode image.
+
+        parameter:
+            - image_bytes: Input value for image_bytes.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not image_bytes:
             raise ValueError("empty image payload")
 
@@ -443,6 +594,15 @@ class SAM3Engine:
 
     @staticmethod
     def _empty_result(retrieval_response: Any | None = None) -> dict[str, Any]:
+        """brief:
+            Handle empty result.
+
+        parameter:
+            - retrieval_response: Input value for retrieval_response.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         payload = {
             "mask_data_url": "",
             "mask_coordinates": [],
@@ -464,6 +624,15 @@ class SAM3Engine:
 
     @staticmethod
     def _encode_mask_data_url(mask: np.ndarray) -> str:
+        """brief:
+            Handle encode mask data url.
+
+        parameter:
+            - mask: Input value for mask.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if mask.ndim != 2:
             raise ValueError("mask image must be 2D")
 
@@ -478,6 +647,16 @@ class SAM3Engine:
 
     @staticmethod
     def _count_loaded_lora_keys(base_model: Any, lora_path: Path) -> int:
+        """brief:
+            Handle count loaded lora keys.
+
+        parameter:
+            - base_model: Input value for base_model.
+            - lora_path: Input value for lora_path.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if torch is None:
             return 0
 
@@ -519,6 +698,16 @@ class SAM3Engine:
         preprocess_result: PreprocessResult,
         retrieval_context: dict[str, Any] | None,
     ) -> tuple[Any | None, Any | None]:
+        """brief:
+            Build retrieval artifacts.
+
+        parameter:
+            - preprocess_result: Input value for preprocess_result.
+            - retrieval_context: Input value for retrieval_context.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not retrieval_context:
             return None, None
 
@@ -580,6 +769,15 @@ class SAM3Engine:
 
     @staticmethod
     def _parse_json_payload(payload: Any) -> dict[str, Any]:
+        """brief:
+            Handle parse json payload.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if payload is None:
             return {}
         if isinstance(payload, dict):
@@ -592,11 +790,30 @@ class SAM3Engine:
 
     @staticmethod
     def _encode_input_image_data_url(image_bytes: bytes, *, content_type: str) -> str:
+        """brief:
+            Handle encode input image data url.
+
+        parameter:
+            - image_bytes: Input value for image_bytes.
+            - content_type: Input value for content_type.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         payload = base64.b64encode(image_bytes).decode("ascii")
         return f"data:{content_type};base64,{payload}"
 
 
 class SAM3RuntimeSingleton:
+    """brief:
+        Represent SAM3RuntimeSingleton state and behavior.
+
+    parameter:
+        - settings: Input value for settings.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     _instance: "SAM3RuntimeSingleton | None" = None
     _lock = threading.Lock()
     _last_reload_error: str | None = None
@@ -604,11 +821,29 @@ class SAM3RuntimeSingleton:
     _preload_error: str | None = None
 
     def __init__(self, settings: Settings):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - settings: Input value for settings.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.settings = settings
         self.engine = SAM3Engine(settings=settings)
 
     @classmethod
     def get_instance(cls, settings: Settings | None = None) -> "SAM3RuntimeSingleton":
+        """brief:
+            Get instance.
+
+        parameter:
+            - settings: Input value for settings.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -618,6 +853,15 @@ class SAM3RuntimeSingleton:
 
     @classmethod
     def ensure_preload_started(cls, settings: Settings | None = None) -> dict[str, Any]:
+        """brief:
+            Handle ensure preload started.
+
+        parameter:
+            - settings: Input value for settings.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         instance = cls.peek_instance()
         if instance is not None:
             return cls.get_preload_status()
@@ -644,6 +888,15 @@ class SAM3RuntimeSingleton:
 
     @classmethod
     def _preload_worker(cls, settings: Settings) -> None:
+        """brief:
+            Handle preload worker.
+
+        parameter:
+            - settings: Input value for settings.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         try:
             cls.get_instance(settings=settings)
         except Exception as exc:  # pragma: no cover - runtime dependent
@@ -652,6 +905,15 @@ class SAM3RuntimeSingleton:
 
     @classmethod
     def get_preload_status(cls) -> dict[str, Any]:
+        """brief:
+            Get preload status.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         instance = cls._instance
         preload_thread = cls._preload_thread
         in_progress = preload_thread is not None and preload_thread.is_alive()
@@ -668,14 +930,41 @@ class SAM3RuntimeSingleton:
 
     @classmethod
     def peek_instance(cls) -> "SAM3RuntimeSingleton | None":
+        """brief:
+            Handle peek instance.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return cls._instance
 
     @classmethod
     def get_last_reload_error(cls) -> str | None:
+        """brief:
+            Get last reload error.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return cls._last_reload_error
 
     @classmethod
     def reload_instance(cls, settings: Settings | None = None) -> "SAM3RuntimeSingleton":
+        """brief:
+            Handle reload instance.
+
+        parameter:
+            - settings: Input value for settings.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         with cls._lock:
             previous_instance = cls._instance
             try:
@@ -690,6 +979,15 @@ class SAM3RuntimeSingleton:
             return next_instance
 
     def run_inference(self, image_path: str) -> dict[str, Any]:
+        """brief:
+            Run inference.
+
+        parameter:
+            - image_path: Input value for image_path.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         result = self.engine.predict_path(image_path=image_path)
         polygon = [{"x": x, "y": y} for x, y in result["mask_coordinates"]]
         lesions = []

@@ -7,6 +7,16 @@ import ReportCaptureGallery from '@/components/report/ReportCaptureGallery.vue'
 import Sam3PromptPanel from '@/components/report/Sam3PromptPanel.vue'
 import type { CaptureFramePayload, ReportContextData } from '@/types/eis'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   context: ReportContextData | null
   playerIsPlaying: boolean
@@ -19,6 +29,16 @@ const props = defineProps<{
   toastTone: 'info' | 'success' | 'error'
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'capture-frame', payload: CaptureFramePayload): void
   (event: 'patient-edit', patientId: string): void

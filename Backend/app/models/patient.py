@@ -9,6 +9,15 @@ from app.models.base import Base
 
 
 class Patient(Base):
+    """brief:
+        Represent Patient state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     __tablename__ = "patients"
 
     patient_id: Mapped[str] = mapped_column(String(64), primary_key=True)

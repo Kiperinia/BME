@@ -11,6 +11,7 @@ from app.core.config import (
     get_settings,
     load_settings_overrides,
     refresh_settings_cache,
+    resolve_workspace_path,
     save_settings_overrides,
 )
 from app.core.exceptions import AppException
@@ -28,11 +29,38 @@ from app.services.sam3_runtime import SAM3RuntimeSingleton
 
 
 class SystemSettingsService:
+    """brief:
+        Represent SystemSettingsService state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self) -> None:
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.llm_config_path = (WORKSPACE_DIR / "agent" / "config" / "llm_profiles.json").resolve()
         self.runtime_settings_path = get_runtime_settings_path().resolve()
 
     def get_system_settings(self) -> SystemSettingsResponseSchema:
+        """brief:
+            Get system settings.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         settings, settings_warnings = self._load_settings_with_fallback()
         llm_config, llm_warnings = self._load_llm_config_with_fallback()
         payload = self._build_payload(settings=settings, llm_config=llm_config)
@@ -44,6 +72,15 @@ class SystemSettingsService:
         self,
         payload: SystemSettingsPayloadSchema,
     ) -> SystemSettingsResponseSchema:
+        """brief:
+            Update system settings.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         self._validate_payload(payload)
 
         previous_llm_config_snapshot = self._read_optional_text(self.llm_config_path)
@@ -79,6 +116,16 @@ class SystemSettingsService:
         previous_llm_config_snapshot: str | None,
         previous_runtime_snapshot: str | None,
     ) -> None:
+        """brief:
+            Handle rollback.
+
+        parameter:
+            - previous_llm_config_snapshot: Input value for previous_llm_config_snapshot.
+            - previous_runtime_snapshot: Input value for previous_runtime_snapshot.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self._restore_file_snapshot(self.llm_config_path, previous_llm_config_snapshot)
         self._restore_file_snapshot(self.runtime_settings_path, previous_runtime_snapshot)
         refresh_settings_cache()
@@ -88,12 +135,30 @@ class SystemSettingsService:
             return
 
     def _load_settings_with_fallback(self) -> tuple[Settings, list[str]]:
+        """brief:
+            Load settings with fallback.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         try:
             return get_settings(), []
         except Exception as exc:
             return Settings(), [f"运行时配置文件读取失败，已回退到默认设置：{exc}"]
 
     def _load_llm_config_with_fallback(self) -> tuple[dict[str, Any], list[str]]:
+        """brief:
+            Load llm config with fallback.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         try:
             return self._load_llm_config(), []
         except AppException as exc:
@@ -102,6 +167,15 @@ class SystemSettingsService:
             return self._default_llm_config(), [f"LLM 配置文件读取失败，已回退到默认配置：{exc}"]
 
     def _load_runtime_overrides_with_fallback(self) -> dict[str, Any]:
+        """brief:
+            Load runtime overrides with fallback.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         try:
             return load_settings_overrides()
         except Exception:
@@ -109,12 +183,31 @@ class SystemSettingsService:
 
     @staticmethod
     def _read_optional_text(path: Path) -> str | None:
+        """brief:
+            Read optional text.
+
+        parameter:
+            - path: Input value for path.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not path.exists():
             return None
         return path.read_text(encoding="utf-8")
 
     @staticmethod
     def _restore_file_snapshot(path: Path, content: str | None) -> None:
+        """brief:
+            Handle restore file snapshot.
+
+        parameter:
+            - path: Input value for path.
+            - content: Input value for content.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         if content is None:
             if path.exists():
                 path.unlink()
@@ -124,8 +217,17 @@ class SystemSettingsService:
         path.write_text(content, encoding="utf-8")
 
     def _validate_payload(self, payload: SystemSettingsPayloadSchema) -> None:
+        """brief:
+            Validate payload.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         if payload.sam3.loadMode == "sam3":
-            checkpoint_path = Path(payload.sam3.checkpointPath).expanduser()
+            checkpoint_path = resolve_workspace_path(payload.sam3.checkpointPath)
             if not checkpoint_path.exists():
                 raise AppException(400, 40041, "SAM3 checkpoint path does not exist")
 
@@ -133,7 +235,7 @@ class SystemSettingsService:
                 if not payload.sam3.loraPath.strip():
                     raise AppException(400, 40042, "SAM3 LoRA is enabled but no adapter path was provided")
 
-                lora_path = Path(payload.sam3.loraPath).expanduser()
+                lora_path = resolve_workspace_path(payload.sam3.loraPath)
                 if not lora_path.exists():
                     raise AppException(400, 40043, "SAM3 LoRA checkpoint path does not exist")
 
@@ -143,6 +245,16 @@ class SystemSettingsService:
         settings: Any,
         llm_config: dict[str, Any],
     ) -> SystemSettingsPayloadSchema:
+        """brief:
+            Build payload.
+
+        parameter:
+            - settings: Input value for settings.
+            - llm_config: Input value for llm_config.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         profiles = llm_config.get("profiles", {})
         profile_schemas: list[LlmProfileSchema] = []
 
@@ -235,6 +347,16 @@ class SystemSettingsService:
         settings: Any,
         payload: SystemSettingsPayloadSchema,
     ) -> SystemSettingsStatusSchema:
+        """brief:
+            Build status.
+
+        parameter:
+            - settings: Input value for settings.
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         warnings: list[str] = []
         llm_ready = self._is_llm_ready(payload.llm)
 
@@ -267,6 +389,15 @@ class SystemSettingsService:
         )
 
     def _load_llm_config(self) -> dict[str, Any]:
+        """brief:
+            Load llm config.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not self.llm_config_path.exists():
             return self._default_llm_config()
 
@@ -276,6 +407,15 @@ class SystemSettingsService:
         return raw
 
     def _write_llm_config(self, config_data: dict[str, Any]) -> None:
+        """brief:
+            Write llm config.
+
+        parameter:
+            - config_data: Input value for config_data.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.llm_config_path.parent.mkdir(parents=True, exist_ok=True)
         self.llm_config_path.write_text(
             json.dumps(config_data, ensure_ascii=False, indent=2),
@@ -284,6 +424,15 @@ class SystemSettingsService:
 
     @staticmethod
     def _default_llm_config() -> dict[str, Any]:
+        """brief:
+            Handle default llm config.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "active_profile": "deepseek_chat",
             "profiles": {
@@ -313,6 +462,15 @@ class SystemSettingsService:
 
     @staticmethod
     def _serialize_llm_config(payload: LlmSettingsSchema) -> dict[str, Any]:
+        """brief:
+            Handle serialize llm config.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         profiles: dict[str, dict[str, Any]] = {}
 
         for profile in payload.profiles:
@@ -345,6 +503,15 @@ class SystemSettingsService:
 
     @staticmethod
     def _serialize_runtime_overrides(payload: SystemSettingsPayloadSchema) -> dict[str, Any]:
+        """brief:
+            Handle serialize runtime overrides.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "model_load_mode": payload.sam3.loadMode,
             "model_device": payload.sam3.device,
@@ -369,6 +536,15 @@ class SystemSettingsService:
 
     @staticmethod
     def _is_llm_ready(payload: LlmSettingsSchema) -> bool:
+        """brief:
+            Handle is llm ready.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         active_profile = next(
             (profile for profile in payload.profiles if profile.profileId == payload.activeProfile),
             None,
@@ -386,6 +562,15 @@ class SystemSettingsService:
 
     @staticmethod
     def _detect_provider_kind(profile_data: dict[str, Any]) -> str:
+        """brief:
+            Handle detect provider kind.
+
+        parameter:
+            - profile_data: Input value for profile_data.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         default_provider = str(profile_data.get("default_provider", "")).strip().lower()
         if "modelscope_api_key" in profile_data or default_provider == "modelscope":
             return "modelscope"
@@ -393,6 +578,16 @@ class SystemSettingsService:
 
     @staticmethod
     def _resolve_openai_compatible_base_url(*, provider: str, base_url: str) -> str:
+        """brief:
+            Resolve openai compatible base url.
+
+        parameter:
+            - provider: Input value for provider.
+            - base_url: Input value for base_url.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         resolved_provider = provider.strip().lower()
         if base_url.strip():
             return base_url

@@ -1,4 +1,8 @@
-"""Adapter modules for MedEx-SAM3."""
+"""MedEx-SAM3 适配器模块集合。
+
+本包聚合了 MedEx-SAM3 用到的各类适配器，包括边界感知适配器、示例提示适配器、
+检索空间语义适配器、LoRA 低秩注入工具以及医学图像特征适配器，供上层模型按需导入。
+"""
 
 from .boundary_adapter import BoundaryAwareAdapter
 from .exemplar_prompt_adapter import ExemplarPromptAdapter

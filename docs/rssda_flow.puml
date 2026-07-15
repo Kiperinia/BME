@@ -1,0 +1,64 @@
+@startuml
+title RSS-DA 简化流程
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Microsoft YaHei
+skinparam activity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  DiamondBackgroundColor #FFF7ED
+  DiamondBorderColor #EA580C
+  StartColor #16A34A
+  EndColor #DC2626
+}
+skinparam note {
+  BackgroundColor #FFFBEB
+  BorderColor #F59E0B
+}
+
+start
+
+partition "第一步：基线分割" {
+  :输入图像与提示框/文本;
+  :运行一次 SAM3;
+  :得到 query_feature 与 baseline mask_logits;
+}
+
+partition "第二步：检索增强" {
+  :用 query_feature 检索样本库;
+  :获得 positive/negative prototypes 与 similarity heatmaps;
+
+  fork
+    :空间先验;
+    :由正/负热图生成 spatial_bias_map;
+  fork again
+    :语义先验;
+    :positive context 增强病灶响应;
+    :negative context 抑制背景/假阳性响应;
+  fork again
+    :门控策略;
+    :根据相似度、不确定性和高置信区域决定是否介入;
+  end fork
+
+  :融合为 localized_delta;
+  :生成 retrieval_prior;
+}
+
+note right
+retrieval_prior 主要包含：
+- spatial_bias_map
+- semantic_prototype_map
+- decoder/encoder feature bias
+- mask_logit_bias_map
+end note
+
+partition "第三步：带检索先验再次分割" {
+  :将 retrieval_prior 注入 SAM3 wrapper;
+  :修正特征图和 mask logits;
+  :输出 RSS-DA 增强后的分割结果;
+}
+
+stop
+@enduml

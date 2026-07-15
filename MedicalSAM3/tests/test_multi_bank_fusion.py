@@ -8,7 +8,17 @@ from MedicalSAM3.retrieval.site_bank_resolver import SiteBankResolution
 
 
 class _Entry:
+    """测试辅助类，表示一个检索库条目。"""
     def __init__(self, prototype_id: str, polarity: str) -> None:
+        """初始化条目。
+
+        参数：
+            - prototype_id: 原型 ID
+            - polarity: 极性（positive/negative）
+
+        返回：
+            - 无
+        """
         self.prototype_id = prototype_id
         self.crop_path = None
         self.source_dataset = "PolypGen"
@@ -16,6 +26,15 @@ class _Entry:
 
 
 def _retrieval_fixture(score: float, prefix: str) -> dict[str, object]:
+    """生成指定分数和前缀的检索结果夹具。
+
+    参数：
+        - score: 检索分数
+        - prefix: 条目 ID 前缀
+
+    返回：
+        - 包含检索结果的字典
+    """
     positive_features = torch.tensor([[[score, 0.0], [score * 0.9, 0.1]]], dtype=torch.float32)
     negative_features = torch.tensor([[[0.0, score * 0.2]]], dtype=torch.float32)
     positive_weights = torch.tensor([[0.6, 0.4]], dtype=torch.float32)
@@ -54,7 +73,9 @@ def _retrieval_fixture(score: float, prefix: str) -> dict[str, object]:
 
 
 class TestMultiBankFusion(unittest.TestCase):
+    """测试多库融合功能（训练库 + 站点库）。"""
     def test_fusion_keeps_train_site_separate_diagnostics(self) -> None:
+        """验证多库融合保持训练库和站点库的诊断信息分离。"""
         train_retrieval = _retrieval_fixture(0.55, "train")
         site_retrieval = _retrieval_fixture(0.9, "site")
         resolution = SiteBankResolution(

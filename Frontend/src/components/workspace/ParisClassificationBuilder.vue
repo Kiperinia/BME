@@ -8,19 +8,69 @@ import {
   type ParisMorphologyGroup,
 } from '@/types/workspace'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - group: Input value for group.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   modelValue: DetailedParisConfiguration
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - group: Input value for group.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'update:modelValue', value: DetailedParisConfiguration): void
 }>()
 
+/**
+ * brief:
+ *   Update group.
+ *
+ * parameter:
+ *   - group: Input value for group.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const updateGroup = (group: ParisMorphologyGroup) => {
   emit('update:modelValue', createParisDetailFromSelection(group, 0))
 }
 
+/**
+ * brief:
+ *   Update slider.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const updateSlider = (event: Event) => {
+  /**
+   * brief:
+   *   Handle next index.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const nextIndex = Number((event.target as HTMLInputElement).value)
   emit('update:modelValue', createParisDetailFromSelection(props.modelValue.morphologyGroup, nextIndex))
 }

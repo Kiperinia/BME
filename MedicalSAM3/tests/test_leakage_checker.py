@@ -5,6 +5,17 @@ from MedicalSAM3.exemplar.memory_bank import ExemplarItem
 
 
 def _item(item_id: str, image_id: str, dataset: str, fold_id: int) -> ExemplarItem:
+    """创建用于测试的 ExemplarItem 辅助函数。
+
+    参数：
+        - item_id: 样本 ID
+        - image_id: 图像 ID
+        - dataset: 数据集名称
+        - fold_id: 折编号
+
+    返回：
+        - 配置好的 ExemplarItem 实例
+    """
     return ExemplarItem(
         item_id=item_id,
         image_id=image_id,
@@ -29,7 +40,9 @@ def _item(item_id: str, image_id: str, dataset: str, fold_id: int) -> ExemplarIt
 
 
 class TestLeakageChecker(unittest.TestCase):
+    """测试泄漏检测器对外部数据集、重复项和折泄漏的检测。"""
     def test_rejects_polypgen_and_duplicates_and_fold_leakage(self) -> None:
+        """验证泄漏检查器能正确拒绝 PolypGen 外部数据、重复项和折泄漏。"""
         checker = LeakageChecker(external_test_ids=["ext-1"])
         ok, reason = checker.check_item(_item("i1", "img-1", "Kvasir-SEG", 0))
         self.assertTrue(ok)

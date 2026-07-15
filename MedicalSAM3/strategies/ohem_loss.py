@@ -18,10 +18,17 @@ import torch.nn.functional as F
 
 
 class OHEMLoss(nn.Module):
-    """
-    Online Hard Example Mining (OHEM) Loss
+    """难例挖掘损失，结合 Focal Loss 和 Dice Loss 并聚焦于困难像素。
 
-    组合 Dice 和 Focal 损失，并在像素级别做难例挖掘。
+    通过筛选损失最高的 Top-K 像素进行反传，迫使网络关注难以分辨的边界和小目标。
+
+    参数：
+        - hard_ratio: 难例像素保留比例
+        - min_kept: 最少保留的像素数
+        - focal_alpha: Focal Loss 的 alpha 平衡因子
+        - focal_gamma: Focal Loss 的 gamma 聚焦参数
+        - dice_weight: Dice Loss 的权重系数
+        - focal_weight: Focal Loss 的权重系数
     """
 
     def __init__(
@@ -33,12 +40,15 @@ class OHEMLoss(nn.Module):
         dice_weight: float = 0.5,
         focal_weight: float = 0.5,
     ):
-        """
-        Args:
-            hard_ratio: 保留最困难像素的比例
-            min_kept: 至少保留的像素数
-            focal_alpha: Focal Loss α
-            focal_gamma: Focal Loss γ
+        """初始化难例挖掘损失模块。
+
+        参数：
+            - hard_ratio: 难例保留比例，默认 0.3
+            - min_kept: 最少保留像素数，默认 1000
+            - focal_alpha: Focal Loss alpha，默认 0.25
+            - focal_gamma: Focal Loss gamma，默认 2.0
+            - dice_weight: Dice 损失权重，默认 0.5
+            - focal_weight: Focal 损失权重，默认 0.5
         """
         super().__init__()
         self.hard_ratio = hard_ratio
@@ -50,18 +60,27 @@ class OHEMLoss(nn.Module):
 
     def _pixel_focal_loss(self, pred: torch.Tensor,
                           target: torch.Tensor) -> torch.Tensor:
-        """逐像素 Focal Loss (不 reduce)"""
+        """计算逐像素的 Focal Loss，不进行归约。
+
+        参数：
+            - pred: 预测 logits 张量
+            - target: 二值目标掩码张量
+
+        返回：
+            - 与输入形状相同的逐像素损失图
+        """
         bce = F.binary_cross_entropy_with_logits(pred, target.float(), reduction="none")
         p_t = torch.exp(-bce)
         return self.focal_alpha * (1 - p_t) ** self.focal_gamma * bce
 
     def _hard_mining(self, loss_map: torch.Tensor) -> torch.Tensor:
-        """
-        从 loss_map 中选择最困难的像素
-        Args:
-            loss_map: (B, 1, H, W) 逐像素损失
-        Returns:
-            标量损失 (仅含困难像素)
+        """对损失图进行难例挖掘，取 Top-K 最高损失像素的均值。
+
+        参数：
+            - loss_map: 逐像素损失图
+
+        返回：
+            - 难例像素的平均损失值
         """
         B = loss_map.shape[0]
         flat = loss_map.flatten(1)  # (B, N)
@@ -74,6 +93,15 @@ class OHEMLoss(nn.Module):
         return topk_loss.mean()
 
     def _dice_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """计算 Dice Loss。
+
+        参数：
+            - pred: 预测 logits 张量
+            - target: 二值目标掩码张量
+
+        返回：
+            - 标量 Dice 损失值
+        """
         pred_sig = pred.sigmoid().flatten(1)
         target_flat = target.float().flatten(1)
         inter = (pred_sig * target_flat).sum(dim=1)
@@ -81,10 +109,14 @@ class OHEMLoss(nn.Module):
         return (1.0 - dice).mean()
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            pred: (B, 1, H, W) logits
-            target: (B, 1, H, W) binary mask
+        """计算 OHEM 损失，组合难例挖掘后的 Focal Loss 和全局 Dice Loss。
+
+        参数：
+            - pred: 预测 logits 张量
+            - target: 二值目标掩码张量
+
+        返回：
+            - 加权组合后的总损失值
         """
         # 逐像素 Focal loss
         focal_map = self._pixel_focal_loss(pred, target)

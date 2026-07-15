@@ -8,6 +8,17 @@ defineProps<{
   isAgentLoading: boolean
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *   - field: Input value for field.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'update:initialOpinion', value: string): void
   (event: 'update:findings', value: string): void
@@ -15,7 +26,28 @@ const emit = defineEmits<{
   (event: 'update:layoutSuggestion', value: string): void
 }>()
 
+/**
+ * brief:
+ *   Update field.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *   - field: Input value for field.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const updateField = (event: Event, field: 'initialOpinion' | 'findings' | 'conclusion' | 'layoutSuggestion') => {
+  /**
+   * brief:
+   *   Handle target.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const target = event.target as HTMLTextAreaElement
 
   if (field === 'initialOpinion') {

@@ -1,4 +1,4 @@
-"""Analyze exemplar/retrieval gains on low-Dice hard cases."""
+"""分析低 Dice 困难案例上的示例/检索增益。"""
 
 from __future__ import annotations
 
@@ -10,6 +10,14 @@ from typing import Any
 
 
 def _load_rows(path: str | Path) -> list[dict[str, Any]]:
+    """从 JSON 或 JSONL 文件加载逐图像指标行。
+
+    参数：
+        - path: 指标文件路径
+
+    返回：
+        - 指标字典列表
+    """
     target = Path(path)
     if not target.exists():
         raise FileNotFoundError(f"per-image metrics not found: {target}")
@@ -22,6 +30,15 @@ def _load_rows(path: str | Path) -> list[dict[str, Any]]:
 
 
 def _dice(row: dict[str, Any], field: str) -> float:
+    """从行数据中提取指定字段的 Dice 系数。
+
+    参数：
+        - row: 指标数据行字典
+        - field: 字段名，支持 "delta_dice" 或指标字典字段名
+
+    返回：
+        - Dice 系数浮点值
+    """
     if field == "delta_dice":
         return float(row.get("delta_dice", 0.0))
     payload = row.get(field, {})
@@ -31,6 +48,16 @@ def _dice(row: dict[str, Any], field: str) -> float:
 
 
 def _summarize_subset(rows: list[dict[str, Any]], *, min_gain: float, rescue_threshold: float) -> dict[str, Any]:
+    """汇总子集（如低 Dice 子集）的各项统计指标。
+
+    参数：
+        - rows: 指标行列表
+        - min_gain: 被视为有意义增益的最小增量阈值
+        - rescue_threshold: 抢救阈值（基线低于此、结果高于此视为抢救成功）
+
+    返回：
+        - 包含样本数、均值、中位数、增益率、抢救率等指标的字典
+    """
     if not rows:
         return {
             "count": 0,
@@ -72,6 +99,15 @@ def _summarize_subset(rows: list[dict[str, Any]], *, min_gain: float, rescue_thr
 
 
 def _bottom_quantile(rows: list[dict[str, Any]], quantile: float) -> list[dict[str, Any]]:
+    """按基线 Dice 排序，取出最低分位数子集。
+
+    参数：
+        - rows: 指标行列表
+        - quantile: 分位数（如 0.1 表示底部 10%）
+
+    返回：
+        - 排序后的底部子集列表
+    """
     if not rows:
         return []
     ranked = sorted(rows, key=lambda row: _dice(row, "baseline_metrics"))
@@ -80,6 +116,15 @@ def _bottom_quantile(rows: list[dict[str, Any]], quantile: float) -> list[dict[s
 
 
 def _weighted_hard_case_gain(rows: list[dict[str, Any]], gamma: float) -> float:
+    """计算加权困难案例增益，权重为 (1 - baseline Dice) 的 gamma 次幂。
+
+    参数：
+        - rows: 指标行列表
+        - gamma: 权重指数
+
+    返回：
+        - 加权后的平均增益
+    """
     numerator = 0.0
     denominator = 0.0
     for row in rows:
@@ -92,6 +137,15 @@ def _weighted_hard_case_gain(rows: list[dict[str, Any]], gamma: float) -> float:
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    """将困难案例按基线 Dice 排序后写入 CSV 文件。
+
+    参数：
+        - path: CSV 输出文件路径
+        - rows: 指标行列表
+
+    返回：
+        - 无返回值，仅执行写入文件的副作用
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(
@@ -123,6 +177,14 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def main() -> int:
+    """脚本命令行入口，分析低 Dice 困难案例的增量指标。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Analyze low-Dice hard-case delta metrics.")
     parser.add_argument("--per-image-metrics", required=True)
     parser.add_argument("--output", required=True)

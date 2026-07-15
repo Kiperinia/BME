@@ -3,14 +3,54 @@ import { computed } from 'vue'
 
 import type { UploadedWorkspaceImage, WorkspaceSegmentation } from '@/types/workspace'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   image: UploadedWorkspaceImage | null
   segmentation: WorkspaceSegmentation | null
   showMask: boolean
 }>()
 
+/**
+ * brief:
+ *   Handle info items.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const infoItems = computed(() => {
+  /**
+   * brief:
+   *   Handle image.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const image = props.image
+  /**
+   * brief:
+   *   Handle segmentation.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const segmentation = props.segmentation
 
   return [
@@ -24,6 +64,16 @@ const infoItems = computed(() => {
   ]
 })
 
+/**
+ * brief:
+ *   Handle file size label.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const fileSizeLabel = computed(() => {
   if (!props.image) {
     return '-'

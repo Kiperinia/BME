@@ -1,8 +1,6 @@
-"""Build a YOLO detection dataset from MedEx-SAM3 split records.
+"""从 MedEx-SAM3 分割记录构建 YOLO 检测数据集。
 
-The script converts segmentation masks into padded bbox labels. It is meant
-for training a prompt detector whose boxes are consumed by SAM3.
-"""
+该脚本将分割掩码转换为带填充的边界框标签，用于训练被 SAM3 消费的提示检测器。"""
 
 from __future__ import annotations
 
@@ -28,12 +26,34 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
 
 
 def _safe_stem(value: str, fallback: str) -> str:
+    """将字符串安全转换为文件系统友好的 stem 名称。
+
+    替换非字母数字字符为下划线，去除首尾特殊字符。
+
+    参数：
+        - value: 原始字符串。
+        - fallback: 若转换后为空时的备用名称。
+
+    返回：
+        - 安全的文件系统名称。
+    """
     stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip())
     stem = stem.strip("._")
     return stem or fallback
 
 
 def _record_key(record: dict[str, Any], index: int) -> str:
+    """从记录字典生成唯一且安全的文件键名。
+
+    优先使用 image_id，其次为图像 stem 名称，最后使用索引。
+
+    参数：
+        - record: 数据记录字典。
+        - index: 记录序号，用于生成后备键名。
+
+    返回：
+        - 唯一且安全的文件键名字符串。
+    """
     image_path = str(record.get("image_path", ""))
     image_id = str(record.get("image_id", ""))
     dataset_name = str(record.get("dataset_name", ""))
@@ -44,6 +64,16 @@ def _record_key(record: dict[str, Any], index: int) -> str:
 
 
 def _load_rgb_image(path: Path) -> Image.Image:
+    """从路径加载 RGB 图像，支持 _0000 多通道格式。
+
+    对于以 _0000 结尾的文件名，尝试加载 _0000、_0001、_0002 三个通道并合并。
+
+    参数：
+        - path: 图像文件路径。
+
+    返回：
+        - RGB 模式的 PIL 图像。
+    """
     if path.stem.endswith("_0000"):
         channel_paths = [path.with_name(path.name.replace("_0000", f"_000{i}")) for i in range(3)]
         if all(channel_path.exists() for channel_path in channel_paths):
@@ -53,6 +83,14 @@ def _load_rgb_image(path: Path) -> Image.Image:
 
 
 def _mask_to_xyxy(mask_path: Path) -> tuple[float, float, float, float] | None:
+    """将掩码图像转换为 xyxy 边界框坐标。
+
+    参数：
+        - mask_path: 掩码图像文件路径。
+
+    返回：
+        - (x1, y1, x2, y2) 元组；若掩码为空则返回 None。
+    """
     mask = Image.open(mask_path).convert("L")
     array = np.asarray(mask)
     threshold = 0 if array.max() <= 1 else 127
@@ -74,6 +112,18 @@ def _pad_xyxy(
     padding_ratio: float,
     min_size: float,
 ) -> tuple[float, float, float, float] | None:
+    """对 xyxy 边界框应用填充并确保最小尺寸。
+
+    参数：
+        - xyxy: 原始边界框 (x1, y1, x2, y2)。
+        - width: 图像宽度。
+        - height: 图像高度。
+        - padding_ratio: 填充比例（相对框边长）。
+        - min_size: 填充后框的最小边长。
+
+    返回：
+        - 填充后的边界框；若无效则返回 None。
+    """
     x1, y1, x2, y2 = xyxy
     box_w = max(x2 - x1, 1.0)
     box_h = max(y2 - y1, 1.0)
@@ -102,6 +152,18 @@ def _pad_xyxy(
 
 
 def _to_yolo_line(xyxy: tuple[float, float, float, float], width: int, height: int) -> str:
+    """将 xyxy 坐标转换为 YOLO 格式标签行。
+
+    格式：class_id x_center y_center box_width box_height（归一化到 [0, 1]）。
+
+    参数：
+        - xyxy: 边界框坐标 (x1, y1, x2, y2)。
+        - width: 图像宽度。
+        - height: 图像高度。
+
+    返回：
+        - YOLO 格式的标签字符串。
+    """
     x1, y1, x2, y2 = xyxy
     x_center = ((x1 + x2) * 0.5) / float(width)
     y_center = ((y1 + y2) * 0.5) / float(height)
@@ -111,6 +173,15 @@ def _to_yolo_line(xyxy: tuple[float, float, float, float], width: int, height: i
 
 
 def _materialize_image(source: Path, destination: Path, *, link_mode: str) -> None:
+    """将源图像复制或链接到目标路径。
+
+    对于 _0000 格式的多通道图像，先合并再保存为 PNG。
+
+    参数：
+        - source: 源图像路径。
+        - destination: 目标路径。
+        - link_mode: 链接模式，"symlink" / "hardlink" / "copy"。
+    """
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() or destination.is_symlink():
         destination.unlink()
@@ -138,6 +209,22 @@ def _prepare_split(
     link_mode: str,
     include_empty_labels: bool,
 ) -> dict[str, Any]:
+    """处理单个数据集划分（训练/验证/测试）。
+
+    读取记录，提取/填充边界框，写入图像和标签文件，返回统计数据。
+
+    参数：
+        - split_name: 划分名称（如 train / val / test）。
+        - split_file: 划分记录文件路径。
+        - output_dir: 输出根目录。
+        - padding_ratio: 边界框填充比例。
+        - min_box_size: 最小框尺寸。
+        - link_mode: 图像文件处理模式。
+        - include_empty_labels: 是否包含空标签文件。
+
+    返回：
+        - 包含处理统计信息的字典。
+    """
     records = read_records(split_file)
     stats: dict[str, Any] = {
         "split_file": str(split_file),
@@ -200,6 +287,15 @@ def _prepare_split(
 
 
 def _write_data_yaml(output_dir: Path, splits: dict[str, Path]) -> Path:
+    """写入 YOLO data.yaml 配置文件。
+
+    参数：
+        - output_dir: 数据集根目录。
+        - splits: 划分名称到分割文件的映射。
+
+    返回：
+        - 生成的 YAML 文件路径。
+    """
     lines = [
         f"path: {output_dir.resolve().as_posix()}",
         "train: images/train",
@@ -214,6 +310,13 @@ def _write_data_yaml(output_dir: Path, splits: dict[str, Path]) -> Path:
 
 
 def main() -> int:
+    """命令行入口，将 MedEx-SAM3 分割记录转换为 YOLO 检测数据集。
+
+    解析命令行参数，处理训练/验证/测试划分，写入图像、标签和配置文件。
+
+    返回：
+        - 退出码（0 表示成功）。
+    """
     parser = argparse.ArgumentParser(description="Prepare a YOLO polyp detection dataset from split records.")
     parser.add_argument("--train-split", required=True)
     parser.add_argument("--val-split", required=True)

@@ -3,6 +3,16 @@ import { computed, watch } from 'vue'
 
 import type { AnnotationTag, FetchAnnotationTagsRequest, ReportContextData } from '@/types/eis'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = withDefaults(
   defineProps<{
     contextData: ReportContextData
@@ -18,11 +28,31 @@ const props = withDefaults(
   },
 )
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'fetch-agent-tags', payload: FetchAnnotationTagsRequest): void
   (event: 'tag-click', payload: AnnotationTag): void
 }>()
 
+/**
+ * brief:
+ *   Handle has tags.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const hasTags = computed(() => props.tags.length > 0)
 
 watch(

@@ -9,11 +9,29 @@ from app.core.enums import TaskStatusEnum
 
 
 class PointSchema(BaseModel):
+    """brief:
+        Represent PointSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     x: int = Field(ge=0, examples=[142])
     y: int = Field(ge=0, examples=[96])
 
 
 class LesionSchema(BaseModel):
+    """brief:
+        Represent LesionSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     lesion_id: str | None = Field(default=None, examples=["6a8c5af0-5805-4809-b29c-a0b39ca02fb5"])
     label: str = Field(min_length=2, max_length=64, examples=["suspected_polyp"])
     confidence: float = Field(ge=0.0, le=1.0, examples=[0.973])
@@ -23,6 +41,15 @@ class LesionSchema(BaseModel):
 
 
 class SubmitTaskRequestSchema(BaseModel):
+    """brief:
+        Represent SubmitTaskRequestSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     patient_id: str = Field(
         min_length=1,
         max_length=64,
@@ -54,10 +81,30 @@ class SubmitTaskRequestSchema(BaseModel):
         study_id: str | None = Form(default=None),
         lesion_hint: str | None = Form(default=None),
     ) -> "SubmitTaskRequestSchema":
+        """brief:
+            Handle as form.
+
+        parameter:
+            - patient_id: Input value for patient_id.
+            - study_id: Input value for study_id.
+            - lesion_hint: Input value for lesion_hint.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return cls(patient_id=patient_id, study_id=study_id, lesion_hint=lesion_hint)
 
 
 class SubmitTaskResponseSchema(BaseModel):
+    """brief:
+        Represent SubmitTaskResponseSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     task_id: str = Field(examples=["714ce71b-1d25-4a37-b40e-8aa55d4f9744"])
     status: TaskStatusEnum = Field(examples=[TaskStatusEnum.PENDING])
 
@@ -72,6 +119,15 @@ class SubmitTaskResponseSchema(BaseModel):
 
 
 class SegmentFrameResponseSchema(BaseModel):
+    """brief:
+        Represent SegmentFrameResponseSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     mask_data_url: str = Field(default="")
     mask_coordinates: list[tuple[int, int]] = Field(default_factory=list)
     bounding_box: tuple[int, int, int, int] = Field(default_factory=lambda: (0, 0, 0, 0))
@@ -96,6 +152,15 @@ class SegmentFrameResponseSchema(BaseModel):
 
 
 class Sam3PreloadStatusSchema(BaseModel):
+    """brief:
+        Represent Sam3PreloadStatusSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     started: bool = Field(default=False)
     ready: bool = Field(default=False)
     in_progress: bool = Field(default=False)
@@ -106,6 +171,15 @@ class Sam3PreloadStatusSchema(BaseModel):
 
 
 class TaskStatusResponseSchema(BaseModel):
+    """brief:
+        Represent TaskStatusResponseSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     task_id: str
     status: TaskStatusEnum
     patient_id: str

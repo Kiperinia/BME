@@ -6,14 +6,47 @@ import {
   type ExpertConfiguration,
 } from '@/types/workspace'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - field: Input value for field.
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   modelValue: ExpertConfiguration
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - field: Input value for field.
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'update:modelValue', value: ExpertConfiguration): void
 }>()
 
+/**
+ * brief:
+ *   Update field.
+ *
+ * parameter:
+ *   - field: Input value for field.
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const updateField = <K extends keyof ExpertConfiguration>(field: K, value: ExpertConfiguration[K]) => {
   emit('update:modelValue', {
     ...props.modelValue,
@@ -21,6 +54,16 @@ const updateField = <K extends keyof ExpertConfiguration>(field: K, value: Exper
   })
 }
 
+/**
+ * brief:
+ *   Update paris detail.
+ *
+ * parameter:
+ *   - value: Input value for value.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const updateParisDetail = (value: DetailedParisConfiguration) => {
   emit('update:modelValue', {
     ...props.modelValue,

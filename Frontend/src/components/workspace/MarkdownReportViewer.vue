@@ -3,10 +3,30 @@ import { computed } from 'vue'
 import DOMPurify from 'dompurify'
 import MarkdownIt from 'markdown-it'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   markdown: string
 }>()
 
+/**
+ * brief:
+ *   Handle markdown.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const markdown = new MarkdownIt({
   breaks: true,
   html: false,
@@ -14,7 +34,27 @@ const markdown = new MarkdownIt({
   typographer: true,
 })
 
+/**
+ * brief:
+ *   Handle rendered html.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const renderedHtml = computed(() => {
+  /**
+   * brief:
+   *   Handle raw html.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const rawHtml = markdown.render(props.markdown || '')
   return DOMPurify.sanitize(rawHtml)
 })

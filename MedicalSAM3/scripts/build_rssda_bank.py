@@ -32,6 +32,15 @@ from MedicalSAM3.scripts.common import (
 
 
 def _infer_polyp_type(image: torch.Tensor, mask: torch.Tensor) -> str:
+    """根据图像特征推断息肉类型（流血型、低对比度型、平坦型或普通型）。
+
+    参数：
+        - image: 输入图像张量 [C, H, W]
+        - mask: 掩码张量 [1, H, W]
+
+    返回：
+        - 息肉类型字符串
+    """
     fg = image * mask
     bg = image * (1.0 - mask)
     fg_mean = fg.sum(dim=(-2, -1)) / mask.sum().clamp_min(1.0)
@@ -52,6 +61,15 @@ def _infer_polyp_type(image: torch.Tensor, mask: torch.Tensor) -> str:
 
 
 def _select_negative_region(image: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, str]:
+    """从背景区域自动选择具有代表性的负例区域（如镜面反光、褶皱、气泡等）。
+
+    参数：
+        - image: 输入图像张量 [C, H, W]
+        - mask: 掩码张量 [1, H, W]
+
+    返回：
+        - (负例区域掩码, 区域类型标签) 的二元组
+    """
     background = (1.0 - mask).clamp(0.0, 1.0)
     gray = image.mean(dim=0, keepdim=True)
     bright = ((image > 0.85).all(dim=0, keepdim=True).float() * background)
@@ -71,11 +89,27 @@ def _select_negative_region(image: torch.Tensor, mask: torch.Tensor) -> tuple[to
 
 
 def _boundary_quality(mask: torch.Tensor) -> float:
+    """计算掩码的边界质量分数（边界带占比）。
+
+    参数：
+        - mask: 输入掩码张量 [1, H, W]
+
+    返回：
+        - 边界质量分数 [0, 1]
+    """
     band = boundary_band(mask.unsqueeze(0)).squeeze(0)
     return float((band.sum() / mask.sum().clamp_min(1.0)).clamp(0.0, 1.0).item())
 
 
 def main() -> int:
+    """命令行入口：构建 RSS-DA 检索条件的原型记忆库。
+
+    参数：
+        - 无（通过 argparse 解析命令行参数）
+
+    返回：
+        - 进程退出码（0 表示成功）
+    """
     parser = argparse.ArgumentParser(description="Build RSS-DA prototype bank.")
     parser.add_argument("--split-file", default="MedicalSAM3/outputs/medex_sam3/splits/fold_0/train_ids.txt")
     parser.add_argument("--output-dir", default="MedicalSAM3/outputs/medex_sam3/rssda_bank")

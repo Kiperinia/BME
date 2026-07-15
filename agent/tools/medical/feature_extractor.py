@@ -29,7 +29,15 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class SurfacePattern(str, Enum):
-    """表面纹理模式（规则引擎判定）"""
+    """brief:
+        Represent SurfacePattern state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     SMOOTH = "smooth"
     IRREGULAR = "irregular"
     GRANULAR = "granular"
@@ -38,7 +46,15 @@ class SurfacePattern(str, Enum):
 
 
 class ColorTone(str, Enum):
-    """病变颜色基调"""
+    """brief:
+        Represent ColorTone state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     RED = "red"
     PALE = "pale"
     BROWN = "brown"
@@ -49,7 +65,15 @@ class ColorTone(str, Enum):
 
 @dataclass(slots=True)
 class GeometricFeatures:
-    """几何特征"""
+    """brief:
+        Represent GeometricFeatures state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     area_px: int = 0                    # 掩码面积（像素）
     area_mm2: float | None = None       # 估算面积 mm²（需传入 pixel_size_mm）
     perimeter_px: float = 0.0           # 周长（像素）
@@ -67,7 +91,15 @@ class GeometricFeatures:
 
 @dataclass(slots=True)
 class ColorFeatures:
-    """颜色特征（在病变 ROI 内统计）"""
+    """brief:
+        Represent ColorFeatures state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     mean_bgr: tuple[float, float, float] = (0.0, 0.0, 0.0)
     std_bgr: tuple[float, float, float] = (0.0, 0.0, 0.0)
     mean_hsv: tuple[float, float, float] = (0.0, 0.0, 0.0)
@@ -81,7 +113,15 @@ class ColorFeatures:
 
 @dataclass(slots=True)
 class TextureFeatures:
-    """纹理特征（基于灰度共生矩阵 GLCM 简化版）"""
+    """brief:
+        Represent TextureFeatures state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     mean_intensity: float = 0.0
     std_intensity: float = 0.0
     entropy: float = 0.0
@@ -94,7 +134,15 @@ class TextureFeatures:
 
 @dataclass(slots=True)
 class LesionFeatures:
-    """病变完整特征集"""
+    """brief:
+        Represent LesionFeatures state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     geometric: GeometricFeatures = field(default_factory=GeometricFeatures)
     color: ColorFeatures = field(default_factory=ColorFeatures)
     texture: TextureFeatures = field(default_factory=TextureFeatures)
@@ -102,7 +150,15 @@ class LesionFeatures:
     roi_image: np.ndarray | None = field(default=None, repr=False)
 
     def to_dict(self) -> dict[str, Any]:
-        """序列化为可 JSON 化的字典"""
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "geometric": {
                 "area_px": self.geometric.area_px,
@@ -148,14 +204,17 @@ class LesionFeatures:
 # ---------------------------------------------------------------------------
 
 class FeatureExtractor:
-    """
-    从内镜图像 + SAM3 掩码中提取完整的定量特征集。
+    """brief:
+        Represent FeatureExtractor state and behavior.
 
-    Usage::
+    parameter:
+        - pixel_size_mm: Input value for pixel_size_mm.
+        - glcm_distance: Input value for glcm_distance.
+        - glcm_angles: Input value for glcm_angles.
+        - min_contour_area: Input value for min_contour_area.
 
-        extractor = FeatureExtractor()
-        features = extractor.extract(image_bgr, mask_binary)
-        print(features.to_dict())
+    retrival:
+        - Provides instances used by the surrounding workflow.
     """
 
     def __init__(
@@ -165,13 +224,17 @@ class FeatureExtractor:
         glcm_angles: int = 4,
         min_contour_area: int = 50,
     ):
-        """
-        Args:
-            pixel_size_mm: 每像素对应的物理尺寸 (mm)，用于面积换算。
-                           内镜通常 0.1~0.3 mm/px，不传则不计算 area_mm2。
-            glcm_distance: GLCM 像素间距。
-            glcm_angles:  GLCM 计算方向数（0°, 45°, 90°, 135°）。
-            min_contour_area: 最小有效轮廓面积（像素）。
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - pixel_size_mm: Input value for pixel_size_mm.
+            - glcm_distance: Input value for glcm_distance.
+            - glcm_angles: Input value for glcm_angles.
+            - min_contour_area: Input value for min_contour_area.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
         """
         self.pixel_size_mm = pixel_size_mm
         self.glcm_distance = glcm_distance
@@ -185,15 +248,15 @@ class FeatureExtractor:
         image: np.ndarray,
         mask: np.ndarray,
     ) -> LesionFeatures:
-        """
-        主入口：从 BGR 图像 + 二值掩码提取全部特征。
+        """brief:
+            Handle extract.
 
-        Args:
-            image: (H, W, 3) uint8 BGR 内镜图像
-            mask:  (H, W) uint8 二值掩码，前景=255
+        parameter:
+            - image: Input value for image.
+            - mask: Input value for mask.
 
-        Returns:
-            LesionFeatures
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         if image.ndim != 3 or image.shape[2] != 3:
             raise ValueError("image must be (H, W, 3) BGR")
@@ -221,15 +284,15 @@ class FeatureExtractor:
         image: np.ndarray,
         polygon: list[tuple[int, int]],
     ) -> LesionFeatures:
-        """
-        从多边形坐标直接提取特征（无需预先生成 mask）。
+        """brief:
+            Extract from polygon.
 
-        Args:
-            image: (H, W, 3) uint8 BGR
-            polygon: [(x1,y1), (x2,y2), ...] 多边形顶点
+        parameter:
+            - image: Input value for image.
+            - polygon: Input value for polygon.
 
-        Returns:
-            LesionFeatures
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         mask = np.zeros(image.shape[:2], dtype=np.uint8)
         pts = np.array(polygon, dtype=np.int32)
@@ -239,6 +302,15 @@ class FeatureExtractor:
     # ---- 几何特征 ----
 
     def _extract_geometry(self, binary: np.ndarray) -> GeometricFeatures:
+        """brief:
+            Extract geometry.
+
+        parameter:
+            - binary: Input value for binary.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         valid = [c for c in contours if cv2.contourArea(c) >= self.min_contour_area]
 
@@ -309,6 +381,17 @@ class FeatureExtractor:
         binary: np.ndarray,
         geo: GeometricFeatures,
     ) -> ColorFeatures:
+        """brief:
+            Extract color.
+
+        parameter:
+            - image: Input value for image.
+            - binary: Input value for binary.
+            - geo: Input value for geo.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         roi = self._crop_roi(image, binary)
         if roi.size == 0:
             return ColorFeatures()
@@ -356,7 +439,16 @@ class FeatureExtractor:
         mean_bgr: tuple[float, ...],
         mean_hsv: tuple[float, ...],
     ) -> ColorTone:
-        """基于 BGR 均值和 HSV 色调判定颜色基调"""
+        """brief:
+            Classify color tone.
+
+        parameter:
+            - mean_bgr: Input value for mean_bgr.
+            - mean_hsv: Input value for mean_hsv.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         b, g, r = mean_bgr
         h, s, v = mean_hsv
 
@@ -384,7 +476,17 @@ class FeatureExtractor:
         binary: np.ndarray,
         geo: GeometricFeatures,
     ) -> float:
-        """计算病变边缘与周围黏膜的对比度"""
+        """brief:
+            Compute border contrast.
+
+        parameter:
+            - image: Input value for image.
+            - binary: Input value for binary.
+            - geo: Input value for geo.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         x1, y1, x2, y2 = geo.bbox
         h, w = binary.shape
 
@@ -419,6 +521,17 @@ class FeatureExtractor:
         binary: np.ndarray,
         geo: GeometricFeatures,
     ) -> TextureFeatures:
+        """brief:
+            Extract texture.
+
+        parameter:
+            - image: Input value for image.
+            - binary: Input value for binary.
+            - geo: Input value for geo.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         roi_gray = self._crop_roi(gray, binary)
 
@@ -450,9 +563,14 @@ class FeatureExtractor:
         )
 
     def _compute_glcm_features(self, roi_gray: np.ndarray) -> dict[str, float]:
-        """
-        简化版 GLCM 特征提取。
-        使用 NumPy 直接计算，避免依赖 skimage。
+        """brief:
+            Compute glcm features.
+
+        parameter:
+            - roi_gray: Input value for roi_gray.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         # 量化到 8 级以加速
         quantized = (roi_gray / 32).astype(np.uint8)
@@ -512,7 +630,16 @@ class FeatureExtractor:
         std_intensity: float,
         glcm_feats: dict[str, float],
     ) -> SurfacePattern:
-        """基于纹理统计判定表面模式"""
+        """brief:
+            Classify surface pattern.
+
+        parameter:
+            - std_intensity: Input value for std_intensity.
+            - glcm_feats: Input value for glcm_feats.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         entropy = glcm_feats["entropy"]
         homogeneity = glcm_feats["homogeneity"]
         contrast = glcm_feats["contrast"]
@@ -537,9 +664,14 @@ class FeatureExtractor:
 
     @staticmethod
     def _estimate_vessel_density(roi_gray: np.ndarray) -> float:
-        """
-        简化版血管密度估计。
-        使用形态学 Top-Hat 提取亮/暗线状结构，再统计占比。
+        """brief:
+            Handle estimate vessel density.
+
+        parameter:
+            - roi_gray: Input value for roi_gray.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         if roi_gray.size == 0:
             return 0.0
@@ -563,7 +695,16 @@ class FeatureExtractor:
 
     @staticmethod
     def _crop_roi(image: np.ndarray, binary: np.ndarray) -> np.ndarray:
-        """裁剪出掩码包围盒内的 ROI"""
+        """brief:
+            Handle crop roi.
+
+        parameter:
+            - image: Input value for image.
+            - binary: Input value for binary.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         coords = np.where(binary > 0)
         if len(coords[0]) == 0:
             return np.array([], dtype=image.dtype)

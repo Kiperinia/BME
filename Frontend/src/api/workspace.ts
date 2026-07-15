@@ -14,6 +14,16 @@ import type {
   WorkspaceSegmentation,
 } from '@/types/workspace'
 
+/**
+ * brief:
+ *   Handle api base url.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 interface ApiResponseEnvelope<T> {
@@ -35,13 +45,43 @@ interface SegmentFrameApiPayload {
   retrieval_prior_keys?: string[]
 }
 
+/**
+ * brief:
+ *   Handle workspace client.
+ *
+ * parameter:
+ *   - response: Input value for response.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const workspaceClient = axios.create({
   baseURL: apiBaseUrl,
   timeout: 45000,
 })
 
+/**
+ * brief:
+ *   Handle extract api data.
+ *
+ * parameter:
+ *   - response: Input value for response.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const extractApiData = <T>(response: { data: ApiResponseEnvelope<T> }) => response.data.data
 
+/**
+ * brief:
+ *   Handle calculate polygon area.
+ *
+ * parameter:
+ *   - points: Input value for points.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const calculatePolygonArea = (points: [number, number][]) => {
   if (points.length < 3) {
     return 0
@@ -49,7 +89,27 @@ const calculatePolygonArea = (points: [number, number][]) => {
 
   let area = 0
   for (let index = 0; index < points.length; index += 1) {
+    /**
+     * brief:
+     *   Handle current point.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const currentPoint = points[index]
+    /**
+     * brief:
+     *   Handle next point.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const nextPoint = points[(index + 1) % points.length]
     if (!currentPoint || !nextPoint) {
       continue
@@ -63,6 +123,18 @@ const calculatePolygonArea = (points: [number, number][]) => {
   return Math.abs(area) / 2
 }
 
+/**
+ * brief:
+ *   Handle segment workspace image.
+ *
+ * parameter:
+ *   - file: Input value for file.
+ *   - dimensions: Input value for dimensions.
+ *   - context: Input value for context.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const segmentWorkspaceImage = async (
   file: File,
   dimensions: { width: number; height: number },
@@ -73,6 +145,16 @@ export const segmentWorkspaceImage = async (
     topK?: number
   },
 ): Promise<WorkspaceSegmentation> => {
+  /**
+   * brief:
+   *   Handle form data.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const formData = new FormData()
   formData.append('image', file, file.name)
   if (context) {
@@ -82,13 +164,53 @@ export const segmentWorkspaceImage = async (
     formData.append('retrieval_top_k', String(context.topK ?? 6))
   }
 
+  /**
+   * brief:
+   *   Handle response.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const response = await workspaceClient.post<ApiResponseEnvelope<SegmentFrameApiPayload>>(
     '/analysis/segment-frame',
     formData,
   )
 
+  /**
+   * brief:
+   *   Handle payload.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const payload = extractApiData(response)
+  /**
+   * brief:
+   *   Handle mask area pixels.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const maskAreaPixels = payload.mask_area_pixels ?? calculatePolygonArea(payload.mask_coordinates)
+  /**
+   * brief:
+   *   Handle image area.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const imageArea = Math.max(dimensions.width * dimensions.height, 1)
 
   return {
@@ -107,9 +229,29 @@ export const segmentWorkspaceImage = async (
   }
 }
 
+/**
+ * brief:
+ *   Generate workspace report.
+ *
+ * parameter:
+ *   - payload: Input value for payload.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const generateWorkspaceReport = async (
   payload: WorkspaceReportRequest,
 ): Promise<WorkspaceReportResult> => {
+  /**
+   * brief:
+   *   Handle response.
+   *
+   * parameter:
+   *   - payload: Input value for payload.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const response = await workspaceClient.post<ApiResponseEnvelope<WorkspaceReportResult>>(
     '/agent/workspace/report',
     payload,
@@ -118,9 +260,29 @@ export const generateWorkspaceReport = async (
   return extractApiData(response)
 }
 
+/**
+ * brief:
+ *   Evaluate exemplar candidate.
+ *
+ * parameter:
+ *   - payload: Input value for payload.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const evaluateExemplarCandidate = async (
   payload: ExemplarBankRequest,
 ): Promise<ExemplarBankDecision> => {
+  /**
+   * brief:
+   *   Handle response.
+   *
+   * parameter:
+   *   - payload: Input value for payload.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const response = await workspaceClient.post<ApiResponseEnvelope<ExemplarBankDecision>>(
     '/agent/workspace/exemplar-bank',
     payload,
@@ -129,9 +291,29 @@ export const evaluateExemplarCandidate = async (
   return extractApiData(response)
 }
 
+/**
+ * brief:
+ *   Retrieve exemplar prior.
+ *
+ * parameter:
+ *   - payload: Input value for payload.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const retrieveExemplarPrior = async (
   payload: ExemplarRetrievalRequest,
 ): Promise<ExemplarRetrievalResult> => {
+  /**
+   * brief:
+   *   Handle response.
+   *
+   * parameter:
+   *   - payload: Input value for payload.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const response = await workspaceClient.post<ApiResponseEnvelope<ExemplarRetrievalResult>>(
     '/agent/workspace/exemplar-bank/retrieve-prior',
     payload,
@@ -140,9 +322,29 @@ export const retrieveExemplarPrior = async (
   return extractApiData(response)
 }
 
+/**
+ * brief:
+ *   Send exemplar feedback.
+ *
+ * parameter:
+ *   - payload: Input value for payload.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const sendExemplarFeedback = async (
   payload: ExemplarFeedbackRequest,
 ): Promise<ExemplarFeedbackResult> => {
+  /**
+   * brief:
+   *   Handle response.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const response = await workspaceClient.post<ApiResponseEnvelope<ExemplarFeedbackResult>>(
     '/agent/workspace/exemplar-bank/feedback',
     payload,
@@ -151,6 +353,16 @@ export const sendExemplarFeedback = async (
   return extractApiData(response)
 }
 
+/**
+ * brief:
+ *   Preload workspace sam3 model.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 export const preloadWorkspaceSam3Model = async (): Promise<void> => {
   await workspaceClient.post('/analysis/preload-model')
 }

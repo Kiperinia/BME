@@ -1,4 +1,4 @@
-"""Curate an exemplar bank using per-image delta-Dice validation feedback."""
+"""使用逐图像 delta-Dice 验证反馈策展示例库。"""
 
 from __future__ import annotations
 
@@ -25,6 +25,14 @@ ROLE_TO_TYPE = {
 
 @dataclass
 class UsageStats:
+    """记录每个示例项在验证中的使用统计信息。
+
+    参数：
+        - 无
+
+    返回：
+        - 提供用于策展决策的统计实例
+    """
     used: int = 0
     positive_delta_count: int = 0
     negative_delta_count: int = 0
@@ -35,6 +43,15 @@ class UsageStats:
     max_delta: float = 0.0
 
     def update(self, delta: float, severe_delta: float) -> None:
+        """更新统计信息，累加一次使用记录。
+
+        参数：
+            - delta: 本次使用的 Dice 增量
+            - severe_delta: 被认为是"严重"变化的阈值
+
+        返回：
+            - 无返回值，仅更新内部计数器与汇总值
+        """
         if self.used == 0:
             self.min_delta = delta
             self.max_delta = delta
@@ -54,9 +71,25 @@ class UsageStats:
 
     @property
     def mean_delta(self) -> float:
+        """计算平均 Dice 增量。
+
+        参数：
+            - 无
+
+        返回：
+            - 累加增量总和除以使用次数
+        """
         return self.sum_delta / max(self.used, 1)
 
     def as_dict(self) -> dict[str, Any]:
+        """将统计信息序列化为字典。
+
+        参数：
+            - 无
+
+        返回：
+            - 包含所有统计字段的字典
+        """
         return {
             "used": self.used,
             "positive_delta_count": self.positive_delta_count,
@@ -71,6 +104,14 @@ class UsageStats:
 
 
 def _load_bank(path: str | Path) -> tuple[Path, dict[str, Any]]:
+    """从文件或目录加载记忆库。
+
+    参数：
+        - path: 记忆库文件路径或目录路径（自动查找最新版本）
+
+    返回：
+        - 由 (库文件路径, 库数据字典) 组成的元组
+    """
     target = Path(path)
     if target.is_dir():
         candidates = sorted(target.glob("memory_v*.json"))
@@ -83,6 +124,14 @@ def _load_bank(path: str | Path) -> tuple[Path, dict[str, Any]]:
 
 
 def _load_per_image_metrics(path: str | Path) -> list[dict[str, Any]]:
+    """从 JSON 或 JSONL 文件加载逐图像指标。
+
+    参数：
+        - path: 指标文件路径
+
+    返回：
+        - 指标字典列表
+    """
     target = Path(path)
     if not target.exists():
         raise FileNotFoundError(f"Per-image metrics not found: {target}")
@@ -95,6 +144,15 @@ def _load_per_image_metrics(path: str | Path) -> list[dict[str, Any]]:
 
 
 def _collect_usage_stats(rows: list[dict[str, Any]], severe_delta: float) -> dict[str, UsageStats]:
+    """从逐图像指标中收集每个示例项的使用统计。
+
+    参数：
+        - rows: 逐图像指标行列表
+        - severe_delta: 严重变化阈值
+
+    返回：
+        - 示例 ID 到 UsageStats 的映射字典
+    """
     stats: dict[str, UsageStats] = defaultdict(UsageStats)
     for row in rows:
         delta = float(row.get("delta_dice", 0.0))
@@ -106,6 +164,15 @@ def _collect_usage_stats(rows: list[dict[str, Any]], severe_delta: float) -> dic
 
 
 def _score_item(item: dict[str, Any], stats: UsageStats | None) -> float:
+    """综合基础质量评分与使用统计信息计算示例项的综合得分。
+
+    参数：
+        - item: 示例项字典
+        - stats: 使用统计，为 None 时不加统计项
+
+    返回：
+        - 综合得分浮点值
+    """
     base_score = (
         float(item.get("quality_score", 0.0))
         + 0.5 * float(item.get("boundary_score", 0.0))
@@ -127,6 +194,19 @@ def _is_bad_item(
     min_severe_negative_count: int,
     negative_majority_margin: int,
 ) -> tuple[bool, str]:
+    """判断示例项是否表现不佳（平均增量差或严重负面使用过多）。
+
+    参数：
+        - stats: 使用统计
+        - min_used: 最小使用次数要求
+        - max_bad_mean_delta: 被视为"差"的最大平均增量
+        - severe_negative_delta: 严重负面增量阈值
+        - min_severe_negative_count: 严重负面使用最小次数
+        - negative_majority_margin: 负面比正面多出的最小数量
+
+    返回：
+        - 由 (是否差, 原因字符串) 组成的元组
+    """
     if stats is None or stats.used < min_used:
         return False, ""
     if stats.mean_delta < max_bad_mean_delta and stats.negative_delta_count >= stats.positive_delta_count + negative_majority_margin:
@@ -149,6 +229,16 @@ def _protect_top_items(
     stats_by_id: dict[str, UsageStats],
     min_items_per_type: int,
 ) -> set[str]:
+    """保护每个类型中得分最高的示例项不被删除。
+
+    参数：
+        - items: 示例项列表
+        - stats_by_id: 示例 ID 到使用统计的映射
+        - min_items_per_type: 每种类型最少保留数量
+
+    返回：
+        - 被保护示例项的 ID 集合
+    """
     protected: set[str] = set()
     for exemplar_type in ["positive", "boundary", "negative"]:
         typed = [item for item in items if item.get("type") == exemplar_type]
@@ -167,6 +257,20 @@ def _write_curated_bank(
     stats_by_id: dict[str, UsageStats],
     args: argparse.Namespace,
 ) -> None:
+    """将策展后的记忆库及报告写入输出目录。
+
+    参数：
+        - source_bank_path: 源库文件路径
+        - source_bank: 源库数据字典
+        - output_dir: 输出目录
+        - kept_items: 保留的示例项列表
+        - rejected_items: 被拒绝的示例项列表
+        - stats_by_id: 使用统计映射
+        - args: 命令行参数
+
+    返回：
+        - 无返回值，仅执行写入文件的副作用
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     version = args.version
     bank_path = output_dir / f"memory_{version}.json"
@@ -230,6 +334,14 @@ def _write_curated_bank(
 
 
 def main() -> int:
+    """脚本命令行入口，使用验证 delta-Dice 反馈策展示例库。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Curate an exemplar bank using validation delta-Dice feedback.")
     parser.add_argument("--memory-bank", default="MedicalSAM3/outputs/medex_sam3/exemplar_bank")
     parser.add_argument("--per-image-metrics", default="MedicalSAM3/outputs/medex_sam3/validation/polypgen_exemplar_delta/per_image_metrics.json")

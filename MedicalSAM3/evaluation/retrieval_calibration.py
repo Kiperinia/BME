@@ -1,4 +1,4 @@
-"""Aggregate retrieval calibration diagnostics and false-negative analysis."""
+"""聚合检索校准诊断和假阴性分析。"""
 
 from __future__ import annotations
 
@@ -17,6 +17,14 @@ from MedicalSAM3.evaluation.retrieval_diagnostics import summarize_retrieval_dia
 
 
 def _read_jsonl(path: str | Path) -> list[dict[str, Any]]:
+    """读取 JSONL 文件并返回字典列表。
+
+    参数：
+        - path: JSONL 文件路径。
+
+    返回：
+        - 解析后的字典列表。
+    """
     target = Path(path)
     if not target.exists():
         return []
@@ -29,12 +37,29 @@ def _read_jsonl(path: str | Path) -> list[dict[str, Any]]:
 
 
 def _mean(values: list[float]) -> float:
+    """计算浮点数列表的平均值。
+
+    参数：
+        - values: 浮点数列表。
+
+    返回：
+        - 平均值，空列表返回 0.0。
+    """
     if not values:
         return 0.0
     return float(sum(values) / max(len(values), 1))
 
 
 def _quantile(values: list[float], q: float) -> float:
+    """计算浮点数列表的指定分位数。
+
+    参数：
+        - values: 浮点数列表。
+        - q: 分位数值（0.0 ~ 1.0）。
+
+    返回：
+        - 分位数结果。
+    """
     if not values:
         return 0.0
     tensor = torch.tensor(values, dtype=torch.float32)
@@ -47,6 +72,16 @@ def summarize_false_negative_analysis(
     *,
     small_lesion_quantile: float = 0.25,
 ) -> dict[str, Any]:
+    """总结假阴性分析结果，按病变大小和高负样本影响分组统计 FNR。
+
+    参数：
+        - diagnostics_rows: 诊断行列表。
+        - metric_rows: 指标行列表。
+        - small_lesion_quantile: 小病变分位阈值，默认为 0.25。
+
+    返回：
+        - 包含假阴性分析摘要的字典。
+    """
     diagnostics_by_image = {str(row.get("image_id", "")): row for row in diagnostics_rows}
     lesion_areas = [float(row.get("lesion_area", 0.0)) for row in metric_rows if float(row.get("lesion_area", 0.0)) > 0.0]
     small_lesion_threshold = _quantile(lesion_areas, small_lesion_quantile) if lesion_areas else 0.0
@@ -105,6 +140,17 @@ def summarize_retrieval_calibration(
     bins: int = 10,
     small_lesion_quantile: float = 0.25,
 ) -> dict[str, Any]:
+    """汇总检索校准诊断结果，包含检索诊断摘要和假阴性分析。
+
+    参数：
+        - diagnostics_rows: 诊断行列表。
+        - metric_rows: 指标行列表。
+        - bins: 直方图柱数，默认为 10。
+        - small_lesion_quantile: 小病变分位阈值，默认为 0.25。
+
+    返回：
+        - 包含检索诊断和假阴性分析的字典。
+    """
     return {
         "retrieval_diagnostics": summarize_retrieval_diagnostics(diagnostics_rows, bins=bins),
         "false_negative_analysis": summarize_false_negative_analysis(
@@ -123,6 +169,18 @@ def write_retrieval_calibration_report(
     bins: int = 10,
     small_lesion_quantile: float = 0.25,
 ) -> Path:
+    """生成并保存检索校准报告 JSON 文件。
+
+    参数：
+        - output_dir: 输出目录。
+        - diagnostics_rows: 诊断行列表。
+        - metric_rows: 指标行列表。
+        - bins: 直方图柱数。
+        - small_lesion_quantile: 小病变分位阈值。
+
+    返回：
+        - 生成的报告文件路径。
+    """
     target_dir = Path(output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
     destination = target_dir / "retrieval_calibration_summary.json"
@@ -142,6 +200,14 @@ def write_retrieval_calibration_report(
 
 
 def main() -> int:
+    """命令行入口：汇总检索校准诊断并保存报告。
+
+    参数：
+        - 无。
+
+    返回：
+        - 退出码（0 表示成功）。
+    """
     parser = argparse.ArgumentParser(description="Summarize retrieval calibration diagnostics.")
     parser.add_argument("--diagnostics-path", default="MedicalSAM3/outputs/medex_sam3/rssda_eval/retrieval_diagnostics.jsonl")
     parser.add_argument("--metrics-path", default="MedicalSAM3/outputs/medex_sam3/rssda_eval/per_image_metrics.jsonl")

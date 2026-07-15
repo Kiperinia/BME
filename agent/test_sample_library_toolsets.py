@@ -13,6 +13,18 @@ from tools.medical.sample_library_toolsets import (
 
 
 def _sample(image_id: str, baseline: float, result: float, group: str = "hard") -> dict[str, object]:
+    """brief:
+        Handle sample.
+
+    parameter:
+        - image_id: Input value for image_id.
+        - baseline: Input value for baseline.
+        - result: Input value for result.
+        - group: Input value for group.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return {
         "image_id": image_id,
         "site_id": "C1",
@@ -46,6 +58,15 @@ def _sample(image_id: str, baseline: float, result: float, group: str = "hard") 
 
 
 def main() -> None:
+    """brief:
+        Run the command-line entry point for this module.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     registry = create_sample_library_tool_registry()
     specs = registry.list_tool_specs()
     grouped = group_tool_specs_by_agent(specs)

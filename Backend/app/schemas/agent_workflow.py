@@ -6,6 +6,15 @@ from pydantic import BaseModel, Field
 
 
 class PatientContextSchema(BaseModel):
+    """brief:
+        Represent PatientContextSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     patientId: str = Field(min_length=1, max_length=64)
     patientName: str = Field(min_length=1, max_length=128)
     gender: str = Field(min_length=1, max_length=16)
@@ -15,6 +24,15 @@ class PatientContextSchema(BaseModel):
 
 
 class PolygonMaskSchema(BaseModel):
+    """brief:
+        Represent PolygonMaskSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     id: str = Field(default="")
     points: list[tuple[int, int]] = Field(default_factory=list)
     frameWidth: int = Field(ge=1)
@@ -25,6 +43,15 @@ class PolygonMaskSchema(BaseModel):
 
 
 class VideoFrameDataSchema(BaseModel):
+    """brief:
+        Represent VideoFrameDataSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     frameId: str = Field(min_length=1, max_length=128)
     sourceId: str = Field(min_length=1, max_length=128)
     timestamp: float = Field(ge=0.0)
@@ -34,6 +61,15 @@ class VideoFrameDataSchema(BaseModel):
 
 
 class TumorDetailsSchema(BaseModel):
+    """brief:
+        Represent TumorDetailsSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     estimatedSizeMm: float = Field(default=0.0, ge=0.0)
     classification: str = Field(default="", max_length=128)
     location: str = Field(default="", max_length=256)
@@ -42,12 +78,30 @@ class TumorDetailsSchema(BaseModel):
 
 
 class TumorFocusSchema(BaseModel):
+    """brief:
+        Represent TumorFocusSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     tumorImageSrc: str = Field(min_length=1)
     maskData: list[PolygonMaskSchema] | str = Field(default_factory=list)
     details: TumorDetailsSchema
 
 
 class ReportContextSchema(BaseModel):
+    """brief:
+        Represent ReportContextSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     patient: PatientContextSchema
     videoSrc: str = Field(default="")
     maskData: list[PolygonMaskSchema] = Field(default_factory=list)
@@ -60,17 +114,44 @@ class ReportContextSchema(BaseModel):
 
 
 class GenerateReportDraftRequestSchema(BaseModel):
+    """brief:
+        Represent GenerateReportDraftRequestSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     reportId: str | None = None
     patientId: str = Field(min_length=1, max_length=64)
     contextData: ReportContextSchema
 
 
 class FetchAnnotationTagsRequestSchema(BaseModel):
+    """brief:
+        Represent FetchAnnotationTagsRequestSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     contextData: ReportContextSchema
     reportSnippet: str = Field(default="")
 
 
 class SaveReportDraftRequestSchema(BaseModel):
+    """brief:
+        Represent SaveReportDraftRequestSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     reportId: str | None = None
     patientId: str = Field(min_length=1, max_length=64)
     findings: str = Field(default="")
@@ -79,6 +160,15 @@ class SaveReportDraftRequestSchema(BaseModel):
 
 
 class AnnotationTagSchema(BaseModel):
+    """brief:
+        Represent AnnotationTagSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     id: str
     label: str
     confidence: float = Field(ge=0.0, le=1.0)
@@ -88,6 +178,15 @@ class AnnotationTagSchema(BaseModel):
 
 
 class AgentWorkflowLesionSchema(BaseModel):
+    """brief:
+        Represent AgentWorkflowLesionSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     lesionId: str
     sourceLabel: str
     label: str
@@ -104,6 +203,15 @@ class AgentWorkflowLesionSchema(BaseModel):
 
 
 class AgentRunSchema(BaseModel):
+    """brief:
+        Represent AgentRunSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agentName: str
     displayName: str = Field(default="")
     goal: str = Field(default="")
@@ -115,6 +223,15 @@ class AgentRunSchema(BaseModel):
 
 
 class AgentWorkflowSchema(BaseModel):
+    """brief:
+        Represent AgentWorkflowSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agentName: str
     description: str
     pipeline: str
@@ -132,6 +249,15 @@ class AgentWorkflowSchema(BaseModel):
 
 
 class GenerateReportDraftResponseSchema(BaseModel):
+    """brief:
+        Represent GenerateReportDraftResponseSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     findings: str
     conclusion: str
     layoutSuggestion: str
@@ -140,11 +266,29 @@ class GenerateReportDraftResponseSchema(BaseModel):
 
 
 class FetchAnnotationTagsResponseSchema(BaseModel):
+    """brief:
+        Represent FetchAnnotationTagsResponseSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     tags: list[AnnotationTagSchema] = Field(default_factory=list)
     workflow: AgentWorkflowSchema
 
 
 class ReportDraftRecordSchema(BaseModel):
+    """brief:
+        Represent ReportDraftRecordSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     reportId: str
     patientId: str
     findings: str

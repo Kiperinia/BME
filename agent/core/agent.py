@@ -18,6 +18,18 @@ def build_minimal_agent(
     use_llm_report: bool = False,
     **kwargs: Any,
 ) -> DiagnosisAgent:
+    """brief:
+        Build minimal agent.
+
+    parameter:
+        - use_llm: Input value for use_llm.
+        - pixel_size_mm: Input value for pixel_size_mm.
+        - use_llm_report: Input value for use_llm_report.
+        - **kwargs: Input value for kwargs.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return DiagnosisAgent.from_env(
         use_llm=use_llm,
         pixel_size_mm=pixel_size_mm,
@@ -32,6 +44,17 @@ def build_exemplar_bank_agent(
     hidden_dim: int = 256,
     **kwargs: Any,
 ) -> ExemplarBankAgent:
+    """brief:
+        Build exemplar bank agent.
+
+    parameter:
+        - memory_root: Input value for memory_root.
+        - hidden_dim: Input value for hidden_dim.
+        - **kwargs: Input value for kwargs.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return ExemplarBankAgent(
         memory_root=memory_root,
         hidden_dim=hidden_dim,
@@ -45,6 +68,17 @@ def build_medical_closed_loop_agent(
     pixel_size_mm: float | None = 0.15,
     **kwargs: Any,
 ) -> MedicalClosedLoopOrchestrator:
+    """brief:
+        Build medical closed loop agent.
+
+    parameter:
+        - diagnosis_agent: Input value for diagnosis_agent.
+        - pixel_size_mm: Input value for pixel_size_mm.
+        - **kwargs: Input value for kwargs.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return MedicalClosedLoopOrchestrator(
         diagnosis_agent=diagnosis_agent,
         pixel_size_mm=pixel_size_mm,

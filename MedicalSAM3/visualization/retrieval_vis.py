@@ -1,4 +1,4 @@
-"""Visualization helpers for retrieval influence diagnostics."""
+"""检索影响诊断的可视化辅助工具。"""
 
 from __future__ import annotations
 
@@ -11,6 +11,14 @@ import torch
 
 
 def _to_uint8_rgb(image_tensor: torch.Tensor) -> np.ndarray:
+    """将图像张量转换为 uint8 RGB 数组。
+
+    参数：
+        - image_tensor: 输入图像张量，形状为 [C, H, W] 或 [B, C, H, W]。
+
+    返回：
+        - 形状为 [H, W, 3] 的 uint8 RGB 数组。
+    """
     image = image_tensor.detach().cpu().float()
     if image.dim() == 4:
         image = image[0]
@@ -24,6 +32,14 @@ def _to_uint8_rgb(image_tensor: torch.Tensor) -> np.ndarray:
 
 
 def _to_uint8_gray(mask_tensor: torch.Tensor) -> np.ndarray:
+    """将掩码张量转换为 uint8 灰度数组。
+
+    参数：
+        - mask_tensor: 输入掩码张量，形状为 [H, W]、[C, H, W] 或 [B, C, H, W]。
+
+    返回：
+        - uint8 灰度数组，范围 [0, 255]。
+    """
     mask = mask_tensor.detach().cpu().float()
     if mask.dim() == 4:
         mask = mask[0, 0]
@@ -36,6 +52,14 @@ def _to_uint8_gray(mask_tensor: torch.Tensor) -> np.ndarray:
 
 
 def _normalize_map(values: torch.Tensor) -> np.ndarray:
+    """将张量值归一化到 [0, 1] 范围。
+
+    参数：
+        - values: 输入张量，形状为 [H, W]、[C, H, W] 或 [B, C, H, W]。
+
+    返回：
+        - 归一化后的 numpy 数组，范围 [0, 1]。
+    """
     heatmap = values.detach().cpu().float()
     if heatmap.dim() == 4:
         heatmap = heatmap[0, 0]
@@ -48,6 +72,16 @@ def _normalize_map(values: torch.Tensor) -> np.ndarray:
 
 
 def _caption_tile(image: Image.Image, title: str, subtitle: str = "") -> Image.Image:
+    """在图像底部添加标题栏。
+
+    参数：
+        - image: 原始 PIL 图像。
+        - title: 主标题文本。
+        - subtitle: 副标题文本（可选）。
+
+    返回：
+        - 添加标题栏后的新 PIL 图像。
+    """
     caption_height = 34 if subtitle else 22
     canvas = Image.new("RGB", (image.width, image.height + caption_height), color=(18, 18, 18))
     canvas.paste(image, (0, 0))
@@ -59,6 +93,17 @@ def _caption_tile(image: Image.Image, title: str, subtitle: str = "") -> Image.I
 
 
 def _load_tile_from_path(path: Optional[str], tile_size: int, title: str, subtitle: str) -> Image.Image:
+    """从路径加载图像并添加标题，若路径无效则生成占位图。
+
+    参数：
+        - path: 图像文件路径，为 None 或文件不存在时生成占位图。
+        - tile_size: 磁贴尺寸（宽高相等）。
+        - title: 主标题文本。
+        - subtitle: 副标题文本。
+
+    返回：
+        - 带标题的 PIL 图像。
+    """
     if path and Path(path).is_file():
         image = Image.open(path).convert("RGB").resize((tile_size, tile_size))
     else:
@@ -77,6 +122,18 @@ def save_retrieved_prototype_panel(
     output_path: str | Path,
     tile_size: int = 128,
 ) -> Path:
+    """保存检索原型面板图，包含查询图像及正负例原型。
+
+    参数：
+        - query_image: 查询图像张量，形状为 [C, H, W]。
+        - positive_entries: 正例条目列表，每项含 crop_path、prototype_id、similarity_score。
+        - negative_entries: 负例条目列表，结构与正例相同。
+        - output_path: 输出图像路径。
+        - tile_size: 每个磁贴的尺寸。
+
+    返回：
+        - 保存的文件路径。
+    """
     query_tile = _caption_tile(Image.fromarray(_to_uint8_rgb(query_image)).resize((tile_size, tile_size)), "query")
     tiles = [query_tile]
     for entry in positive_entries:
@@ -117,6 +174,18 @@ def save_similarity_heatmap_overlay(
     title: str = "heatmap",
     alpha: float = 0.45,
 ) -> Path:
+    """保存相似度热力图叠加图。
+
+    参数：
+        - query_image: 查询图像张量。
+        - heatmap: 相似度热力图张量。
+        - output_path: 输出图像路径。
+        - title: 标题文本。
+        - alpha: 热力图叠加透明度。
+
+    返回：
+        - 保存的文件路径。
+    """
     rgb = _to_uint8_rgb(query_image)
     norm = _normalize_map(heatmap)
     if norm.shape[0] != rgb.shape[0] or norm.shape[1] != rgb.shape[1]:
@@ -140,6 +209,19 @@ def save_mask_difference_visualization(
     reference_label: str,
     compared_label: str,
 ) -> Path:
+    """保存掩码差异可视化图，对比两个掩码的差异区域。
+
+    参数：
+        - query_image: 查询图像张量。
+        - reference_logits: 参考掩码 logits。
+        - compared_logits: 对比掩码 logits。
+        - output_path: 输出图像路径。
+        - reference_label: 参考掩码的显示标签。
+        - compared_label: 对比掩码的显示标签。
+
+    返回：
+        - 保存的文件路径。
+    """
     base = _to_uint8_rgb(query_image)
     ref_mask = (torch.sigmoid(reference_logits.detach().float()) > 0.5).float()
     cmp_mask = (torch.sigmoid(compared_logits.detach().float()) > 0.5).float()
@@ -184,6 +266,18 @@ def save_false_positive_overlay(
     output_path: str | Path,
     title: str,
 ) -> Path:
+    """保存假阳覆盖图，标记预测掩码与真值掩码的差异区域。
+
+    参数：
+        - query_image: 查询图像张量。
+        - pred_logits: 预测掩码 logits。
+        - gt_mask: 真值掩码张量。
+        - output_path: 输出图像路径。
+        - title: 标题文本。
+
+    返回：
+        - 保存的文件路径。
+    """
     base = _to_uint8_rgb(query_image)
     pred = (torch.sigmoid(pred_logits.detach().float()) > 0.5).float()
     target = (gt_mask.detach().float() > 0.5).float()

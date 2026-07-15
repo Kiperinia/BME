@@ -13,6 +13,15 @@ from .risk_assessor import Disposition, RiskAssessmentResult, RiskLevel
 
 @dataclass(slots=True)
 class ToolParameterSchema:
+    """brief:
+        Represent ToolParameterSchema state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     name: str
     py_type: type[Any] | tuple[type[Any], ...]
     required: bool = True
@@ -20,6 +29,15 @@ class ToolParameterSchema:
 
     @property
     def type_name(self) -> str:
+        """brief:
+            Handle type name.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if isinstance(self.py_type, tuple):
             return " | ".join(t.__name__ for t in self.py_type)
         return self.py_type.__name__
@@ -27,6 +45,15 @@ class ToolParameterSchema:
 
 @dataclass(slots=True)
 class ReportToolSpec:
+    """brief:
+        Represent ReportToolSpec state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     name: str
     description: str
     input_schema: tuple[ToolParameterSchema, ...]
@@ -34,6 +61,15 @@ class ReportToolSpec:
 
 @dataclass(slots=True)
 class ReportToolCallLog:
+    """brief:
+        Represent ReportToolCallLog state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     tool_name: str
     status: str
     duration_ms: float
@@ -42,6 +78,15 @@ class ReportToolCallLog:
     error_message: str = ""
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "tool_name": self.tool_name,
             "status": self.status,
@@ -53,20 +98,75 @@ class ReportToolCallLog:
 
 
 class ReportToolRegistry:
+    """brief:
+        Represent ReportToolRegistry state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self._tools: dict[str, tuple[ReportToolSpec, Callable[..., Any]]] = {}
         self._call_logs: list[ReportToolCallLog] = []
 
     def register(self, spec: ReportToolSpec, handler: Callable[..., Any]) -> None:
+        """brief:
+            Handle register.
+
+        parameter:
+            - spec: Input value for spec.
+            - handler: Input value for handler.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self._tools[spec.name] = (spec, handler)
 
     def reset_logs(self) -> None:
+        """brief:
+            Handle reset logs.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self._call_logs = []
 
     def get_call_logs(self) -> list[dict[str, Any]]:
+        """brief:
+            Get call logs.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return [log.to_dict() for log in self._call_logs]
 
     def list_tool_specs(self) -> list[dict[str, Any]]:
+        """brief:
+            List tool specs.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return [
             {
                 "name": spec.name,
@@ -85,6 +185,16 @@ class ReportToolRegistry:
         ]
 
     def call(self, tool_name: str, **kwargs: Any) -> Any:
+        """brief:
+            Handle call.
+
+        parameter:
+            - tool_name: Input value for tool_name.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if tool_name not in self._tools:
             raise ValueError(f"Unknown report tool: {tool_name}")
 
@@ -119,6 +229,16 @@ class ReportToolRegistry:
 
     @staticmethod
     def _validate_inputs(spec: ReportToolSpec, kwargs: dict[str, Any]) -> None:
+        """brief:
+            Validate inputs.
+
+        parameter:
+            - spec: Input value for spec.
+            - kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         for parameter in spec.input_schema:
             if parameter.required and parameter.name not in kwargs:
                 raise ValueError(
@@ -142,7 +262,15 @@ class ReportToolRegistry:
 
 @dataclass(slots=True)
 class FindingsComposerTool:
-    """Compose structured findings text from model outputs."""
+    """brief:
+        Represent FindingsComposerTool state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     def compose(
         self,
@@ -151,6 +279,17 @@ class FindingsComposerTool:
         paris: ParisTypingResult,
         features: LesionFeatures,
     ) -> str:
+        """brief:
+            Handle compose.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         findings_parts: list[str] = []
 
         findings_parts.append(
@@ -186,9 +325,27 @@ class FindingsComposerTool:
 
 @dataclass(slots=True)
 class ConclusionComposerTool:
-    """Compose diagnosis conclusion and disposition text."""
+    """brief:
+        Represent ConclusionComposerTool state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     def compose(self, *, paris: ParisTypingResult, risk: RiskAssessmentResult) -> str:
+        """brief:
+            Handle compose.
+
+        parameter:
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         conclusion_parts: list[str] = []
 
         risk_cn = {
@@ -224,7 +381,15 @@ class ConclusionComposerTool:
 
 @dataclass(slots=True)
 class LayoutSuggestionTool:
-    """Generate layout suggestions for frontend report rendering."""
+    """brief:
+        Represent LayoutSuggestionTool state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     def compose(
         self,
@@ -233,6 +398,17 @@ class LayoutSuggestionTool:
         paris: ParisTypingResult,
         risk: RiskAssessmentResult,
     ) -> str:
+        """brief:
+            Handle compose.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         suggestions: list[str] = []
 
         if risk.risk_level == RiskLevel.HIGH:
@@ -262,7 +438,15 @@ class LayoutSuggestionTool:
 
 @dataclass(slots=True)
 class ReportKeywordSuggestionTool:
-    """Extract concise report keywords for downstream indexing and display."""
+    """brief:
+        Represent ReportKeywordSuggestionTool state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     _keyword_patterns: tuple[tuple[str, str], ...] = (
         (r"0-I[p|s]|0-II[a-c]|0-III", "Paris分型"),
@@ -274,6 +458,17 @@ class ReportKeywordSuggestionTool:
     )
 
     def compose(self, *, findings: str, conclusion: str, max_keywords: int = 6) -> list[str]:
+        """brief:
+            Handle compose.
+
+        parameter:
+            - findings: Input value for findings.
+            - conclusion: Input value for conclusion.
+            - max_keywords: Input value for max_keywords.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         text = f"{findings} {conclusion}".strip()
         if not text:
             return []
@@ -291,6 +486,15 @@ class ReportKeywordSuggestionTool:
 
 
 def create_default_report_tool_registry(llm_client: Any = None) -> ReportToolRegistry:
+    """brief:
+        Create default report tool registry.
+
+    parameter:
+        - llm_client: Input value for llm_client.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     findings_tool = FindingsComposerTool()
     conclusion_tool = ConclusionComposerTool()
     layout_tool = LayoutSuggestionTool()
@@ -391,6 +595,16 @@ def create_default_report_tool_registry(llm_client: Any = None) -> ReportToolReg
 
 
 def _short_repr(value: Any, limit: int = 180) -> str:
+    """brief:
+        Handle short repr.
+
+    parameter:
+        - value: Input value for value.
+        - limit: Input value for limit.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     text = repr(value)
     if len(text) <= limit:
         return text
@@ -398,6 +612,15 @@ def _short_repr(value: Any, limit: int = 180) -> str:
 
 
 def _pedicle_cn(pedicle: str) -> str:
+    """brief:
+        Handle pedicle cn.
+
+    parameter:
+        - pedicle: Input value for pedicle.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return {
         "pedunculated": "有蒂型",
         "sessile": "无蒂型",
@@ -408,6 +631,15 @@ def _pedicle_cn(pedicle: str) -> str:
 
 
 def _surface_cn(surface: str) -> str:
+    """brief:
+        Handle surface cn.
+
+    parameter:
+        - surface: Input value for surface.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return {
         "smooth": "光滑",
         "irregular": "不规则",
@@ -418,6 +650,15 @@ def _surface_cn(surface: str) -> str:
 
 
 def _vessel_cn(density: float) -> str:
+    """brief:
+        Handle vessel cn.
+
+    parameter:
+        - density: Input value for density.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     if density < 0.02:
         return "稀疏"
     if density < 0.05:
@@ -430,6 +671,15 @@ def _vessel_cn(density: float) -> str:
 
 
 def _color_cn(color: str) -> str:
+    """brief:
+        Handle color cn.
+
+    parameter:
+        - color: Input value for color.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return {
         "red": "充血发红",
         "pale": "色泽苍白",
@@ -441,6 +691,15 @@ def _color_cn(color: str) -> str:
 
 
 def _contrast_cn(contrast: float) -> str:
+    """brief:
+        Handle contrast cn.
+
+    parameter:
+        - contrast: Input value for contrast.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     if contrast < 0.05:
         return "低"
     if contrast < 0.10:
@@ -452,7 +711,15 @@ def _contrast_cn(contrast: float) -> str:
 
 @dataclass(slots=True)
 class ReportAnalysisTool:
-    """Analyze generated report via LLM thinking to identify real issues."""
+    """brief:
+        Represent ReportAnalysisTool state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     llm_client: Any = None
 
@@ -464,9 +731,17 @@ class ReportAnalysisTool:
         paris: ParisTypingResult,
         risk: RiskAssessmentResult,
     ) -> dict[str, Any]:
-        """
-        ReAct Thinking: Use LLM to genuinely analyze report and identify issues.
-        Returns analysis with thinking trace.
+        """brief:
+            Handle analyze.
+
+        parameter:
+            - findings: Input value for findings.
+            - conclusion: Input value for conclusion.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         if not self.llm_client:
             return {
@@ -540,7 +815,15 @@ class ReportAnalysisTool:
 
 @dataclass(slots=True)
 class ReportRefinementTool:
-    """Refine report based on LLM-guided analysis."""
+    """brief:
+        Represent ReportRefinementTool state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     llm_client: Any = None
 
@@ -551,9 +834,16 @@ class ReportRefinementTool:
         analysis_result: dict[str, Any],
         text_type: str,  # "findings" or "conclusion"
     ) -> dict[str, str]:
-        """
-        ReAct Acting: Use LLM to refine text based on specific issues.
-        Returns refined text with change trace.
+        """brief:
+            Handle refine.
+
+        parameter:
+            - original_text: Input value for original_text.
+            - analysis_result: Input value for analysis_result.
+            - text_type: Input value for text_type.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         if not self.llm_client or not analysis_result.get("suggestions"):
             return {
@@ -613,7 +903,15 @@ class ReportRefinementTool:
 
 @dataclass(slots=True)
 class ReportScoringTool:
-    """Score report using LLM-guided evaluation."""
+    """brief:
+        Represent ReportScoringTool state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     llm_client: Any = None
 
@@ -626,9 +924,18 @@ class ReportScoringTool:
         risk: RiskAssessmentResult,
         analysis_result: dict[str, Any],
     ) -> dict[str, Any]:
-        """
-        Score report with LLM evaluation guidance.
-        Returns multidimensional scores and assessment.
+        """brief:
+            Handle score.
+
+        parameter:
+            - findings: Input value for findings.
+            - conclusion: Input value for conclusion.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+            - analysis_result: Input value for analysis_result.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         if not self.llm_client:
             # Fallback to rule-based scoring
@@ -696,7 +1003,19 @@ Paris分型：{paris.paris_type.value if paris.paris_type else "未明确"}
         risk: RiskAssessmentResult,
         analysis_result: dict[str, Any],
     ) -> dict[str, Any]:
-        """Fallback rule-based scoring when LLM is unavailable."""
+        """brief:
+            Handle rule based score.
+
+        parameter:
+            - findings: Input value for findings.
+            - conclusion: Input value for conclusion.
+            - paris: Input value for paris.
+            - risk: Input value for risk.
+            - analysis_result: Input value for analysis_result.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         accuracy_score = 8.5 if not analysis_result.get("has_issues") else 7.0
         completeness_score = 9.0 if len(findings) > 80 and len(conclusion) > 50 else 7.5
         clarity_score = 8.0 if "。" in findings and "。" in conclusion else 6.5

@@ -1,4 +1,4 @@
-"""Filesystem-backed retrieval bank helpers."""
+"""基于文件系统的检索库辅助工具。"""
 
 from __future__ import annotations
 
@@ -20,6 +20,14 @@ __all__ = list(_LAZY_IMPORTS)
 
 
 def __getattr__(name: str):
+    """惰性导入模块属性。
+
+    参数：
+        - name: 要导入的属性名称。
+
+    返回：
+        - 导入后的模块属性。
+    """
     target = _LAZY_IMPORTS.get(name)
     if target is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
@@ -30,4 +38,12 @@ def __getattr__(name: str):
 
 
 def __dir__() -> list[str]:
+    """列出模块的所有公开属性，包括惰性导入的名称。
+
+    参数：
+        - 无。
+
+    返回：
+        - 排序后的属性名称列表。
+    """
     return sorted(list(globals().keys()) + list(__all__))

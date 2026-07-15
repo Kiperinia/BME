@@ -6,8 +6,28 @@ import MarkdownReportViewer from '@/components/workspace/MarkdownReportViewer.vu
 import { usePatientRecordsStore } from '@/stores/patientRecords'
 import type { FeatureTagTone, WorkspaceFeatureTag } from '@/types/workspace'
 
+/**
+ * brief:
+ *   Handle patient records store.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const patientRecordsStore = usePatientRecordsStore()
 const { records, selectedRecord } = storeToRefs(patientRecordsStore)
+/**
+ * brief:
+ *   Handle active filter labels.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const activeFilterLabels = ref<string[]>([])
 
 const toneClasses: Record<FeatureTagTone, string> = {
@@ -18,9 +38,39 @@ const toneClasses: Record<FeatureTagTone, string> = {
   violet: 'bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-200',
 }
 
+/**
+ * brief:
+ *   Resolve tag tone.
+ *
+ * parameter:
+ *   - tag: Input value for tag.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const resolveTagTone = (tag: WorkspaceFeatureTag) => toneClasses[tag.tone] ?? toneClasses.sky
 
+/**
+ * brief:
+ *   Handle available filter tags.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const availableFilterTags = computed(() => {
+  /**
+   * brief:
+   *   Handle map.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const map = new Map<string, WorkspaceFeatureTag>()
   for (const record of records.value) {
     for (const tag of record.featureTags) {
@@ -32,21 +82,61 @@ const availableFilterTags = computed(() => {
   return Array.from(map.values())
 })
 
+/**
+ * brief:
+ *   Handle filtered records.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const filteredRecords = computed(() => {
   if (!activeFilterLabels.value.length) {
     return records.value
   }
 
   return records.value.filter((record) => {
+    /**
+     * brief:
+     *   Handle label set.
+     *
+     * parameter:
+     *   - None.
+     *
+     * retrival:
+     *   - Returns the computed value or updates local application state.
+     */
     const labelSet = new Set(record.featureTags.map((tag) => tag.label))
     return activeFilterLabels.value.every((label) => labelSet.has(label))
   })
 })
 
+/**
+ * brief:
+ *   Handle displayed selected record.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const displayedSelectedRecord = computed(
   () => filteredRecords.value.find((record) => record.recordId === selectedRecord.value?.recordId) ?? null,
 )
 
+/**
+ * brief:
+ *   Handle formatted record count.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const formattedRecordCount = computed(() => {
   if (!activeFilterLabels.value.length) {
     return `${records.value.length} 次诊断记录`
@@ -54,6 +144,16 @@ const formattedRecordCount = computed(() => {
   return `${filteredRecords.value.length}/${records.value.length} 条匹配`
 })
 
+/**
+ * brief:
+ *   Toggle filter tag.
+ *
+ * parameter:
+ *   - label: Input value for label.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toggleFilterTag = (label: string) => {
   if (activeFilterLabels.value.includes(label)) {
     activeFilterLabels.value = activeFilterLabels.value.filter((item) => item !== label)
@@ -63,10 +163,30 @@ const toggleFilterTag = (label: string) => {
   activeFilterLabels.value = [...activeFilterLabels.value, label]
 }
 
+/**
+ * brief:
+ *   Clear filters.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const clearFilters = () => {
   activeFilterLabels.value = []
 }
 
+/**
+ * brief:
+ *   Close preview.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const closePreview = () => {
   patientRecordsStore.selectRecord('')
 }

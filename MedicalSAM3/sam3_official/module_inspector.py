@@ -1,4 +1,4 @@
-"""Inspect official or fallback SAM3 modules and suggest LoRA insertion points."""
+"""检查官方或占位 SAM3 模块结构，并建议 LoRA 插入位置。"""
 
 from __future__ import annotations
 
@@ -61,10 +61,26 @@ DEFAULT_KEYWORDS = [
 
 
 def _module_parameter_count(module: nn.Module) -> int:
+    """统计单个模块自身（不含子模块）的参数总量。
+
+    参数：
+        - module: 待统计的模块。
+
+    返回：
+        - 该模块非递归参数数量总和。
+    """
     return sum(parameter.numel() for parameter in module.parameters(recurse=False))
 
 
 def _parse_block_index(name: str) -> int | None:
+    """从模块限定名中解析 Transformer 层块索引。
+
+    参数：
+        - name: 模块的完整限定名（如 "trunk.blocks.5.attn"）。
+
+    返回：
+        - 解析到的块索引整数；若无法解析则返回 None。
+    """
     parts = name.split(".")
     for index, part in enumerate(parts[:-1]):
         if part == "blocks" and parts[index + 1].isdigit():
@@ -77,6 +93,15 @@ def _parse_block_index(name: str) -> int | None:
 
 
 def _collect_scope_depths(model: nn.Module, scope_aliases: dict[str, list[str]] | None = None) -> dict[str, int]:
+    """收集各功能范围内 Transformer 块的最大深度。
+
+    参数：
+        - model: 待分析的模型。
+        - scope_aliases: 范围别名映射；为 None 时使用默认别名。
+
+    返回：
+        - 范围名称到最大块数量的字典。
+    """
     depths: dict[str, int] = {}
     for name, _ in model.named_modules():
         block_index = _parse_block_index(name)
@@ -88,6 +113,16 @@ def _collect_scope_depths(model: nn.Module, scope_aliases: dict[str, list[str]] 
 
 
 def classify_scope(name: str, scope_aliases: dict[str, list[str]] | None = None) -> str:
+    """根据模块名称将其归类到功能范围。
+
+    参数：
+        - name: 模块的完整限定名。
+        - scope_aliases: 范围别名映射；为 None 时使用默认别名。
+
+    返回：
+        - 归类后的范围字符串（如 "vision_encoder"、"mask_decoder"），
+          无法匹配时返回 "unknown"。
+    """
     aliases = scope_aliases or DEFAULT_SCOPE_ALIASES
     lowered = name.lower()
 
@@ -109,6 +144,14 @@ def classify_scope(name: str, scope_aliases: dict[str, list[str]] | None = None)
 
 
 def _candidate_kind(name: str) -> str:
+    """根据模块名称判断 LoRA 候选层的类型。
+
+    参数：
+        - name: 模块的完整限定名。
+
+    返回：
+        - 候选类型字符串：attention_projection、mlp、prompt_projection 或 linear。
+    """
     lowered = name.lower()
     if any(token in lowered for token in ["q_proj", "k_proj", "v_proj", "qkv", "out_proj", ".proj"]):
         return "attention_projection"
@@ -120,6 +163,17 @@ def _candidate_kind(name: str) -> str:
 
 
 def _select_default_stages(name: str, scope: str, block_index: int | None, scope_depths: dict[str, int]) -> list[str]:
+    """为候选 LoRA 层选择默认的训练阶段标签。
+
+    参数：
+        - name: 模块的完整限定名。
+        - scope: 模块所属功能范围。
+        - block_index: 模块所在块索引（可能为 None）。
+        - scope_depths: 各范围的最大深度字典。
+
+    返回：
+        - 默认阶段标签列表（如 ["stage_a"]、["stage_b", "stage_c"]）。
+    """
     lowered = name.lower()
     stages: list[str] = []
 
@@ -149,6 +203,16 @@ def list_named_modules(
     save_path: str | Path | None = None,
     scope_aliases: dict[str, list[str]] | None = None,
 ) -> list[dict[str, Any]]:
+    """列出模型中所有命名子模块的元信息。
+
+    参数：
+        - model: 待列举的模型。
+        - save_path: 若提供，则将结果同时保存为 .json 和 .txt 文件。
+        - scope_aliases: 范围别名映射；为 None 时使用默认别名。
+
+    返回：
+        - 模块信息字典列表，每项包含 name、type、parameters、scope_guess。
+    """
     modules = []
     for name, module in model.named_modules():
         modules.append(
@@ -172,6 +236,15 @@ def list_named_modules(
 
 
 def find_modules_by_keywords(model: nn.Module, keywords: list[str]) -> dict[str, list[str]]:
+    """按关键词在模型中查找匹配的子模块名称。
+
+    参数：
+        - model: 待查找的模型。
+        - keywords: 关键词列表，匹配时忽略大小写。
+
+    返回：
+        - 关键词到匹配模块名称列表的字典；无匹配时发出警告。
+    """
     all_names = [name for name, _ in model.named_modules()]
     results: dict[str, list[str]] = {}
     for keyword in keywords:
@@ -186,6 +259,16 @@ def suggest_lora_targets(
     model: nn.Module,
     scope_aliases: dict[str, list[str]] | None = None,
 ) -> list[dict[str, Any]]:
+    """为模型中的 Linear 层建议 LoRA 插入目标。
+
+    参数：
+        - model: 待分析的模型。
+        - scope_aliases: 范围别名映射；为 None 时使用默认别名。
+
+    返回：
+        - LoRA 目标信息字典列表，每项包含 name、scope、block_index、
+          candidate_kind、default_stages 等字段。
+    """
     suggestions: list[dict[str, Any]] = []
     scope_depths = _collect_scope_depths(model, scope_aliases=scope_aliases)
     linear_names = []
@@ -225,6 +308,16 @@ def write_inspection_outputs(
     modules: list[dict[str, Any]],
     lora_targets: list[dict[str, Any]],
 ) -> None:
+    """将模块检查与 LoRA 目标结果写入默认输出文件。
+
+    参数：
+        - modules: 模块信息字典列表。
+        - lora_targets: LoRA 目标信息字典列表。
+
+    返回：
+        - 无返回值；将结果写入 sam3_modules.txt、sam3_lora_targets.json
+          及 preflight 目录下的对应文件。
+    """
     DEFAULT_PREFLIGHT_DIR.mkdir(parents=True, exist_ok=True)
     DEFAULT_MODULES_TXT.write_text(
         "\n".join(
@@ -238,6 +331,14 @@ def write_inspection_outputs(
 
 
 def main() -> int:
+    """模块命令行入口：构建模型并导出模块检查与 LoRA 目标结果。
+
+    参数：
+        - 无。
+
+    返回：
+        - 固定返回 0 表示正常退出。
+    """
     parser = argparse.ArgumentParser(description="Inspect official SAM3 module names.")
     parser.add_argument("--checkpoint", default=None)
     parser.add_argument("--device", default="cpu")

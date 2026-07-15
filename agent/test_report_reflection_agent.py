@@ -34,7 +34,15 @@ logger = logging.getLogger(__name__)
 
 
 def create_mock_report() -> ReportData:
-    """创建模拟的初步报告（有问题的）"""
+    """brief:
+        Create mock report.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return ReportData(
         patient_id="PAT001",
         study_id="STU001",
@@ -45,7 +53,15 @@ def create_mock_report() -> ReportData:
 
 
 def create_mock_morphology() -> MorphologyResult:
-    """创建模拟的形态分类结果"""
+    """brief:
+        Create mock morphology.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return MorphologyResult(
         pedicle_type=PedicleType.SESSILE,
         size_grade=SizeGrade.MEDIUM,
@@ -60,7 +76,15 @@ def create_mock_morphology() -> MorphologyResult:
 
 
 def create_mock_paris() -> ParisTypingResult:
-    """创建模拟的 Paris 分型结果"""
+    """brief:
+        Create mock paris.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return ParisTypingResult(
         paris_type=ParisType.IIB,
         invasion_risk=InvasionRisk.HIGH,
@@ -69,7 +93,15 @@ def create_mock_paris() -> ParisTypingResult:
 
 
 def create_mock_risk() -> RiskAssessmentResult:
-    """创建模拟的风险评估结果"""
+    """brief:
+        Create mock risk.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     from tools.medical.risk_assessor import Disposition
     return RiskAssessmentResult(
         risk_level=RiskLevel.HIGH,
@@ -81,11 +113,19 @@ def create_mock_risk() -> RiskAssessmentResult:
 
 
 async def main():
-    """Main test function"""
+    """brief:
+        Run the command-line entry point for this module.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     logger.info("=" * 70)
     logger.info("ReAct Report Reflection Agent Test")
     logger.info("=" * 70)
-    
+
     # Try to initialize with real LLM
     try:
         config = Config.from_env()
@@ -95,59 +135,59 @@ async def main():
         logger.warning(f"LLM initialization failed: {exc}")
         logger.info("Falling back to rule-only mode (no reflection)")
         llm = None
-    
+
     # Create reflection agent
     agent = ReportReflectionAgent(
         llm=llm,
         max_iterations=3,
         quality_threshold=8.0,
     )
-    
+
     logger.info(f"Reflection enabled: {agent.reflection_enabled}")
     logger.info(f"Max iterations: {agent.max_iterations}")
     logger.info("")
-    
+
     # Create mock data
     initial_report = create_mock_report()
     morphology = create_mock_morphology()
     paris = create_mock_paris()
     risk = create_mock_risk()
-    
+
     logger.info("Initial Report:")
     logger.info(f"  Findings: {initial_report.findings}")
     logger.info(f"  Conclusion: {initial_report.conclusion}")
     logger.info("")
-    
+
     logger.info("Diagnostic Context:")
     logger.info(f"  Paris Type: {paris.paris_type.value}")
     logger.info(f"  Invasion Risk: {paris.invasion_risk.value}")
     logger.info(f"  Risk Level: {risk.risk_level.value}")
     logger.info("")
-    
+
     # Run reflection
     logger.info("=" * 70)
     logger.info("Starting Report Reflection (ReAct Loop)")
     logger.info("=" * 70)
     logger.info("")
-    
+
     result = agent.reflect(
         report=initial_report,
         morphology=morphology,
         paris=paris,
         risk=risk,
     )
-    
+
     # Report results
     logger.info("=" * 70)
     logger.info("Reflection Results")
     logger.info("=" * 70)
     logger.info("")
-    
+
     logger.info(f"Total Iterations: {result.total_iterations}")
     logger.info(f"Completion Reason: {result.completion_reason}")
     logger.info(f"Final Quality Score: {result.final_quality_score}")
     logger.info("")
-    
+
     if result.reflection_steps:
         logger.info("Reflection Steps:")
         for step in result.reflection_steps:
@@ -158,15 +198,15 @@ async def main():
             if step.quality_score is not None:
                 logger.info(f"Quality Score: {step.quality_score}")
             logger.info(f"Should Continue: {step.should_continue}")
-    
+
     logger.info("")
     logger.info("Final Report:")
     logger.info(f"  Findings: {result.final_report.findings[:150]}...")
     logger.info(f"  Conclusion: {result.final_report.conclusion[:150]}...")
-    
+
     if result.final_report.report_score:
         logger.info(f"  Quality Score: {result.final_report.report_score.get('overall_score')}")
-    
+
     logger.info("")
     logger.info("=" * 70)
     logger.info("Test Complete")

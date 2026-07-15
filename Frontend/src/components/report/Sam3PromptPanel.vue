@@ -1,14 +1,54 @@
 <script setup lang="ts">
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   polypCount: number
   promptText: string
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'update:promptText', value: string): void
 }>()
 
+/**
+ * brief:
+ *   Handle input.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleInput = (event: Event) => {
+  /**
+   * brief:
+   *   Handle target.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const target = event.target as HTMLTextAreaElement
   emit('update:promptText', target.value)
 }

@@ -16,7 +16,16 @@ except ImportError:
 
 
 def get_train_transforms(image_size: int = 1024) -> Any:
-    """训练阶段数据增强"""
+    """获取训练阶段的数据增强管线。
+
+    包含翻转、旋转、仿射变换、模糊、亮度对比度调整、噪声和随机遮挡。
+
+    参数：
+        - image_size: 目标图像尺寸，默认 1024
+
+    返回：
+        - albumentations 组合变换或 ResizeNormalize 回退
+    """
     if not HAS_ALBUM:
         return ResizeNormalize(image_size)
 
@@ -50,7 +59,14 @@ def get_train_transforms(image_size: int = 1024) -> Any:
 
 
 def get_val_transforms(image_size: int = 1024) -> Any:
-    """验证/测试阶段数据变换（仅 resize + normalize）"""
+    """获取验证阶段的变换管线（仅缩放和归一化）。
+
+    参数：
+        - image_size: 目标图像尺寸，默认 1024
+
+    返回：
+        - albumentations 组合变换或 ResizeNormalize 回退
+    """
     if not HAS_ALBUM:
         return ResizeNormalize(image_size)
 
@@ -62,15 +78,34 @@ def get_val_transforms(image_size: int = 1024) -> Any:
 
 
 class ResizeNormalize:
-    """不依赖 albumentations 的 fallback 变换"""
+    """当 albumentations 不可用时的简单缩放和归一化回退实现。
+
+    参数：
+        - image_size: 目标图像尺寸
+    """
 
     def __init__(self, image_size: int = 1024):
+        """初始化回退变换。
+
+        参数：
+            - image_size: 目标图像尺寸，默认 1024
+        """
         self.image_size = image_size
         self.mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
         self.std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
     def __call__(self, image: np.ndarray = None,
                  mask: np.ndarray = None, **kwargs) -> Dict[str, np.ndarray]:
+        """执行缩放和归一化变换。
+
+        参数：
+            - image: 输入图像数组，可选
+            - mask: 输入掩码数组，可选
+            - **kwargs: 额外参数
+
+        返回：
+            - 包含变换后 image 和 mask 的字典
+        """
         result = {}
         if image is not None:
             img = cv2.resize(image, (self.image_size, self.image_size))
@@ -85,8 +120,13 @@ class ResizeNormalize:
 
 
 def mask_to_bbox(mask: np.ndarray) -> np.ndarray:
-    """
-    从二值 mask 提取 bounding box [x_min, y_min, x_max, y_max]
+    """从二值掩码中提取边界框（非零区域的最小外接矩形）。
+
+    参数：
+        - mask: 二值掩码数组
+
+    返回：
+        - [xmin, ymin, xmax, ymax] 边界框数组
     """
     rows = np.any(mask > 0, axis=1)
     cols = np.any(mask > 0, axis=0)
@@ -99,8 +139,16 @@ def mask_to_bbox(mask: np.ndarray) -> np.ndarray:
 
 def jitter_bbox(bbox: np.ndarray, jitter_ratio: float = 0.05,
                 img_h: int = 1024, img_w: int = 1024) -> np.ndarray:
-    """
-    对 bbox 添加随机扰动 (训练时使用，模拟不完美的 bbox 输入)
+    """对边界框添加随机扰动，增强训练鲁棒性。
+
+    参数：
+        - bbox: 原始边界框 [xmin, ymin, xmax, ymax]
+        - jitter_ratio: 扰动比例，默认 0.05
+        - img_h: 图像高度，默认 1024
+        - img_w: 图像宽度，默认 1024
+
+    返回：
+        - 扰动后的边界框数组
     """
     x_min, y_min, x_max, y_max = bbox
     w = x_max - x_min

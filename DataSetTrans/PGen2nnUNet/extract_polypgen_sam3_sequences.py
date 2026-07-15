@@ -8,6 +8,15 @@ DEFAULT_SEQUENCES = ["seq8", "seq10", "seq15", "seq16", "seq23"]
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """brief:
+        Build parser.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     repo_root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(
         description="Extract selected PolypGen-SAM3 sequences for MedicalSAM3 inference."
@@ -37,10 +46,31 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def should_keep(file_name: str, sequences: list[str]) -> bool:
+    """brief:
+        Handle should keep.
+
+    parameter:
+        - file_name: Input value for file_name.
+        - sequences: Input value for sequences.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return any(file_name.startswith(seq) for seq in sequences)
 
 
 def copy_matching_files(src_dir: Path, dst_dir: Path, sequences: list[str]) -> list[str]:
+    """brief:
+        Copy matching files.
+
+    parameter:
+        - src_dir: Input value for src_dir.
+        - dst_dir: Input value for dst_dir.
+        - sequences: Input value for sequences.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     copied_names = []
     dst_dir.mkdir(parents=True, exist_ok=True)
     for file_path in sorted(src_dir.iterdir()):
@@ -54,6 +84,15 @@ def copy_matching_files(src_dir: Path, dst_dir: Path, sequences: list[str]) -> l
 
 
 def main() -> int:
+    """brief:
+        Run the command-line entry point for this module.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     args = build_parser().parse_args()
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)

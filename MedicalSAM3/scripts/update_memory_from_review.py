@@ -17,6 +17,15 @@ from MedicalSAM3.scripts.common import ensure_dir
 
 
 def _write_dummy_review_csv(bank: ExemplarMemoryBank, path: Path) -> Path:
+    """生成供测试用的虚拟审核 CSV 文件，所有条目标记为"接受"。
+
+    参数：
+        - bank: 示例记忆库实例
+        - path: 输出的 CSV 文件路径
+
+    返回：
+        - 写入后的 CSV 文件路径
+    """
     fieldnames = [
         "item_id",
         "image_id",
@@ -53,6 +62,14 @@ def _write_dummy_review_csv(bank: ExemplarMemoryBank, path: Path) -> Path:
 
 
 def _bank_stats(bank: ExemplarMemoryBank) -> dict[str, object]:
+    """生成更新后记忆库的统计摘要。
+
+    参数：
+        - bank: 示例记忆库实例
+
+    返回：
+        - 包含版本、各类别数量及泄漏检查结果的字典
+    """
     return {
         "version": bank.version,
         "total_items": len(bank.items),
@@ -66,6 +83,14 @@ def _bank_stats(bank: ExemplarMemoryBank) -> dict[str, object]:
 
 
 def main() -> int:
+    """命令行入口：根据人工审核 CSV 更新示例记忆库。
+
+    参数：
+        - 无（通过 argparse 解析命令行参数）
+
+    返回：
+        - 进程退出码（0 表示成功）
+    """
     parser = argparse.ArgumentParser(description="Update memory bank from human review CSV.")
     parser.add_argument("--memory-bank", default="MedicalSAM3/outputs/medex_sam3/exemplar_bank/memory_v0.json")
     parser.add_argument("--review-csv", default="MedicalSAM3/outputs/medex_sam3/exemplar_bank/review_queue.csv")

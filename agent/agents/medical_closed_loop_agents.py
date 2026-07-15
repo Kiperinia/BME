@@ -16,6 +16,15 @@ PRIMARY_AGENT_TOOL_CHAINS = get_primary_agent_tool_chains()
 
 
 def _plain(value: Any) -> Any:
+    """brief:
+        Handle plain.
+
+    parameter:
+        - value: Input value for value.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     if hasattr(value, "to_dict") and callable(value.to_dict):
         return _plain(value.to_dict())
     if is_dataclass(value):
@@ -31,6 +40,15 @@ def _plain(value: Any) -> Any:
 
 @dataclass(slots=True)
 class ClosedLoopAgentRun:
+    """brief:
+        Represent ClosedLoopAgentRun state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name: str
     display_name: str
     goal: str
@@ -42,11 +60,29 @@ class ClosedLoopAgentRun:
     started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return _plain(asdict(self))
 
 
 @dataclass(slots=True)
 class ClosedLoopResult:
+    """brief:
+        Represent ClosedLoopResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     preprocess: dict[str, Any]
     sample_audit: dict[str, Any]
     report: dict[str, Any]
@@ -55,6 +91,15 @@ class ClosedLoopResult:
     agent_runs: list[ClosedLoopAgentRun]
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "preprocess": _plain(self.preprocess),
             "sample_audit": _plain(self.sample_audit),
@@ -66,14 +111,41 @@ class ClosedLoopResult:
 
 
 class _ClosedLoopAgent:
+    """brief:
+        Represent ClosedLoopAgent state and behavior.
+
+    parameter:
+        - registry: Input value for registry.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = ""
     display_name = ""
     goal = ""
 
     def __init__(self, registry: Any):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - registry: Input value for registry.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.registry = registry
 
     def _annotate(self, observations: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle annotate.
+
+        parameter:
+            - observations: Input value for observations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         metadata = copy.deepcopy(PRIMARY_AGENT_TOOL_CHAINS.get(self.agent_name, {}))
         return {
             **observations,
@@ -90,6 +162,18 @@ class _ClosedLoopAgent:
         observations: dict[str, Any],
         warnings: list[str] | None = None,
     ) -> ClosedLoopAgentRun:
+        """brief:
+            Handle finish.
+
+        parameter:
+            - status: Input value for status.
+            - decision: Input value for decision.
+            - observations: Input value for observations.
+            - warnings: Input value for warnings.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return ClosedLoopAgentRun(
             agent_name=self.agent_name,
             display_name=self.display_name,
@@ -103,11 +187,30 @@ class _ClosedLoopAgent:
 
 
 class SegmentationPreprocessAgent(_ClosedLoopAgent):
+    """brief:
+        Represent SegmentationPreprocessAgent state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "segmentation_preprocess_agent"
     display_name = "分割预处理智能体"
     goal = "Prepare normalized image and prompt hints before segmentation diagnosis."
 
     def run(self, case: dict[str, Any], sample: dict[str, Any]) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
+        """brief:
+            Handle run.
+
+        parameter:
+            - case: Input value for case.
+            - sample: Input value for sample.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         self.registry.reset_logs()
         bbox_request = self.registry.call("BuildBboxRequest", sample=sample, detector="yolo")
         normalized = self.registry.call("NormalizeImagePlan", sample=sample, target_size=int(case.get("target_size", 1024)))
@@ -151,6 +254,15 @@ class SegmentationPreprocessAgent(_ClosedLoopAgent):
 
 
 class SampleAuditAgent(_ClosedLoopAgent):
+    """brief:
+        Represent SampleAuditAgent state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "sample_audit_agent"
     display_name = "样本审核智能体"
     goal = "Decide whether a segmented sample is valuable enough for the sample bank."
@@ -161,6 +273,17 @@ class SampleAuditAgent(_ClosedLoopAgent):
         reference_sample: dict[str, Any] | None,
         doctor_annotations: dict[str, Any],
     ) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
+        """brief:
+            Handle run.
+
+        parameter:
+            - sample: Input value for sample.
+            - reference_sample: Input value for reference_sample.
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         self.registry.reset_logs()
         review_bundle = self.registry.call("BuildReviewQueueItem", sample=sample, known_ids=[])
         quiz = self.registry.call(
@@ -204,11 +327,31 @@ class SampleAuditAgent(_ClosedLoopAgent):
 
 
 class ReportGenerationAgent(_ClosedLoopAgent):
+    """brief:
+        Represent ReportGenerationAgent state and behavior.
+
+    parameter:
+        - registry: Input value for registry.
+        - diagnosis_agent: Input value for diagnosis_agent.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "report_generation_agent"
     display_name = "报告生成智能体"
     goal = "Generate a structured report from segmentation evidence and doctor annotations."
 
     def __init__(self, registry: Any, diagnosis_agent: DiagnosisAgent):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - registry: Input value for registry.
+            - diagnosis_agent: Input value for diagnosis_agent.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         super().__init__(registry)
         self.diagnosis_agent = diagnosis_agent
 
@@ -218,6 +361,17 @@ class ReportGenerationAgent(_ClosedLoopAgent):
         sample: dict[str, Any],
         doctor_annotations: dict[str, Any],
     ) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
+        """brief:
+            Handle run.
+
+        parameter:
+            - case: Input value for case.
+            - sample: Input value for sample.
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         self.registry.reset_logs()
         context = self.registry.call("CaseContextAssembler", sample=sample, similar_cases=[], review_summary={})
         uncertainty = self.registry.call("UncertaintyExplainer", context=context)
@@ -276,6 +430,15 @@ class ReportGenerationAgent(_ClosedLoopAgent):
         return result, self._finish(status="ok", decision=decision, observations=result)
 
     def _diagnose(self, case: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle diagnose.
+
+        parameter:
+            - case: Input value for case.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         image = case.get("image")
         mask = case.get("mask")
         if image is None or mask is None:
@@ -298,6 +461,15 @@ class ReportGenerationAgent(_ClosedLoopAgent):
 
     @staticmethod
     def _doctor_note(doctor_annotations: dict[str, Any]) -> str:
+        """brief:
+            Handle doctor note.
+
+        parameter:
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         pairs = [
             ("Paris", doctor_annotations.get("paris")),
             ("lesion", doctor_annotations.get("lesion_type")),
@@ -309,6 +481,15 @@ class ReportGenerationAgent(_ClosedLoopAgent):
 
 
 class DatabaseTermAgent(_ClosedLoopAgent):
+    """brief:
+        Represent DatabaseTermAgent state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "label_embedding_agent"
     display_name = "标签嵌入智能体"
     goal = "Generate normalized database filter terms from report text and doctor annotations."
@@ -319,6 +500,17 @@ class DatabaseTermAgent(_ClosedLoopAgent):
         report: dict[str, Any],
         doctor_annotations: dict[str, Any],
     ) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
+        """brief:
+            Handle run.
+
+        parameter:
+            - sample: Input value for sample.
+            - report: Input value for report.
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         self.registry.reset_logs()
         extracted = self.registry.call(
             "ExtractReportTerms",
@@ -363,6 +555,15 @@ class DatabaseTermAgent(_ClosedLoopAgent):
 
 
 class CrossAgentResultReviewAgent(_ClosedLoopAgent):
+    """brief:
+        Represent CrossAgentResultReviewAgent state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     agent_name = "result_review_agent"
     display_name = "结果复核智能体"
     goal = "Review every upstream agent output and decide the final closed-loop action."
@@ -376,6 +577,20 @@ class CrossAgentResultReviewAgent(_ClosedLoopAgent):
         label_embedding: dict[str, Any],
         upstream_agent_runs: list[ClosedLoopAgentRun],
     ) -> tuple[dict[str, Any], ClosedLoopAgentRun]:
+        """brief:
+            Handle run.
+
+        parameter:
+            - preprocess: Input value for preprocess.
+            - sample: Input value for sample.
+            - sample_audit: Input value for sample_audit.
+            - report: Input value for report.
+            - label_embedding: Input value for label_embedding.
+            - upstream_agent_runs: Input value for upstream_agent_runs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         self.registry.reset_logs()
         _ = sample
         agent_outputs = {
@@ -479,7 +694,27 @@ class CrossAgentResultReviewAgent(_ClosedLoopAgent):
 
 
 class MedicalClosedLoopOrchestrator:
+    """brief:
+        Represent MedicalClosedLoopOrchestrator state and behavior.
+
+    parameter:
+        - diagnosis_agent: Input value for diagnosis_agent.
+        - pixel_size_mm: Input value for pixel_size_mm.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self, diagnosis_agent: DiagnosisAgent | None = None, *, pixel_size_mm: float | None = 0.15):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - diagnosis_agent: Input value for diagnosis_agent.
+            - pixel_size_mm: Input value for pixel_size_mm.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.registry = create_sample_library_tool_registry()
         self.diagnosis_agent = diagnosis_agent or DiagnosisAgent.from_env(
             use_llm=False,
@@ -498,6 +733,17 @@ class MedicalClosedLoopOrchestrator:
         reference_sample: dict[str, Any] | None = None,
         doctor_annotations: dict[str, Any] | None = None,
     ) -> ClosedLoopResult:
+        """brief:
+            Run sync.
+
+        parameter:
+            - case: Input value for case.
+            - reference_sample: Input value for reference_sample.
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         annotations = dict(doctor_annotations or {})
         sample = self._build_sample(case, annotations)
         runs: list[ClosedLoopAgentRun] = []
@@ -528,6 +774,16 @@ class MedicalClosedLoopOrchestrator:
         )
 
     def _build_sample(self, case: dict[str, Any], doctor_annotations: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Build sample.
+
+        parameter:
+            - case: Input value for case.
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         source = copy.deepcopy(case.get("sample") or {})
         image = case.get("image")
         mask = case.get("mask")
@@ -554,12 +810,32 @@ class MedicalClosedLoopOrchestrator:
 
     @staticmethod
     def _image_shape(image: Any) -> tuple[int, int]:
+        """brief:
+            Handle image shape.
+
+        parameter:
+            - image: Input value for image.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if isinstance(image, np.ndarray) and image.ndim >= 2:
             return int(image.shape[0]), int(image.shape[1])
         return 256, 256
 
     @staticmethod
     def _bbox_from_mask(mask: Any, width: int, height: int) -> list[int]:
+        """brief:
+            Handle bbox from mask.
+
+        parameter:
+            - mask: Input value for mask.
+            - width: Input value for width.
+            - height: Input value for height.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if isinstance(mask, np.ndarray) and mask.size:
             binary = (mask > 0).astype(np.uint8)
             contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -570,6 +846,17 @@ class MedicalClosedLoopOrchestrator:
 
     @staticmethod
     def _mask_stats(mask: Any, width: int, height: int) -> dict[str, float]:
+        """brief:
+            Handle mask stats.
+
+        parameter:
+            - mask: Input value for mask.
+            - width: Input value for width.
+            - height: Input value for height.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not isinstance(mask, np.ndarray) or not mask.size:
             return {"area_ratio": 1.0, "aspect_ratio": 1.0, "boundary_complexity": 0.0, "solidity": 1.0, "components": 1.0}
         binary = (mask > 0).astype(np.uint8)
@@ -596,6 +883,15 @@ class MedicalClosedLoopOrchestrator:
 
     @staticmethod
     def _annotation_tags(doctor_annotations: dict[str, Any]) -> list[str]:
+        """brief:
+            Handle annotation tags.
+
+        parameter:
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         tags: list[str] = []
         for value in [
             doctor_annotations.get("paris"),
@@ -611,6 +907,16 @@ class MedicalClosedLoopOrchestrator:
 
     @staticmethod
     def _merge_preprocess_sample(sample: dict[str, Any], preprocess: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Handle merge preprocess sample.
+
+        parameter:
+            - sample: Input value for sample.
+            - preprocess: Input value for preprocess.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         updated = dict(sample)
         bbox = preprocess.get("bbox_request", {}).get("bbox")
         if bbox:
@@ -623,6 +929,16 @@ def build_medical_closed_loop_agent(
     diagnosis_agent: DiagnosisAgent | None = None,
     pixel_size_mm: float | None = 0.15,
 ) -> MedicalClosedLoopOrchestrator:
+    """brief:
+        Build medical closed loop agent.
+
+    parameter:
+        - diagnosis_agent: Input value for diagnosis_agent.
+        - pixel_size_mm: Input value for pixel_size_mm.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     return MedicalClosedLoopOrchestrator(diagnosis_agent=diagnosis_agent, pixel_size_mm=pixel_size_mm)
 
 

@@ -34,4 +34,13 @@ celery_app.conf.update(
 
 @worker_process_init.connect
 def warm_model_on_worker_start(**_: object) -> None:
+    """brief:
+        Handle warm model on worker start.
+
+    parameter:
+        - **_: Input value for _.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     SAM3RuntimeSingleton.get_instance(settings=settings)

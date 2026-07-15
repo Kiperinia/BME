@@ -1,4 +1,4 @@
-"""Spatial similarity maps and positive-negative fusion for RSS-DA."""
+"""RSS-DA 的空间相似度图与正负融合模块。"""
 
 from __future__ import annotations
 
@@ -10,6 +10,15 @@ import torch.nn.functional as F
 
 
 def cosine_similarity_map(feature_map: torch.Tensor, prototypes: torch.Tensor) -> torch.Tensor:
+    """计算图像特征与原型之间的逐像素余弦相似度图。
+
+    参数：
+        - feature_map: 形状为 [B, C, H, W] 的图像特征张量。
+        - prototypes: 形状为 [B, K, C] 或 [B, C] 的原型张量。
+
+    返回：
+        - 形状为 [B, K, H, W] 的余弦相似度张量。
+    """
     if feature_map.dim() != 4:
         raise ValueError("feature_map must have shape [B, C, H, W]")
     if prototypes.dim() == 2:
@@ -23,7 +32,25 @@ def cosine_similarity_map(feature_map: torch.Tensor, prototypes: torch.Tensor) -
 
 
 class SimilarityHeatmapBuilder(nn.Module):
+    """相似度热图构建器，融合正负原型相似度得到空间先验。
+
+    参数：
+        - lambda_negative: 负原型融合权重。
+        - temperature: 相似度 softmax 温度。
+
+    返回：
+        - 构建可用的相似度热图构建模块实例。
+    """
     def __init__(self, lambda_negative: float = 0.35, temperature: float = 1.0) -> None:
+        """初始化融合投影层与可学习温度，并设置正负融合权重。
+
+        参数：
+            - lambda_negative: 负原型融合权重。
+            - temperature: 相似度 softmax 温度。
+
+        返回：
+            - 无返回值，完成子模块与参数的构建。
+        """
         super().__init__()
         self.fusion_proj = nn.Conv2d(2, 1, kernel_size=1, bias=True)
         self.log_temperature = nn.Parameter(torch.log(torch.tensor(float(max(temperature, 1e-6)))))
@@ -35,6 +62,15 @@ class SimilarityHeatmapBuilder(nn.Module):
 
     @staticmethod
     def _fuse(similarity: torch.Tensor, weights: Optional[torch.Tensor]) -> torch.Tensor:
+        """将多原型相似度按权重加权或取均值融合为单通道热图。
+
+        参数：
+            - similarity: 形状为 [B, K, H, W] 的相似度张量。
+            - weights: 可选的形状为 [B, K] 权重张量。
+
+        返回：
+            - 形状为 [B, 1, H, W] 的融合相似度热图。
+        """
         if similarity.numel() == 0:
             batch_size = similarity.shape[0]
             spatial_shape = similarity.shape[-2:]
@@ -53,6 +89,19 @@ class SimilarityHeatmapBuilder(nn.Module):
         positive_weights: Optional[torch.Tensor] = None,
         negative_weights: Optional[torch.Tensor] = None,
     ) -> dict[str, Any]:
+        """计算正负原型相似度热图并融合为空间先验。
+
+        参数：
+            - feature_map: 形状为 [B, C, H, W] 的图像特征张量。
+            - positive_prototypes: 正原型张量。
+            - negative_prototypes: 可选负原型张量。
+            - positive_weights: 可选正原型权重。
+            - negative_weights: 可选负原型权重。
+
+        返回：
+            - 包含 positive_similarity、negative_similarity、spatial_prior
+              等字段的字典。
+        """
         positive_similarity = cosine_similarity_map(feature_map, positive_prototypes)
         positive_heatmap = self._fuse(positive_similarity, positive_weights)
         if negative_prototypes is None or negative_prototypes.numel() == 0:

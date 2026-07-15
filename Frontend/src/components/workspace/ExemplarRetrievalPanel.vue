@@ -13,6 +13,16 @@ defineProps<{
   feedbackSubmittingFor: string | null
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'refresh'): void
   (event: 'feedback', exemplarId: string, mode: ExemplarFeedbackMode): void
@@ -31,6 +41,16 @@ const feedbackActions: Array<{ label: string; mode: ExemplarFeedbackMode }> = [
   { label: '存在不确定', mode: 'uncertain' },
 ]
 
+/**
+ * brief:
+ *   Resolve polarity label.
+ *
+ * parameter:
+ *   - polarity: Input value for polarity.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const resolvePolarityLabel = (polarity: ExemplarRetrievalCandidate['polarity']) => {
   if (polarity === 'positive') return '正样本'
   if (polarity === 'negative') return '负样本'

@@ -1,4 +1,8 @@
-"""Spatial-semantic retrieval adapter for RSS-DA."""
+"""MedEx-SAM3 的空间-语义检索适配器（RSS-DA）。
+
+将检索得到的正/负原型与相似度先验，通过空间偏置与门控融合机制
+注入到分割特征中，实现基于检索的域自适应增强。
+"""
 
 from __future__ import annotations
 
@@ -11,6 +15,23 @@ from MedicalSAM3.models.prompt_adapter import GatedRetrievalFusion
 
 
 class RetrievalSpatialSemanticAdapter(nn.Module):
+    """空间-语义检索适配器，融合空间先验与语义原型增强分割特征。
+
+    参数：
+        - dim: 特征维度
+        - positive_weight: 正例原型融合权重
+        - negative_weight: 负例原型融合权重
+        - similarity_threshold: 相似度激活阈值
+        - confidence_scale: 置信度缩放系数
+        - similarity_weighting: 相似度加权方式（hard/soft）
+        - similarity_temperature: 软相似度温度系数
+        - retrieval_policy: 检索策略名称
+        - uncertainty_threshold: 不确定性激活阈值
+        - uncertainty_scale: 不确定性缩放系数
+        - policy_activation_threshold: 策略激活比例阈值
+        - residual_strength: 残差融合强度
+    """
+
     def __init__(
         self,
         dim: int,
@@ -27,6 +48,25 @@ class RetrievalSpatialSemanticAdapter(nn.Module):
         policy_activation_threshold: float = 0.05,
         residual_strength: float = 0.5,
     ) -> None:
+        """初始化空间偏置卷积分支与门控检索融合模块。
+
+        参数：
+            - dim: 特征维度
+            - positive_weight: 正例原型融合权重
+            - negative_weight: 负例原型融合权重
+            - similarity_threshold: 相似度激活阈值
+            - confidence_scale: 置信度缩放系数
+            - similarity_weighting: 相似度加权方式（hard/soft）
+            - similarity_temperature: 软相似度温度系数
+            - retrieval_policy: 检索策略名称
+            - uncertainty_threshold: 不确定性激活阈值
+            - uncertainty_scale: 不确定性缩放系数
+            - policy_activation_threshold: 策略激活比例阈值
+            - residual_strength: 残差融合强度
+
+        返回：
+            - 无返回值，完成空间偏置与门控融合模块的构建
+        """
         super().__init__()
         self.spatial_fusion = nn.Sequential(
             nn.Conv2d(2, dim // 4 if dim >= 16 else 4, kernel_size=3, padding=1),
@@ -68,6 +108,29 @@ class RetrievalSpatialSemanticAdapter(nn.Module):
         negative_heatmap: Optional[torch.Tensor] = None,
         mode: str = "joint",
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor], dict[str, Any]]:
+        """前向计算：按模式融合空间偏置与语义原型，输出增强特征与检索先验。
+
+        参数：
+            - feature_map: 形如 [B, C, H, W] 的输入特征图
+            - similarity_map: 形如 [B, 1, H, W] 的相似度图
+            - positive_prototype: 正例原型向量
+            - negative_prototype: 负例原型向量，可选
+            - positive_tokens: 正例提示 token，可选
+            - negative_tokens: 负例提示 token，可选
+            - positive_similarity: 正例相似度标量，可选
+            - negative_similarity: 负例相似度标量，可选
+            - positive_weights: 正例检索权重，可选
+            - negative_weights: 负例检索权重，可选
+            - positive_scores: 正例检索分数，可选
+            - negative_scores: 负例检索分数，可选
+            - baseline_mask_logits: 基线掩码 logits，用于不确定性估计，可选
+            - positive_heatmap: 正例热力图，可选
+            - negative_heatmap: 负例热力图，可选
+            - mode: 融合模式，如 joint/spatial/semantic 等
+
+        返回：
+            - 三元组：(增强后的特征图, 检索先验字典, 辅助信息字典)
+        """
         if similarity_map.dim() != 4:
             raise ValueError("similarity_map must have shape [B, 1, H, W]")
         if negative_prototype is None:

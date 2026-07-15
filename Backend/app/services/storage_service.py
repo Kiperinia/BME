@@ -10,12 +10,40 @@ from app.core.exceptions import AppException
 
 
 class StorageService:
+    """brief:
+        Represent StorageService state and behavior.
+
+    parameter:
+        - settings: Input value for settings.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     allowed_suffixes = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
 
     def __init__(self, settings: Settings):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - settings: Input value for settings.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.settings = settings
 
     async def persist_upload(self, task_id: str, upload_file: UploadFile) -> str:
+        """brief:
+            Handle persist upload.
+
+        parameter:
+            - task_id: Input value for task_id.
+            - upload_file: Input value for upload_file.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         filename = upload_file.filename or "upload.bin"
         suffix = Path(filename).suffix.lower()
         if suffix not in self.allowed_suffixes:

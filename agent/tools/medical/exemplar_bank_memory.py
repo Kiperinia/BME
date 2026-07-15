@@ -22,12 +22,39 @@ logger = logging.getLogger(__name__)
 
 
 class ExemplarMemoryManager:
+    """brief:
+        Represent ExemplarMemoryManager state and behavior.
+
+    parameter:
+        - root: Input value for root.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self, root: str | Path) -> None:
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - root: Input value for root.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.root = Path(root)
         self.snapshot_path = self.root / "snapshot.json"
         self.audit_path = self.root / "audit_log.json"
 
     def load(self, bank_id: str = "default-bank") -> MemoryBankSnapshot:
+        """brief:
+            Handle load.
+
+        parameter:
+            - bank_id: Input value for bank_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not self.snapshot_path.exists():
             return MemoryBankSnapshot(bank_id=bank_id, version="v0")
 
@@ -44,6 +71,15 @@ class ExemplarMemoryManager:
         )
 
     def save(self, snapshot: MemoryBankSnapshot) -> Path:
+        """brief:
+            Handle save.
+
+        parameter:
+            - snapshot: Input value for snapshot.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         self.root.mkdir(parents=True, exist_ok=True)
         payload = asdict(snapshot)
         payload["positive_items"] = [item.to_json_dict() for item in snapshot.positive_items]
@@ -53,6 +89,15 @@ class ExemplarMemoryManager:
         return self.snapshot_path
 
     def append_audit_log(self, event: dict[str, object]) -> None:
+        """brief:
+            Handle append audit log.
+
+        parameter:
+            - event: Input value for event.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.root.mkdir(parents=True, exist_ok=True)
         logs = []
         if self.audit_path.exists():
@@ -62,6 +107,15 @@ class ExemplarMemoryManager:
 
     @staticmethod
     def deduplicate(records: Iterable[MedicalExemplarRecord]) -> list[MedicalExemplarRecord]:
+        """brief:
+            Handle deduplicate.
+
+        parameter:
+            - records: Input value for records.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         seen: set[str] = set()
         unique: list[MedicalExemplarRecord] = []
         for record in records:
@@ -75,6 +129,15 @@ class ExemplarMemoryManager:
 
     @staticmethod
     def partition(records: Iterable[MedicalExemplarRecord]) -> tuple[list[MedicalExemplarRecord], list[MedicalExemplarRecord], list[MedicalExemplarRecord]]:
+        """brief:
+            Handle partition.
+
+        parameter:
+            - records: Input value for records.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         positive: list[MedicalExemplarRecord] = []
         negative: list[MedicalExemplarRecord] = []
         boundary: list[MedicalExemplarRecord] = []
@@ -91,6 +154,15 @@ class ExemplarMemoryManager:
 
     @staticmethod
     def _deserialize_record(payload: dict[str, object]) -> MedicalExemplarRecord:
+        """brief:
+            Handle deserialize record.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         normalized = dict(payload)
         normalized["polarity"] = ExemplarPolarity(normalized.get("polarity", ExemplarPolarity.POSITIVE.value))
         normalized["state"] = ExemplarLifecycleState(normalized.get("state", ExemplarLifecycleState.CANDIDATE.value))

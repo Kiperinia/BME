@@ -1,4 +1,4 @@
-"""Prepare 5-fold Kvasir+CVC splits and PolypGen external-only test ids."""
+"""准备 Kvasir+CVC 的 5 折交叉验证划分，并将 PolypGen 作为仅外部测试集。"""
 
 from __future__ import annotations
 
@@ -19,11 +19,30 @@ from MedicalSAM3.scripts.common import ensure_dir, infer_source_domain, write_re
 
 
 def _dataset_prefix(dataset_name: str) -> str:
+    """将数据集名称转换为文件名安全的前缀。
+
+    参数：
+        - dataset_name: 原始数据集名称
+
+    返回：
+        - 规范化后的前缀字符串
+    """
     prefix = re.sub(r"[^a-zA-Z0-9]+", "_", dataset_name.strip()).strip("_")
     return prefix or "dataset"
 
 
 def _make_record(image_path: Path, mask_path: Path, dataset_name: str, stem: str) -> dict[str, str]:
+    """构建包含路径、来源域和图像标识的记录字典。
+
+    参数：
+        - image_path: 图像文件路径
+        - mask_path: 掩码文件路径
+        - dataset_name: 数据集名称
+        - stem: 文件名主干
+
+    返回：
+        - 记录字典
+    """
     source_domain = infer_source_domain(
         dataset_name=dataset_name,
         image_id=stem,
@@ -40,6 +59,17 @@ def _make_record(image_path: Path, mask_path: Path, dataset_name: str, stem: str
 
 
 def _create_dummy_dataset(root: Path, dataset_name: str, count: int, external: bool = False) -> list[dict[str, str]]:
+    """创建合成 dummy 数据集用于测试。
+
+    参数：
+        - root: 根目录路径
+        - dataset_name: 数据集名称
+        - count: 生成样本数量
+        - external: 是否为外部测试集
+
+    返回：
+        - 记录字典列表
+    """
     dataset_root = root / dataset_name
     image_dir = ensure_dir(dataset_root / ("imagesTs" if external else "images"))
     mask_dir = ensure_dir(dataset_root / ("labelsTs" if external else "masks"))
@@ -65,6 +95,16 @@ def _create_dummy_dataset(root: Path, dataset_name: str, count: int, external: b
 
 
 def _scan_standard_pairs(root: Path, dataset_name: str) -> list[dict[str, str]]:
+    """brief:
+        Handle scan standard pairs.
+
+    parameter:
+        - root: Input value for root.
+        - dataset_name: Input value for dataset_name.
+
+    retrival:
+        - Returns the computed value for the caller or command workflow.
+    """
     records: list[dict[str, str]] = []
     lower_dataset = dataset_name.lower()
     for mask_dir_name in ["labelsTr", "labelsTs", "masks", "mask"]:
@@ -102,6 +142,18 @@ def _scan_nnunet_raw_dataset(
     image_dir_name: str,
     mask_dir_name: str,
 ) -> list[dict[str, str]]:
+    """brief:
+        Handle scan nnunet raw dataset.
+
+    parameter:
+        - dataset_root: Input value for dataset_root.
+        - dataset_name: Input value for dataset_name.
+        - image_dir_name: Input value for image_dir_name.
+        - mask_dir_name: Input value for mask_dir_name.
+
+    retrival:
+        - Returns the computed value for the caller or command workflow.
+    """
     image_dir = dataset_root / image_dir_name
     mask_dir = dataset_root / mask_dir_name
     if not image_dir.exists() or not mask_dir.exists():
@@ -126,6 +178,16 @@ def _scan_nnunet_raw_dataset(
 
 
 def _scan_image_mask_dataset(dataset_root: Path, dataset_name: str) -> list[dict[str, str]]:
+    """brief:
+        Handle scan image mask dataset.
+
+    parameter:
+        - dataset_root: Input value for dataset_root.
+        - dataset_name: Input value for dataset_name.
+
+    retrival:
+        - Returns the computed value for the caller or command workflow.
+    """
     image_dir = dataset_root / "images"
     mask_dir = dataset_root / "masks"
     if not image_dir.exists() or not mask_dir.exists():
@@ -149,6 +211,15 @@ def _scan_image_mask_dataset(dataset_root: Path, dataset_name: str) -> list[dict
 
 
 def _deduplicate_records(records: list[dict[str, str]]) -> list[dict[str, str]]:
+    """brief:
+        Handle deduplicate records.
+
+    parameter:
+        - records: Input value for records.
+
+    retrival:
+        - Returns the computed value for the caller or command workflow.
+    """
     unique: list[dict[str, str]] = []
     seen_ids: set[str] = set()
     for record in records:
@@ -161,6 +232,16 @@ def _deduplicate_records(records: list[dict[str, str]]) -> list[dict[str, str]]:
 
 
 def _build_folds(records: list[dict[str, str]], seed: int) -> list[tuple[list[dict[str, str]], list[dict[str, str]]]]:
+    """brief:
+        Build folds.
+
+    parameter:
+        - records: Input value for records.
+        - seed: Input value for seed.
+
+    retrival:
+        - Returns the computed value for the caller or command workflow.
+    """
     shuffled = records[:]
     random.Random(seed).shuffle(shuffled)
     folds = []
@@ -173,6 +254,15 @@ def _build_folds(records: list[dict[str, str]], seed: int) -> list[tuple[list[di
 
 
 def main() -> int:
+    """brief:
+        Run the command-line entry point for this script.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or command workflow.
+    """
     parser = argparse.ArgumentParser(description="Prepare 5-fold Kvasir+CVC splits with PolypGen as external-only.")
     parser.add_argument("--data-root", default="MedicalSAM3/data")
     parser.add_argument("--output-dir", default="MedicalSAM3/outputs/medex_sam3/splits")

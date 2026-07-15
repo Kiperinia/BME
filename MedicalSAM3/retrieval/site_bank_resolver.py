@@ -1,4 +1,4 @@
-"""Site-specific retrieval bank routing helpers."""
+"""站点特定的检索库路由辅助工具。"""
 
 from __future__ import annotations
 
@@ -15,6 +15,14 @@ SUPPORTED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".
 
 @dataclass
 class SiteBankResolution:
+    """站点银行解析结果的数据类，包含模式、站点 ID、银行路径和回退信息。
+
+    参数：
+        - 无。
+
+    返回：
+        - 用于下游工作流的站点银行解析实例。
+    """
     mode: str
     site_id: Optional[str]
     train_bank_path: Path
@@ -28,6 +36,15 @@ class SiteBankResolution:
 
 
 def _resolve_site_bank_path(continual_bank_root: Path, site_id: str | None) -> Path | None:
+    """解析指定站点的银行路径。
+
+    参数：
+        - continual_bank_root: 持续学习银行根目录。
+        - site_id: 站点标识符。
+
+    返回：
+        - 站点银行路径，若不存在则返回 None。
+    """
     if not site_id:
         return None
     candidate = continual_bank_root / site_id
@@ -37,6 +54,14 @@ def _resolve_site_bank_path(continual_bank_root: Path, site_id: str | None) -> P
 
 
 def _scan_bank_images(bank_path: Path) -> list[Path]:
+    """扫描银行目录中的正/负样本图像路径。
+
+    参数：
+        - bank_path: 银行根目录路径。
+
+    返回：
+        - 找到的图像文件路径列表。
+    """
     image_paths: list[Path] = []
     for polarity in ("positive", "negative"):
         polarity_root = bank_path / polarity
@@ -55,6 +80,14 @@ def _scan_bank_images(bank_path: Path) -> list[Path]:
 
 
 def _bank_has_entries(bank_path: Path | None) -> bool:
+    """检查银行目录是否包含有效的图像条目。
+
+    参数：
+        - bank_path: 银行目录路径。
+
+    返回：
+        - 是否存在有效条目。
+    """
     if bank_path is None or not bank_path.exists():
         return False
     return bool(_scan_bank_images(bank_path))
@@ -67,6 +100,17 @@ def resolve_site_bank_paths(
     continual_bank_root: str | Path,
     mode: str = "train_plus_site",
 ) -> SiteBankResolution:
+    """解析站点银行路径，根据样本元数据确定使用的银行库和回退策略。
+
+    参数：
+        - sample_metadata: 样本元数据，包含图像路径等信息。
+        - train_bank: 训练银行路径。
+        - continual_bank_root: 持续学习银行根目录。
+        - mode: 银行模式，支持 "train_only"、"site_only" 和 "train_plus_site"。
+
+    返回：
+        - SiteBankResolution 实例，包含解析后的路径和回退信息。
+    """
     normalized_mode = str(mode).strip().lower()
     if normalized_mode not in SUPPORTED_SITE_BANK_MODES:
         raise ValueError(f"Unsupported site bank mode: {mode}")

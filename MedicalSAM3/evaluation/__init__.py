@@ -1,1 +1,1 @@
-"""Evaluation helpers for retrieval-conditioned MedEx-SAM3 analysis."""
+"""检索条件化 MedEx-SAM3 分析的评估辅助工具。"""

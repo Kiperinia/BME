@@ -25,6 +25,15 @@
 - Agent smoke run: Push-Location .\\agent; & ..\\.venv\\Scripts\\Activate.ps1; python .\\run_minimal_agent.py; Pop-Location
 - SAM3 import check: python .\\check_sam3_import.py
 
+## Ubuntu Server Guardrails
+
+- Future Linux development is expected under `/share/home/huafuchen01/huangwei/WangRuiFeng/EvoSAM3` with conda environment `sam3wangruifeng`.
+- On the Ubuntu server, activate or target only that environment: `conda activate sam3wangruifeng` or `conda run -n sam3wangruifeng ...`.
+- Keep all edits inside `/share/home/huafuchen01/huangwei/WangRuiFeng/EvoSAM3`. Do not modify sibling projects, shared datasets, global conda files, system packages, or files owned by other users.
+- Do not kill unrelated processes. Only stop a process that you started for the current task, and identify it by command, cwd, and PID before stopping it.
+- Do not delete or rewrite shared data, checkpoints, generated result folders, or memory traces unless the user explicitly asks for that exact artifact.
+- See [docs/ubuntu-server-codex-guardrails.md](docs/ubuntu-server-codex-guardrails.md) before running training, evaluation, or dependency installation on Linux.
+
 ## Repo-Specific Pitfalls
 
 - This workspace is developed on Windows. SAM3 depends on the local Triton wheel at [triton-3.0.0-cp312-cp312-win_amd64.whl](triton-3.0.0-cp312-cp312-win_amd64.whl), and import failures may come from missing extras such as pandas rather than a missing sam3 package.

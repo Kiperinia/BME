@@ -39,7 +39,15 @@ PROMPT_DIR = Path(__file__).resolve().parents[3] / "prompts" / "medical"
 # ---------------------------------------------------------------------------
 
 class PedicleType(str, Enum):
-    """蒂型分类"""
+    """brief:
+        Represent PedicleType state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     PEDUNCULATED = "pedunculated"    # 有蒂
     SESSILE = "sessile"              # 无蒂
     SUBPEDUNCULATED = "subpedunculated"  # 亚蒂
@@ -48,7 +56,15 @@ class PedicleType(str, Enum):
 
 
 class SizeGrade(str, Enum):
-    """大小分级（基于 Paris-JMI 标准简化）"""
+    """brief:
+        Represent SizeGrade state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     TINY = "tiny"          # ≤ 3 mm
     SMALL = "small"        # 3–5 mm
     MEDIUM = "medium"      # 5–10 mm
@@ -58,7 +74,15 @@ class SizeGrade(str, Enum):
 
 @dataclass(slots=True)
 class MorphologyResult:
-    """形态分类结果"""
+    """brief:
+        Represent MorphologyResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     pedicle_type: PedicleType = PedicleType.UNCERTAIN
     size_grade: SizeGrade = SizeGrade.SMALL
     estimated_size_mm: float = 0.0
@@ -70,6 +94,15 @@ class MorphologyResult:
     llm_reasoning: str = ""           # LLM 推理过程
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "pedicle_type": self.pedicle_type.value,
             "size_grade": self.size_grade.value,
@@ -88,14 +121,34 @@ class MorphologyResult:
 # ---------------------------------------------------------------------------
 
 class LLMClient(Protocol):
-    """LLM 调用接口协议，后端实现需满足此签名"""
+    """brief:
+        Represent LLMClient state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
 
     def chat(
         self,
         messages: list[dict[str, str]],
         temperature: float = 0.3,
         max_tokens: int = 512,
-    ) -> str: ...
+    ) -> str:
+        """brief:
+            Handle chat.
+
+        parameter:
+            - messages: Input value for messages.
+            - temperature: Input value for temperature.
+            - max_tokens: Input value for max_tokens.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
+        ...
 
 
 # ---------------------------------------------------------------------------
@@ -103,15 +156,18 @@ class LLMClient(Protocol):
 # ---------------------------------------------------------------------------
 
 class MorphologyClassifier:
-    """
-    形态分类器：规则引擎 + LLM 混合。
+    """brief:
+        Represent MorphologyClassifier state and behavior.
 
-    Usage::
+    parameter:
+        - pixel_size_mm: Input value for pixel_size_mm.
+        - llm_client: Input value for llm_client.
+        - llm_confidence_threshold: Input value for llm_confidence_threshold.
+        - llm_overrides_rules: Input value for llm_overrides_rules.
+        - prompt_path: Input value for prompt_path.
 
-        classifier = MorphologyClassifier(pixel_size_mm=0.15)
-        result = classifier.classify(features)
-        # 或直接从图像+掩码
-        result = classifier.classify_from_image(image, mask)
+    retrival:
+        - Provides instances used by the surrounding workflow.
     """
 
     # 大小分级阈值 (mm)
@@ -130,13 +186,18 @@ class MorphologyClassifier:
         llm_overrides_rules: bool = True,
         prompt_path: Path | None = None,
     ):
-        """
-        Args:
-            pixel_size_mm: 像素物理尺寸 (mm)。
-            llm_client: LLM 客户端实例，为 None 时纯规则模式。
-            llm_confidence_threshold: 规则置信度低于此值时调用 LLM。
-            llm_overrides_rules: LLM 结果是否覆盖规则结果。
-            prompt_path: 自定义 prompt 文件路径。
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - pixel_size_mm: Input value for pixel_size_mm.
+            - llm_client: Input value for llm_client.
+            - llm_confidence_threshold: Input value for llm_confidence_threshold.
+            - llm_overrides_rules: Input value for llm_overrides_rules.
+            - prompt_path: Input value for prompt_path.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
         """
         self.pixel_size_mm = pixel_size_mm
         self.llm_client = llm_client
@@ -149,7 +210,15 @@ class MorphologyClassifier:
     # ---- 公共接口 ----
 
     def classify(self, features: LesionFeatures) -> MorphologyResult:
-        """从已提取的特征进行分类"""
+        """brief:
+            Handle classify.
+
+        parameter:
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         result = self._rule_based_classify(features)
 
         # 置信度不足且 LLM 可用时，调用 LLM 增强
@@ -172,13 +241,31 @@ class MorphologyClassifier:
         image: "np.ndarray",
         mask: "np.ndarray",
     ) -> MorphologyResult:
-        """从图像 + 掩码直接分类（内部调用 FeatureExtractor）"""
+        """brief:
+            Classify from image.
+
+        parameter:
+            - image: Input value for image.
+            - mask: Input value for mask.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         features = self._extractor.extract(image, mask)
         return self.classify(features)
 
     # ---- 规则引擎 ----
 
     def _rule_based_classify(self, features: LesionFeatures) -> MorphologyResult:
+        """brief:
+            Handle rule based classify.
+
+        parameter:
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         geo = features.geometric
         color = features.color
         texture = features.texture
@@ -210,13 +297,14 @@ class MorphologyClassifier:
         self,
         geo: "GeometricFeatures",
     ) -> tuple[PedicleType, float]:
-        """
-        基于几何特征判定蒂型。
+        """brief:
+            Classify pedicle.
 
-        核心指标：
-          - solidity: 凸包填充率。有蒂息肉的蒂部导致整体 solidity 较低。
-          - aspect_ratio: 有蒂息肉长宽比通常 > 2。
-          - circularity: 无蒂/扁平病变圆度较高。
+        parameter:
+            - geo: Input value for geo.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         solidity = geo.solidity
         aspect = geo.aspect_ratio
@@ -245,7 +333,15 @@ class MorphologyClassifier:
         self,
         geo: "GeometricFeatures",
     ) -> tuple[SizeGrade, float]:
-        """基于面积估算大小分级"""
+        """brief:
+            Classify size.
+
+        parameter:
+            - geo: Input value for geo.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         area_mm2 = geo.area_mm2
 
         if area_mm2 is None:
@@ -270,7 +366,17 @@ class MorphologyClassifier:
         color: "ColorFeatures",
         texture: "TextureFeatures",
     ) -> str:
-        """生成自然语言形状描述"""
+        """brief:
+            Handle generate shape description.
+
+        parameter:
+            - geo: Input value for geo.
+            - color: Input value for color.
+            - texture: Input value for texture.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         parts: list[str] = []
 
         # 大小
@@ -311,7 +417,15 @@ class MorphologyClassifier:
     # ---- LLM 增强 ----
 
     def _llm_classify(self, features: LesionFeatures) -> MorphologyResult | None:
-        """调用 LLM 进行形态分类"""
+        """brief:
+            Handle llm classify.
+
+        parameter:
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if self.llm_client is None:
             return None
 
@@ -328,7 +442,15 @@ class MorphologyClassifier:
             return None
 
     def _build_llm_prompt(self, features: LesionFeatures) -> str:
-        """构建 LLM prompt"""
+        """brief:
+            Build llm prompt.
+
+        parameter:
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         feat_dict = features.to_dict()
         feat_text = "\n".join(f"  {k}: {v}" for k, v in feat_dict.items() if isinstance(v, dict) for kk, vv in v.items())
 
@@ -342,7 +464,16 @@ class MorphologyClassifier:
         response: str,
         features: LesionFeatures,
     ) -> MorphologyResult:
-        """解析 LLM 返回的 JSON"""
+        """brief:
+            Handle parse llm response.
+
+        parameter:
+            - response: Input value for response.
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         import json
 
         # 尝试提取 JSON 块
@@ -375,7 +506,15 @@ class MorphologyClassifier:
 
     @staticmethod
     def _load_prompt(custom_path: Path | None) -> str:
-        """加载 prompt 模板"""
+        """brief:
+            Load prompt.
+
+        parameter:
+            - custom_path: Input value for custom_path.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         path = custom_path or (PROMPT_DIR / "classification.txt")
         if path.exists():
             return path.read_text(encoding="utf-8")

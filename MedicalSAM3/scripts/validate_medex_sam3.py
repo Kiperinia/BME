@@ -1,4 +1,4 @@
-"""Validate MedEx-SAM3 on fold validation or PolypGen external test."""
+"""在折验证集或 PolypGen 外部测试集上验证 MedEx-SAM3。"""
 
 from __future__ import annotations
 
@@ -35,6 +35,15 @@ from MedicalSAM3.yolo_adapter.cli import add_yolo_bbox_args, build_box_provider_
 
 
 def _overlay_boundary(image: torch.Tensor, pred_mask: torch.Tensor) -> Image.Image:
+    """将预测掩码边界叠加到图像上生成可视化结果。
+
+    参数：
+        - image: 输入图像张量 (C, H, W)
+        - pred_mask: 预测掩码张量
+
+    返回：
+        - 叠加边界后的 PIL 图像
+    """
     array = (image.permute(1, 2, 0).cpu().numpy() * 255.0).clip(0, 255).astype(np.uint8)
     mask = (pred_mask.squeeze().cpu().numpy() > 0.5).astype(np.uint8)
     array[mask > 0, 1] = 255
@@ -42,10 +51,26 @@ def _overlay_boundary(image: torch.Tensor, pred_mask: torch.Tensor) -> Image.Ima
 
 
 def _resolve_hidden_dim(base_model: torch.nn.Module) -> int:
+    """从模型属性解析隐藏维度，回退到默认值 128。
+
+    参数：
+        - base_model: 基础模型模块
+
+    返回：
+        - 隐藏维度整数
+    """
     return int(getattr(base_model, "hidden_dim", getattr(base_model, "_medex_hidden_dim", getattr(base_model, "embed_dim", 128))))
 
 
 def _mask_area_ratio(mask_logits: torch.Tensor) -> float:
+    """计算预测掩码面积占图像总面积的比例。
+
+    参数：
+        - mask_logits: 掩码 logits 张量
+
+    返回：
+        - 掩码面积比例浮点数
+    """
     mask = (torch.sigmoid(mask_logits) > 0.5).float()
     return float(mask.flatten(1).mean(dim=1).mean().item())
 
@@ -59,6 +84,19 @@ def _hard_case_gate_decision(
     min_area_ratio: float,
     max_area_ratio: float,
 ) -> dict[str, object]:
+    """根据基线置信度、熵和面积比例判断是否为困难案例，决定是否使用示例提示。
+
+    参数：
+        - warmup_outputs: 预热前向输出字典
+        - enabled: 是否启用困难案例门控
+        - max_baseline_confidence: 触发示例的最大基线置信度阈值
+        - min_entropy: 触发示例的最小熵阈值
+        - min_area_ratio: 触发示例的最小面积比例阈值
+        - max_area_ratio: 触发示例的最大面积比例阈值
+
+    返回：
+        - 包含是否使用示例、触发原因和各项指标的决策字典
+    """
     mask_logits = warmup_outputs["mask_logits"]
     if not isinstance(mask_logits, torch.Tensor):
         raise TypeError("warmup_outputs['mask_logits'] must be a tensor")
@@ -108,6 +146,20 @@ def _prompt_tokens_from_bank(
     top_k_negative: int,
     top_k_boundary: int,
 ) -> tuple[torch.Tensor | None, dict[str, object]]:
+    """从记忆库中构建正例/负例/边界原型并生成示例提示令牌。
+
+    参数：
+        - bank: 示例记忆库，可能为 None
+        - builder: 原型构建器
+        - prompt_adapter: 示例提示适配器
+        - warmup_outputs: 预热前向输出字典
+        - top_k_positive: 正例选取数量
+        - top_k_negative: 负例选取数量
+        - top_k_boundary: 边界示例选取数量
+
+    返回：
+        - 由 (提示令牌张量或None, 选中信息字典) 组成的元组
+    """
     if bank is None or not bank.trainable_items:
         return None, {}
 
@@ -136,6 +188,14 @@ def _prompt_tokens_from_bank(
 
 
 def main() -> int:
+    """脚本命令行入口，执行 MedEx-SAM3 验证评估。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Validate MedEx-SAM3.")
     parser.add_argument("--split-file", default=None)
     parser.add_argument("--external-test", action="store_true")

@@ -18,12 +18,34 @@ from app.worker.celery_app import celery_app
 
 
 class AnalysisService:
+    """brief:
+        Represent AnalysisService state and behavior.
+
+    parameter:
+        - repository: Input value for repository.
+        - storage_service: Input value for storage_service.
+        - settings: Input value for settings.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(
         self,
         repository: AnalysisTaskRepository,
         storage_service: StorageService,
         settings: Settings,
     ):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - repository: Input value for repository.
+            - storage_service: Input value for storage_service.
+            - settings: Input value for settings.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.repository = repository
         self.storage_service = storage_service
         self.settings = settings
@@ -34,6 +56,17 @@ class AnalysisService:
         image: UploadFile,
         current_user: AuthenticatedUserSchema,
     ) -> SubmitTaskResponseSchema:
+        """brief:
+            Handle submit task.
+
+        parameter:
+            - payload: Input value for payload.
+            - image: Input value for image.
+            - current_user: Input value for current_user.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not current_user.is_authenticated:
             raise AppException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -76,6 +109,15 @@ class AnalysisService:
         return SubmitTaskResponseSchema(task_id=task_id, status=TaskStatusEnum.PENDING)
 
     async def get_task_status(self, task_id: str) -> TaskStatusResponseSchema:
+        """brief:
+            Get task status.
+
+        parameter:
+            - task_id: Input value for task_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         task = await self.repository.get_by_task_id(task_id)
         if task is None:
             raise AppException(
@@ -104,6 +146,16 @@ class AnalysisService:
 
     @staticmethod
     def _resolve_status(db_status: TaskStatusEnum, celery_state: str) -> TaskStatusEnum:
+        """brief:
+            Resolve status.
+
+        parameter:
+            - db_status: Input value for db_status.
+            - celery_state: Input value for celery_state.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if celery_state == "STARTED":
             return TaskStatusEnum.PROCESSING
         if celery_state in TaskStatusEnum._value2member_map_:
@@ -112,6 +164,16 @@ class AnalysisService:
 
     @staticmethod
     def _build_lesions(task: AnalysisTask, payload: dict[str, Any]) -> list[LesionSchema]:
+        """brief:
+            Build lesions.
+
+        parameter:
+            - task: Input value for task.
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if task.lesions:
             return [
                 LesionSchema(

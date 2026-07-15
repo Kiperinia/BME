@@ -1,4 +1,4 @@
-"""Lightweight gated retrieval fusion for retrieval-conditioned segmentation."""
+"""用于检索条件化分割的轻量门控检索融合模块。"""
 
 from __future__ import annotations
 
@@ -14,6 +14,15 @@ from MedicalSAM3.retrieval.region_uncertainty import build_region_uncertainty_ma
 
 
 def _ensure_token_weights(tokens: torch.Tensor, weights: Optional[torch.Tensor]) -> torch.Tensor:
+    """确保返回与 token 批次对齐的权重，缺失时使用均匀权重。
+
+    参数：
+        - tokens: 形状为 [B, K, ...] 的 token 张量。
+        - weights: 可选的形状为 [B, K] 权重张量。
+
+    返回：
+        - 形状为 [B, K] 的权重张量；无 token 时返回空张量。
+    """
     batch_size, token_count = tokens.shape[:2]
     if token_count == 0:
         return tokens.new_zeros(batch_size, 0)
@@ -30,6 +39,18 @@ def _align_token_tensor(
     device: torch.device,
     dtype: torch.dtype,
 ) -> torch.Tensor:
+    """将输入张量对齐到指定 batch 与 token 数量的形状。
+
+    参数：
+        - values: 可选的输入张量，缺失或为空时返回全零。
+        - batch_size: 目标批次大小。
+        - token_count: 目标 token 数量。
+        - device: 目标设备。
+        - dtype: 目标数据类型。
+
+    返回：
+        - 形状为 [batch_size, token_count] 的对齐张量。
+    """
     if values is None or values.numel() == 0 or token_count == 0:
         return torch.zeros(batch_size, token_count, device=device, dtype=dtype)
     tensor = values.to(device=device, dtype=dtype)
@@ -43,6 +64,25 @@ def _align_token_tensor(
 
 
 class GatedRetrievalFusion(nn.Module):
+    """门控检索融合模块，用正负检索原型经门控策略调制特征图。
+
+    参数：
+        - dim: 特征通道维度。
+        - positive_weight: 正原型缩放权重。
+        - negative_weight: 负原型缩放权重。
+        - similarity_threshold: 相似度激活阈值。
+        - confidence_scale: 置信度缩放因子。
+        - similarity_weighting: 相似度加权方式（hard 或 soft）。
+        - similarity_temperature: 相似度软加权温度。
+        - retrieval_policy: 检索策略名称。
+        - uncertainty_threshold: 不确定性激活阈值。
+        - uncertainty_scale: 不确定性缩放因子。
+        - policy_activation_threshold: 策略门激活阈值。
+        - residual_strength: 残差模式下的强度系数。
+
+    返回：
+        - 构建可用的门控检索融合模块实例。
+    """
     def __init__(
         self,
         dim: int,
@@ -59,6 +99,25 @@ class GatedRetrievalFusion(nn.Module):
         policy_activation_threshold: float = 0.05,
         residual_strength: float = 0.5,
     ) -> None:
+        """初始化查询/原型投影、门控、delta 投影及各类策略缓冲。
+
+        参数：
+            - dim: 特征通道维度。
+            - positive_weight: 正原型缩放权重。
+            - negative_weight: 负原型缩放权重。
+            - similarity_threshold: 相似度激活阈值。
+            - confidence_scale: 置信度缩放因子。
+            - similarity_weighting: 相似度加权方式（hard 或 soft）。
+            - similarity_temperature: 相似度软加权温度。
+            - retrieval_policy: 检索策略名称。
+            - uncertainty_threshold: 不确定性激活阈值。
+            - uncertainty_scale: 不确定性缩放因子。
+            - policy_activation_threshold: 策略门激活阈值。
+            - residual_strength: 残差模式下的强度系数。
+
+        返回：
+            - 无返回值，完成子模块、参数与缓冲的构建。
+        """
         super().__init__()
         if retrieval_policy not in {"always-on", "similarity-threshold", "uncertainty-aware", "region-aware", "residual"}:
             raise ValueError(f"Unsupported retrieval policy: {retrieval_policy}")
@@ -115,6 +174,19 @@ class GatedRetrievalFusion(nn.Module):
         device: torch.device,
         dtype: torch.dtype,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """将原型 token 与相似度图聚合为空间上下文特征图。
+
+        参数：
+            - prototype_tokens: 可选的原型 token 张量。
+            - similarity_tokens: 可选的逐 token 相似度图。
+            - weights: 可选的 token 权重。
+            - spatial_shape: 空间形状 (H, W)。
+            - device: 目标设备。
+            - dtype: 目标数据类型。
+
+        返回：
+            - 由空间上下文图、归一化权重、token 响应均值组成的元组。
+        """
         batch_size = 1
         if prototype_tokens is not None:
             batch_size = int(prototype_tokens.shape[0])
@@ -153,6 +225,19 @@ class GatedRetrievalFusion(nn.Module):
         device: torch.device,
         dtype: torch.dtype,
     ) -> torch.Tensor:
+        """将相似度分数或 token 响应汇总为每批次标量相似度。
+
+        参数：
+            - scores: 可选的相似度分数张量。
+            - weights: 可选的 token 权重。
+            - similarity_tokens: 可选的逐 token 相似度图。
+            - batch_size: 批次大小。
+            - device: 目标设备。
+            - dtype: 目标数据类型。
+
+        返回：
+            - 形状为 [batch_size] 的标量相似度张量。
+        """
         if scores is not None and scores.numel() > 0:
             score_tensor = scores.to(device=device, dtype=dtype)
             if score_tensor.dim() == 1:
@@ -190,6 +275,22 @@ class GatedRetrievalFusion(nn.Module):
         positive_similarity: Optional[torch.Tensor],
         negative_similarity: Optional[torch.Tensor],
     ) -> dict[str, torch.Tensor]:
+        """根据正负相似度计算置信度、激活状态与缩放等校准量。
+
+        参数：
+            - batch_size: 批次大小。
+            - device: 目标设备。
+            - dtype: 目标数据类型。
+            - positive_scores: 可选正相似度分数。
+            - negative_scores: 可选负相似度分数。
+            - positive_weights: 可选正 token 权重。
+            - negative_weights: 可选负 token 权重。
+            - positive_similarity: 可选正相似度图。
+            - negative_similarity: 可选负相似度图。
+
+        返回：
+            - 包含正负分数、置信度、缩放、激活状态等字段的校准字典。
+        """
         positive_score = self._summarize_similarity(
             positive_scores,
             positive_weights,
@@ -265,6 +366,16 @@ class GatedRetrievalFusion(nn.Module):
         calibration: dict[str, torch.Tensor],
         baseline_mask_logits: Optional[torch.Tensor],
     ) -> dict[str, torch.Tensor]:
+        """基于校准量与基线掩码不确定性构建策略门控状态。
+
+        参数：
+            - feature_map: 形状为 [B, C, H, W] 的特征图张量。
+            - calibration: 由 build_calibration 生成的校准字典。
+            - baseline_mask_logits: 可选的基线分割 logits。
+
+        返回：
+            - 包含各类门控图、区域掩码与统计量的策略状态字典。
+        """
         batch_size, _, height, width = feature_map.shape
         device = feature_map.device
         dtype = feature_map.dtype
@@ -395,6 +506,26 @@ class GatedRetrievalFusion(nn.Module):
         calibration: Optional[dict[str, torch.Tensor]] = None,
         policy_state: Optional[dict[str, torch.Tensor]] = None,
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor], dict[str, Any]]:
+        """用正负检索原型经门控策略对特征图做条件化融合。
+
+        参数：
+            - feature_map: 形状为 [B, C, H, W] 的输入特征图。
+            - positive_tokens: 正原型 token 张量。
+            - negative_tokens: 可选负原型 token 张量。
+            - positive_similarity: 可选正相似度图。
+            - negative_similarity: 可选负相似度图。
+            - positive_weights: 可选正 token 权重。
+            - negative_weights: 可选负 token 权重。
+            - spatial_prior: 可选空间先验图。
+            - positive_scores: 可选正相似度分数。
+            - negative_scores: 可选负相似度分数。
+            - baseline_mask_logits: 可选基线分割 logits。
+            - calibration: 可选预计算校准字典。
+            - policy_state: 可选预计算策略状态字典。
+
+        返回：
+            - 由融合后特征、先验字典、辅助字典组成的三元组。
+        """
         batch_size, _, height, width = feature_map.shape
         query_feature = self.query_proj(feature_map)
         positive_context, positive_weights_norm, positive_token_response = self._context_map(

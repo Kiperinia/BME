@@ -1,4 +1,4 @@
-"""Strict leakage checks between evaluation samples and retrieval banks."""
+"""评估样本与检索库之间的严格泄漏检测工具。"""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ SUPPORTED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".
 
 @dataclass
 class SampleSignature:
+    """样本签名数据类，存储图像/掩码的唯一标识及相关哈希值。"""
     image_id: str
     image_path: str
     mask_path: str
@@ -32,6 +33,14 @@ class SampleSignature:
 
 
 def _read_records(path: str | Path) -> list[dict[str, Any]]:
+    """从 JSON 或 TSV 文件中读取记录列表。
+
+    参数：
+        - path: 文件路径，支持 .json 或 .tsv 格式
+
+    返回：
+        - 字典记录列表
+    """
     target = Path(path)
     if not target.exists():
         return []
@@ -66,6 +75,14 @@ def _read_records(path: str | Path) -> list[dict[str, Any]]:
 
 
 def _patient_id_from_value(value: str) -> str:
+    """从字符串值中提取患者 ID。
+
+    参数：
+        - value: 包含患者信息的字符串
+
+    返回：
+        - 标准化后的患者 ID
+    """
     normalized = value.strip()
     if not normalized:
         return ""
@@ -81,6 +98,15 @@ def _patient_id_from_value(value: str) -> str:
 
 
 def _average_hash(path: str | Path, hash_size: int = 8) -> Optional[int]:
+    """计算图像的平均哈希值（aHash）。
+
+    参数：
+        - path: 图像文件路径
+        - hash_size: 哈希尺寸，默认 8
+
+    返回：
+        - 哈希整数值，若文件不存在则返回 None
+    """
     target = Path(path)
     if not target.exists() or target.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
         return None
@@ -95,10 +121,27 @@ def _average_hash(path: str | Path, hash_size: int = 8) -> Optional[int]:
 
 
 def _hamming_distance(left: int, right: int) -> int:
+    """计算两个整数之间的汉明距离。
+
+    参数：
+        - left: 第一个整数
+        - right: 第二个整数
+
+    返回：
+        - 不同比特位的数量
+    """
     return int((left ^ right).bit_count())
 
 
 def _resolve_bank_mask_path(image_path: Path) -> str:
+    """根据图像路径解析对应的掩码路径。
+
+    参数：
+        - image_path: 图像文件路径
+
+    返回：
+        - 掩码文件路径，若未找到则返回空字符串
+    """
     if "masks" in image_path.parts:
         return str(image_path)
     if "images" in image_path.parts:
@@ -118,6 +161,14 @@ def _resolve_bank_mask_path(image_path: Path) -> str:
 
 
 def _build_signature(record: dict[str, Any]) -> SampleSignature:
+    """从记录字典构建样本签名对象。
+
+    参数：
+        - record: 包含 image_path / mask_path 等信息的字典
+
+    返回：
+        - 样本签名 SampleSignature 实例
+    """
     image_path = str(record.get("image_path") or record.get("crop_path") or "")
     mask_path = str(record.get("mask_path") or "")
     image_id = str(record.get("image_id") or Path(image_path).stem)
@@ -137,6 +188,14 @@ def _build_signature(record: dict[str, Any]) -> SampleSignature:
 
 
 def _collect_bank_records(bank_root: str | Path) -> list[dict[str, Any]]:
+    """从检索库根目录收集所有记录条目。
+
+    参数：
+        - bank_root: 检索库根目录路径
+
+    返回：
+        - 去重后的记录字典列表
+    """
     root = Path(bank_root)
     records: list[dict[str, Any]] = []
     metadata_path = root / "metadata.json"
@@ -171,6 +230,15 @@ def _collect_bank_records(bank_root: str | Path) -> list[dict[str, Any]]:
 
 
 def _pair_key(eval_sample: SampleSignature, bank_sample: SampleSignature) -> tuple[str, str]:
+    """生成评估样本与库样本的配对键。
+
+    参数：
+        - eval_sample: 评估样本签名
+        - bank_sample: 库样本签名
+
+    返回：
+        - (评估样本 ID, 库样本 ID) 元组
+    """
     return (eval_sample.image_id or eval_sample.file_name, bank_sample.image_id or bank_sample.file_name)
 
 
@@ -182,6 +250,18 @@ def _pair_payload(
     hash_distance: Optional[int] = None,
     mask_hash_distance: Optional[int] = None,
 ) -> dict[str, Any]:
+    """构建可疑配对的详细载荷字典。
+
+    参数：
+        - eval_sample: 评估样本签名
+        - bank_sample: 库样本签名
+        - reasons: 判定为泄漏的原因列表
+        - hash_distance: 图像哈希距离
+        - mask_hash_distance: 掩码哈希距离
+
+    返回：
+        - 包含配对信息的字典
+    """
     payload = {
         "eval_image_id": eval_sample.image_id,
         "eval_image_path": eval_sample.image_path,
@@ -205,6 +285,19 @@ def run_bank_leakage_check(
     bank_root: str | Path,
     max_hash_distance: int = 3,
 ) -> dict[str, Any]:
+    """运行检索库泄漏检测主流程。
+
+    通过文件名、患者 ID、图像哈希和掩码哈希等多维度比对，
+    检测评估样本与检索库之间是否存在泄漏。
+
+    参数：
+        - eval_records_path: 评估记录文件路径（JSON 或 TSV）
+        - bank_root: 检索库根目录
+        - max_hash_distance: 哈希距离阈值，默认 3
+
+    返回：
+        - 包含泄漏检测结果的摘要字典
+    """
     eval_records = _read_records(eval_records_path)
     bank_records = _collect_bank_records(bank_root)
     eval_samples = [_build_signature(record) for record in eval_records]
@@ -276,6 +369,11 @@ def run_bank_leakage_check(
 
 
 def main() -> int:
+    """命令行入口点，解析参数并执行泄漏检测。
+
+    返回：
+        - 0 表示正常，2 表示 strict 模式下检测到泄漏
+    """
     parser = argparse.ArgumentParser(description="Check retrieval bank leakage against evaluation records.")
     parser.add_argument("--eval-records", required=True)
     parser.add_argument("--bank-root", required=True)

@@ -6,7 +6,9 @@ from MedicalSAM3.scripts.report_rssda_behavior import _report_gap, summarize_hea
 
 
 class TestRSSDABehaviorReport(unittest.TestCase):
+    """测试 RSSDA 行为报告生成工具的功能。"""
     def test_summarize_heatmap_reports_overlap_and_entropy(self) -> None:
+        """验证热力图摘要能正确报告重叠比例和熵值。"""
         heatmap = torch.tensor(
             [
                 [0.1, 0.2, 0.9, 0.8],
@@ -34,6 +36,7 @@ class TestRSSDABehaviorReport(unittest.TestCase):
         self.assertGreater(stats["hotspot_overlap_ratio"], 0.9)
 
     def test_report_gap_tracks_internal_external_delta(self) -> None:
+        """验证报告差异分析能正确计算内部和外部数据之间的指标差值。"""
         internal = {
             "variant_metrics": {
                 "correct_positive": {

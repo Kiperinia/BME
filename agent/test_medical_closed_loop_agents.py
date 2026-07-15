@@ -12,6 +12,15 @@ from core.agent import build_medical_closed_loop_agent
 
 
 def _synthetic_case() -> dict[str, object]:
+    """brief:
+        Handle synthetic case.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     image = np.zeros((256, 256, 3), dtype=np.uint8)
     image[:] = (30, 52, 88)
     cv2.circle(image, (128, 128), 42, (25, 55, 220), -1)
@@ -66,6 +75,15 @@ def _synthetic_case() -> dict[str, object]:
 
 
 def main() -> None:
+    """brief:
+        Run the command-line entry point for this module.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     doctor_annotations = {
         "paris": "0-IIa",
         "lesion_type": "polyp",

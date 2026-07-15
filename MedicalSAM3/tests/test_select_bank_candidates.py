@@ -10,6 +10,16 @@ from MedicalSAM3.scripts.select_bank_candidates import select_bank_candidates
 
 
 def _write_image(path: Path, color: tuple[int, int, int], pattern: int = 0) -> None:
+    """生成指定颜色和图案的测试图像并保存到文件。
+
+    参数：
+        - path: 图像保存路径
+        - color: RGB 颜色元组
+        - pattern: 图案偏移量控制参数，取值范围 0～8
+
+    返回：
+        - 无；将图像写入指定路径
+    """
     array = np.zeros((16, 16, 3), dtype=np.uint8)
     array[:] = color
     offset = max(min(pattern, 8), 0)
@@ -19,7 +29,9 @@ def _write_image(path: Path, color: tuple[int, int, int], pattern: int = 0) -> N
 
 
 class TestSelectBankCandidates(unittest.TestCase):
+    """测试候选样本选择与去重功能的集成测试。"""
     def test_balances_candidates_and_deduplicates(self) -> None:
+        """验证候选样本选择在正负样本之间平衡，并正确去重。"""
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             image_dir = root / "images"

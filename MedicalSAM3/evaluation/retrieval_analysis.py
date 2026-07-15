@@ -1,4 +1,4 @@
-"""Analyze whether retrieval materially changes segmentation outputs."""
+"""分析检索是否显著改变分割输出。"""
 
 from __future__ import annotations
 
@@ -37,14 +37,39 @@ from MedicalSAM3.scripts.common import (
 
 
 def _resolve_hidden_dim(model: torch.nn.Module) -> int:
+    """解析模型的隐藏层维度。
+
+    参数：
+        - model: PyTorch 模型。
+
+    返回：
+        - 隐藏层维度整数值。
+    """
     return int(getattr(model, "hidden_dim", getattr(model, "_medex_hidden_dim", getattr(model, "embed_dim", 128))))
 
 
 def _resolve_runtime_device(requested_device: str) -> str:
+    """解析运行时的计算设备。
+
+    参数：
+        - requested_device: 请求的设备名称。
+
+    返回：
+        - 解析后的设备名称。
+    """
     return resolve_runtime_device(requested_device)
 
 
 def _load_checkpoint_payload(path: Path, device: str) -> object:
+    """加载检查点文件的内容。
+
+    参数：
+        - path: 检查点文件路径。
+        - device: 加载目标设备。
+
+    返回：
+        - 检查点内容对象。
+    """
     return torch.load(path, map_location=device, weights_only=False)
 
 
@@ -55,6 +80,18 @@ def _maybe_load_rssda_bundle(
     retriever: PrototypeRetriever,
     similarity_builder: SimilarityHeatmapBuilder,
 ) -> bool:
+    """尝试从检查点加载 RSSDA 模型包（adapter、retriever、similarity_builder 的状态字典）。
+
+    参数：
+        - path: 检查点文件路径。
+        - device: 加载目标设备。
+        - adapter: 检索空间语义适配器。
+        - retriever: 原型检索器。
+        - similarity_builder: 相似度热力图构建器。
+
+    返回：
+        - 是否成功加载了至少一个组件。
+    """
     payload = _load_checkpoint_payload(path, device)
     if not isinstance(payload, dict):
         return False
@@ -72,6 +109,16 @@ def _maybe_load_rssda_bundle(
 
 
 def _dummy_records(prefix: str, dataset_name: str, count: int) -> list[dict[str, str]]:
+    """创建虚拟记录列表用于测试。
+
+    参数：
+        - prefix: 图像 ID 前缀。
+        - dataset_name: 数据集名称。
+        - count: 记录数量。
+
+    返回：
+        - 包含空路径的虚拟记录列表。
+    """
     return [
         {
             "image_path": "",
@@ -84,6 +131,18 @@ def _dummy_records(prefix: str, dataset_name: str, count: int) -> list[dict[str,
 
 
 def _ensure_records(split_file: str | Path, dummy: bool, prefix: str, dataset_name: str, count: int) -> list[dict[str, Any]]:
+    """确保记录列表可用，必要时回退到虚拟记录。
+
+    参数：
+        - split_file: 分割文件路径。
+        - dummy: 是否允许虚拟回退。
+        - prefix: 图像 ID 前缀。
+        - dataset_name: 数据集名称。
+        - count: 虚拟记录数量。
+
+    返回：
+        - 记录列表。
+    """
     records = read_records(split_file)
     if dummy and not records:
         return _dummy_records(prefix, dataset_name, count)
@@ -91,6 +150,16 @@ def _ensure_records(split_file: str | Path, dummy: bool, prefix: str, dataset_na
 
 
 def _create_dummy_bank(bank_dir: Path, hidden_dim: int, seed: int) -> RSSDABank:
+    """创建用于测试的虚拟银行库，包含正/负样本条目。
+
+    参数：
+        - bank_dir: 银行库输出目录。
+        - hidden_dim: 特征维度。
+        - seed: 随机种子。
+
+    返回：
+        - 创建的 RSSDABank 实例。
+    """
     generator = torch.Generator().manual_seed(seed)
     bank = RSSDABank()
     fixtures = [
@@ -136,6 +205,21 @@ def _load_or_create_bank(
     checkpoint: Optional[str] = None,
     device: str = "auto",
 ) -> RSSDABank:
+    """加载现有银行库，若不存在且允许虚拟回退则创建虚拟银行库。
+
+    参数：
+        - path: 银行库路径。
+        - hidden_dim: 特征维度。
+        - dummy: 是否允许创建虚拟银行库。
+        - seed: 随机种子。
+        - image_size: 图像尺寸。
+        - precision: 精度。
+        - checkpoint: 检查点路径。
+        - device: 计算设备。
+
+    返回：
+        - 加载或创建的 RSSDABank 实例。
+    """
     bank_path = Path(path)
     if bank_path.exists():
         bank_context = load_retrieval_bank(
@@ -155,6 +239,15 @@ def _load_or_create_bank(
 
 
 def _apply_retrieval_mode(retrieval: dict[str, Any], mode: str) -> dict[str, Any]:
+    """应用检索模式，支持 "joint"、"positive-only" 等，通过清零负样本实现。
+
+    参数：
+        - retrieval: 检索结果字典。
+        - mode: 检索模式名称。
+
+    返回：
+        - 应用模式后的检索结果字典。
+    """
     if mode in {"joint", "semantic", "spatial", "positive-negative"}:
         return retrieval
     if mode != "positive-only":
@@ -174,6 +267,17 @@ def _selection_from_entries(
     entries: list[PrototypeBankEntry],
     indices: list[int],
 ) -> tuple[torch.Tensor, torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor]:
+    """根据索引从条目列表中选取条目，聚合特征和权重，生成原型。
+
+    参数：
+        - bank: RSSDA 银行库。
+        - query_vector: 查询向量。
+        - entries: 条目列表。
+        - indices: 选定条目的索引列表。
+
+    返回：
+        - (features, weights, selected_entries, prototype, raw_scores) 的五元组。
+    """
     dim = int(query_vector.shape[-1])
     if not indices:
         return (
@@ -200,6 +304,19 @@ def _rank_entry_indices(
     strategy: str,
     rng: random.Random,
 ) -> list[int]:
+    """根据策略对条目进行排序并返回 top-k 索引（支持 "best" 和 "random" 策略）。
+
+    参数：
+        - bank: RSSDA 银行库。
+        - query_vector: 查询向量。
+        - entries: 条目列表。
+        - top_k: top-k 数量。
+        - strategy: 排序策略（"best" 或 "random"）。
+        - rng: 随机数生成器。
+
+    返回：
+        - 排序后的索引列表。
+    """
     if not entries or top_k <= 0:
         return []
     features = bank.stack_features(entries, device=query_vector.device)
@@ -221,6 +338,16 @@ def _override_retrieval(
     positive_override: Optional[tuple[torch.Tensor, torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor]] = None,
     negative_override: Optional[tuple[torch.Tensor, torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor]] = None,
 ) -> dict[str, Any]:
+    """用指定的正/负样本覆盖结果替换检索结果中的对应字段。
+
+    参数：
+        - base_retrieval: 基础检索结果字典。
+        - positive_override: 正样本覆盖的五元组。
+        - negative_override: 负样本覆盖的五元组。
+
+    返回：
+        - 更新后的检索结果字典。
+    """
     retrieval = dict(base_retrieval)
     if positive_override is not None:
         retrieval["positive_features"] = positive_override[0]
@@ -238,6 +365,14 @@ def _override_retrieval(
 
 
 def _empty_negative_like(retrieval: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor, list[PrototypeBankEntry], torch.Tensor, torch.Tensor]:
+    """创建空的负样本结构（零特征、零权重、空条目），用于模拟无负样本的情况。
+
+    参数：
+        - retrieval: 检索结果字典（用于参考维度信息）。
+
+    返回：
+        - (zero_features, zero_weights, empty_entries, zero_prototype, zero_scores) 五元组。
+    """
     dim = int(retrieval["positive_prototype"].shape[-1])
     device = retrieval["positive_prototype"].device
     return (
@@ -260,6 +395,22 @@ def _build_prompt_variants(
     prefer_cross_domain_positive: bool,
     retrieval_mode: str,
 ) -> dict[str, Optional[dict[str, Any]]]:
+    """构建多个提示变体的检索结果（正例、反例、随机、空），用于敏感性分析。
+
+    参数：
+        - bank: RSSDA 银行库。
+        - retriever: 原型检索器。
+        - query_feature: 查询特征图。
+        - query_source: 查询来源数据集。
+        - top_k_positive: 正样本 top-k 数量。
+        - top_k_negative: 负样本 top-k 数量。
+        - rng: 随机数生成器。
+        - prefer_cross_domain_positive: 是否优先跨域正样本。
+        - retrieval_mode: 检索模式。
+
+    返回：
+        - 变体名称到检索结果的映射字典。
+    """
     base_retrieval = _apply_retrieval_mode(
         retriever(
             query_feature,
@@ -298,10 +449,27 @@ def _build_prompt_variants(
 
 
 def _binary_mask(mask_logits: torch.Tensor) -> torch.Tensor:
+    """将 logits 转换为二值掩码（sigmoid > 0.5）。
+
+    参数：
+        - mask_logits: 模型输出的原始 logits。
+
+    返回：
+        - 二值掩码张量。
+    """
     return (torch.sigmoid(mask_logits) > 0.5).float()
 
 
 def _mask_difference_ratio(mask_a: torch.Tensor, mask_b: torch.Tensor) -> float:
+    """计算两个掩码之间的差异比率（不同像素占比）。
+
+    参数：
+        - mask_a: 第一个掩码 logits。
+        - mask_b: 第二个掩码 logits。
+
+    返回：
+        - 差异比率浮点数。
+    """
     pred_a = _binary_mask(mask_a)
     pred_b = _binary_mask(mask_b)
     difference = (pred_a != pred_b).float().mean()
@@ -309,6 +477,15 @@ def _mask_difference_ratio(mask_a: torch.Tensor, mask_b: torch.Tensor) -> float:
 
 
 def _logit_difference(mask_a: torch.Tensor, mask_b: torch.Tensor) -> float:
+    """计算两个掩码 logits 之间的平均绝对差异。
+
+    参数：
+        - mask_a: 第一个掩码 logits。
+        - mask_b: 第二个掩码 logits。
+
+    返回：
+        - 平均绝对差异浮点数。
+    """
     return float((mask_a.detach().float() - mask_b.detach().float()).abs().mean().item())
 
 
@@ -318,6 +495,17 @@ def _entry_logs(
     weights: list[float],
     token_response: list[float],
 ) -> list[dict[str, Any]]:
+    """将检索条目转换为可序列化的日志字典列表。
+
+    参数：
+        - entries: 原型银行条目列表。
+        - scores: 相似度分数列表。
+        - weights: 检索权重列表。
+        - token_response: Token 响应值列表。
+
+    返回：
+        - 序列化后的条目日志列表。
+    """
     payload: list[dict[str, Any]] = []
     for index, entry in enumerate(entries):
         payload.append(
@@ -336,6 +524,15 @@ def _entry_logs(
 
 
 def _tensor_list(values: torch.Tensor, count: int) -> list[float]:
+    """将张量转换为 Python 浮点数列表，取前 count 个元素。
+
+    参数：
+        - values: 输入张量。
+        - count: 要提取的元素数量。
+
+    返回：
+        - 浮点数列表。
+    """
     if values.numel() == 0 or count <= 0:
         return []
     return [float(item) for item in values[:count].detach().cpu().tolist()]
@@ -355,6 +552,24 @@ def _run_variant(
     retrieval: Optional[dict[str, Any]],
     retrieval_mode: str,
 ) -> dict[str, Any]:
+    """运行单个检索变体的前向传播，计算分割指标和注意力日志。
+
+    参数：
+        - adapter: 检索空间语义适配器。
+        - wrapper: SAM3 张量前向包装器。
+        - similarity_builder: 相似度热力图构建器。
+        - images: 输入图像张量。
+        - masks: 真实掩码张量。
+        - boxes: 边界框张量。
+        - text_prompt: 文本提示列表。
+        - query_feature: 查询特征图。
+        - baseline_outputs: 基线模型输出。
+        - retrieval: 检索结果（None 表示不使用检索）。
+        - retrieval_mode: 检索模式。
+
+    返回：
+        - 包含指标、掩码 logits 和注意力日志的字典。
+    """
     if retrieval is None:
         outputs = baseline_outputs
         metrics = compute_segmentation_metrics(outputs["mask_logits"], masks)
@@ -427,6 +642,14 @@ def _run_variant(
 
 
 def _variance(values: list[float]) -> float:
+    """计算浮点数列表的方差（无偏校正）。
+
+    参数：
+        - values: 浮点数列表。
+
+    返回：
+        - 方差值。
+    """
     if not values:
         return 0.0
     tensor = torch.tensor(values, dtype=torch.float32)
@@ -434,6 +657,14 @@ def _variance(values: list[float]) -> float:
 
 
 def _prompt_sensitivity(variants: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """计算提示敏感性指标，包括掩码差异、logits差异、Dice/IoU 方差和综合评分。
+
+    参数：
+        - variants: 变体名称到输出的映射字典。
+
+    返回：
+        - 包含各敏感性指标的字典。
+    """
     variant_names = ["positive_exemplar", "negative_exemplar", "random_exemplar", "empty_exemplar"]
     pairwise: dict[str, float] = {}
     pairwise_logit: dict[str, float] = {}
@@ -463,6 +694,14 @@ def _prompt_sensitivity(variants: dict[str, dict[str, Any]]) -> dict[str, Any]:
 
 
 def _average_rows(rows: list[dict[str, float]]) -> dict[str, float]:
+    """对多个字典行按 key 取平均。
+
+    参数：
+        - rows: 字典列表，各字典有相同的 key。
+
+    返回：
+        - 各 key 的平均值字典。
+    """
     if not rows:
         return {}
     summary: dict[str, float] = {}
@@ -473,6 +712,14 @@ def _average_rows(rows: list[dict[str, float]]) -> dict[str, float]:
 
 
 def _group_metrics(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    """按域分组并平均各组的指标。
+
+    参数：
+        - rows: 包含 "domain" 和 "metrics" 字段的字典列表。
+
+    返回：
+        - 域名称到平均指标字典的映射。
+    """
     grouped: dict[str, list[dict[str, float]]] = {}
     for row in rows:
         grouped.setdefault(row["domain"], []).append(row["metrics"])
@@ -480,6 +727,15 @@ def _group_metrics(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
 
 
 def _delta_metrics(current: dict[str, dict[str, float]], baseline: dict[str, dict[str, float]]) -> dict[str, dict[str, float]]:
+    """计算当前指标相对于基线的差值（current - baseline）。
+
+    参数：
+        - current: 当前指标字典。
+        - baseline: 基线指标字典。
+
+    返回：
+        - 各域的指标差值字典。
+    """
     output: dict[str, dict[str, float]] = {}
     for domain, metrics in current.items():
         baseline_metrics = baseline.get(domain, {})
@@ -488,6 +744,14 @@ def _delta_metrics(current: dict[str, dict[str, float]], baseline: dict[str, dic
 
 
 def main() -> int:
+    """命令行入口：分析检索对 MedEx-SAM3 分割的影响，生成提示敏感性报告。
+
+    参数：
+        - 无。
+
+    返回：
+        - 退出码（0 表示成功）。
+    """
     parser = argparse.ArgumentParser(description="Analyze retrieval influence on MedEx-SAM3 segmentation.")
     parser.add_argument("--device", default="auto")
     parser.add_argument("--internal-split-file", default="MedicalSAM3/outputs/medex_sam3/splits/fold_0/val_ids.txt")

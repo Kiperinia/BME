@@ -5,9 +5,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def verify_single_case(case_id, dataset_dir, target_size=(1024, 1024)):
-    """
-    验证并可视化单个 SAM3 样本点
-    case_id: 样本名称，不带后缀 (例如 'C1_100H0050')
+    """brief:
+        Verify single case.
+
+    parameter:
+        - case_id: Input value for case_id.
+        - dataset_dir: Input value for dataset_dir.
+        - target_size: Input value for target_size.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
     """
     img_path = os.path.join(dataset_dir, "images", f"{case_id}.png")
     mask_path = os.path.join(dataset_dir, "masks", f"{case_id}.png")
@@ -16,7 +23,7 @@ def verify_single_case(case_id, dataset_dir, target_size=(1024, 1024)):
     # 1. 加载提示信息
     with open(prompt_file, 'r', encoding='utf-8') as f:
         prompts = json.load(f)
-    
+
     img_key = f"{case_id}.png"
     if img_key not in prompts:
         print(f"❌ 在 prompts.json 中找不到 {img_key} 的记录")
@@ -66,8 +73,8 @@ def verify_single_case(case_id, dataset_dir, target_size=(1024, 1024)):
 if __name__ == "__main__":
     # 配置你的数据集路径
     DATASET_DIR = r".\afterdata\PolypGen-SAM3"
-    
+
     # 填入你想查看的 case_id (不需要后缀)
-    TEST_CASE = "C1_100H0050" 
-    
+    TEST_CASE = "C1_100H0050"
+
     verify_single_case(TEST_CASE, DATASET_DIR)

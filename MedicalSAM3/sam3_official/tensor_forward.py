@@ -1,4 +1,4 @@
-"""Tensor-native forward wrapper around official or dummy SAM3 image models."""
+"""官方或占位 SAM3 图像模型的张量化前向包装器。"""
 
 from __future__ import annotations
 
@@ -30,12 +30,29 @@ DEFAULT_TENSOR_FORWARD_REPORT = (
 
 
 def _to_mask_logits(masks: torch.Tensor) -> torch.Tensor:
+    """将概率掩码转换为 logits；若输入已超出 [0,1] 则视为 logits 原样返回。
+
+    参数：
+        - masks: 掩码张量（概率或 logits）。
+
+    返回：
+        - 对应的 logits 张量。
+    """
     if masks.min() < 0 or masks.max() > 1:
         return masks
     return torch.logit(masks.clamp(1e-4, 1 - 1e-4))
 
 
 def _mean_tensor_from_feature_map(features: dict[str, object], key_hint: str) -> Optional[torch.Tensor]:
+    """从嵌套特征字典中按名称提示查找首个张量。
+
+    参数：
+        - features: 特征字典，值可能为张量、列表或嵌套字典。
+        - key_hint: 用于匹配键名（忽略大小写）的提示字符串。
+
+    返回：
+        - 找到的首个张量；未找到时返回 None。
+    """
     for name, value in features.items():
         if key_hint not in name.lower():
             continue
@@ -51,6 +68,17 @@ def _mean_tensor_from_feature_map(features: dict[str, object], key_hint: str) ->
 
 
 def _is_official_sam3_model(model: nn.Module) -> bool:
+    """判断模型是否为官方 SAM3 图像模型。
+
+    通过检查是否同时具备 backbone、_encode_prompt、_run_encoder、
+    _run_decoder、_run_segmentation_heads 等接口判定。
+
+    参数：
+        - model: 待判断的模型。
+
+    返回：
+        - 为官方 SAM3 模型时返回 True，否则返回 False。
+    """
     return HAS_OFFICIAL_SAM3_RUNTIME and all(
         hasattr(model, name)
         for name in ["backbone", "_encode_prompt", "_run_encoder", "_run_decoder", "_run_segmentation_heads"]
@@ -58,6 +86,15 @@ def _is_official_sam3_model(model: nn.Module) -> bool:
 
 
 def _ensure_text_prompt(text_prompt: Optional[list[str]], batch_size: int) -> list[str]:
+    """确保文本提示列表长度与批大小一致。
+
+    参数：
+        - text_prompt: 文本提示列表；为 None 时填充默认 "visual"。
+        - batch_size: 批大小。
+
+    返回：
+        - 长度等于批大小的文本提示列表。
+    """
     if text_prompt is None:
         return ["visual"] * batch_size
     if len(text_prompt) == batch_size:
@@ -68,6 +105,14 @@ def _ensure_text_prompt(text_prompt: Optional[list[str]], batch_size: int) -> li
 
 
 def _model_device(model: nn.Module) -> torch.device:
+    """获取模型所在设备，无参数时回退到 CPU。
+
+    参数：
+        - model: 待查询的模型。
+
+    返回：
+        - 模型参数所在设备。
+    """
     try:
         return next(model.parameters()).device
     except StopIteration:
@@ -75,6 +120,14 @@ def _model_device(model: nn.Module) -> torch.device:
 
 
 def _infer_official_resolution(model: nn.Module) -> int:
+    """从官方模型 backbone 推断期望的输入图像分辨率。
+
+    参数：
+        - model: 官方 SAM3 模型。
+
+    返回：
+        - 推断出的图像边长（像素）；推断失败时返回默认 1008。
+    """
     default_resolution = 1008
     try:
         patch_proj = model.backbone.vision_backbone.trunk.patch_embed.proj
@@ -93,6 +146,16 @@ def _infer_official_resolution(model: nn.Module) -> int:
 
 
 def _normalize_xyxy_boxes(boxes: torch.Tensor, height: int, width: int) -> torch.Tensor:
+    """将 xyxy 格式框归一化到 [0,1] 范围。
+
+    参数：
+        - boxes: 框张量。
+        - height: 图像高度。
+        - width: 图像宽度。
+
+    返回：
+        - 归一化并裁剪到 [0,1] 的框张量。
+    """
     boxes = boxes.float()
     if boxes.numel() == 0:
         return boxes
@@ -103,6 +166,16 @@ def _normalize_xyxy_boxes(boxes: torch.Tensor, height: int, width: int) -> torch
 
 
 def _normalize_xy_points(points: torch.Tensor, height: int, width: int) -> torch.Tensor:
+    """将点坐标归一化到 [0,1] 范围。
+
+    参数：
+        - points: 点张量。
+        - height: 图像高度。
+        - width: 图像宽度。
+
+    返回：
+        - 归一化并裁剪到 [0,1] 的点张量。
+    """
     points = points.float()
     if points.numel() == 0:
         return points
@@ -113,6 +186,15 @@ def _normalize_xy_points(points: torch.Tensor, height: int, width: int) -> torch
 
 
 def _resize_spatial_bias_to_tokens(spatial_bias: torch.Tensor, token_count: int) -> torch.Tensor:
+    """将空间偏置图缩放为指定 token 数量的张量。
+
+    参数：
+        - spatial_bias: 空间偏置张量，形状 [B,1,H,W] 或 [B,H,W]。
+        - token_count: 目标 token 数量。
+
+    返回：
+        - 形状 [B,1,token_count] 的偏置张量。
+    """
     if spatial_bias.dim() == 3:
         spatial_bias = spatial_bias.unsqueeze(1)
     if spatial_bias.dim() != 4:
@@ -126,6 +208,15 @@ def _resize_spatial_bias_to_tokens(spatial_bias: torch.Tensor, token_count: int)
 
 
 def _resize_feature_bias_to_tokens(feature_bias: torch.Tensor, token_count: int) -> torch.Tensor:
+    """将特征偏置图缩放为指定 token 数量的序列。
+
+    参数：
+        - feature_bias: 特征偏置张量，形状 [B,C,H,W]。
+        - token_count: 目标 token 数量。
+
+    返回：
+        - 形状 [B,token_count,C] 的偏置张量。
+    """
     if feature_bias.dim() != 4:
         raise ValueError("feature_bias must have shape [B, C, H, W]")
     side = int(token_count**0.5)
@@ -137,6 +228,15 @@ def _resize_feature_bias_to_tokens(feature_bias: torch.Tensor, token_count: int)
 
 
 def _add_token_bias(memory: torch.Tensor, token_bias: torch.Tensor) -> tuple[torch.Tensor, bool]:
+    """在形状兼容时将 token 偏置叠加到 memory 上。
+
+    参数：
+        - memory: 记忆张量。
+        - token_bias: 待叠加的 token 偏置张量。
+
+    返回：
+        - 元组 (叠加后的张量, 是否成功叠加)。
+    """
     if memory.dim() != 3 or token_bias.dim() != 3:
         return memory, False
     batch_size, token_count, channels = token_bias.shape
@@ -155,6 +255,16 @@ def _apply_retrieval_prior_to_memory(
     memory: torch.Tensor,
     retrieval_prior: Optional[dict[str, Any]],
 ) -> tuple[torch.Tensor, dict[str, Any]]:
+    """将检索先验中的各类偏置项应用到编码器记忆张量。
+
+    参数：
+        - memory: 编码器记忆张量。
+        - retrieval_prior: 检索先验字典，可含 encoder_memory_bias、
+          decoder_feature_bias_map、semantic_prototype、spatial_bias_map 等。
+
+    返回：
+        - 元组 (调整后的记忆张量, 使用情况摘要字典)。
+    """
     if retrieval_prior is None:
         return memory, {}
 
@@ -174,6 +284,15 @@ def _apply_retrieval_prior_to_memory(
         summary["negative_lambda"] = float(negative_lambda.detach().float().mean().item())
 
     def _apply_feature_map_bias(bias: torch.Tensor, key: str) -> bool:
+        """将二维特征偏置缩放并叠加到当前记忆张量上。
+
+        参数：
+            - bias: 二维特征偏置张量。
+            - key: 记录到摘要中的键名。
+
+        返回：
+            - 是否成功叠加。
+        """
         nonlocal adapted
         if adapted.dim() != 3 or bias.dim() != 4:
             return False
@@ -232,6 +351,15 @@ def _apply_retrieval_prior_to_mask_logits(
     mask_logits: torch.Tensor,
     retrieval_prior: Optional[dict[str, Any]],
 ) -> tuple[torch.Tensor, dict[str, Any]]:
+    """将检索先验中的掩码 logit 偏置项应用到掩码 logits。
+
+    参数：
+        - mask_logits: 掩码 logits 张量。
+        - retrieval_prior: 检索先验字典，可含 mask_logit_bias_map。
+
+    返回：
+        - 元组 (调整后的 logits 张量, 使用情况摘要字典)。
+    """
     if retrieval_prior is None:
         return mask_logits, {}
     logit_bias = retrieval_prior.get("mask_logit_bias_map") if isinstance(retrieval_prior, dict) else None
@@ -247,6 +375,18 @@ def _apply_retrieval_prior_to_mask_logits(
 
 
 class Sam3TensorForwardWrapper(nn.Module):
+    """官方/占位 SAM3 图像模型的张量化前向包装器。
+
+    统一官方 SAM3 与占位模型的前向接口，负责图像预处理、提示构造、
+    检索先验注入与中间特征采集，输出标准化的掩码、得分及嵌入字典。
+
+    参数：
+        - model: 被包装的模型；为 None 时自动构建。
+        - device: 目标设备。
+        - dtype: 数据类型字符串。
+        - use_hooks: 是否注册前向特征钩子。
+        - hook_keywords: 钩子匹配关键词列表。
+    """
     def __init__(
         self,
         model: Optional[nn.Module] = None,
@@ -255,6 +395,15 @@ class Sam3TensorForwardWrapper(nn.Module):
         use_hooks: bool = True,
         hook_keywords: Optional[list[str]] = None,
     ) -> None:
+        """初始化包装器，构建模型并按需配置预处理与特征钩子。
+
+        参数：
+            - model: 被包装的模型；为 None 时自动构建。
+            - device: 目标设备。
+            - dtype: 数据类型字符串。
+            - use_hooks: 是否注册前向特征钩子。
+            - hook_keywords: 钩子匹配关键词列表。
+        """
         super().__init__()
         self.model = model or build_official_sam3_image_model(
             checkpoint_path=None,
@@ -291,12 +440,29 @@ class Sam3TensorForwardWrapper(nn.Module):
             self.hooks = register_feature_hooks(self.model, keywords=self.hook_keywords, max_hooks=24)
 
     def _preprocess_official_images(self, images: torch.Tensor) -> torch.Tensor:
+        """使用官方 Sam3Processor 对图像进行预处理。
+
+        参数：
+            - images: 原始图像张量。
+
+        返回：
+            - 预处理后的图像张量。
+        """
         if self.processor_transform is None or self.official_resolution is None:
             raise RuntimeError("Official SAM3 preprocessing is unavailable")
         processed = [self.processor_transform(image.cpu()).to(images.device) for image in images]
         return torch.stack(processed, dim=0)
 
     def _build_find_stage(self, batch_size: int, device: torch.device) -> FindStage:
+        """构建官方 SAM3 所需的 FindStage 提示容器。
+
+        参数：
+            - batch_size: 批大小。
+            - device: 目标设备。
+
+        返回：
+            - 填充零值的 FindStage 实例。
+        """
         return FindStage(
             img_ids=torch.arange(batch_size, device=device, dtype=torch.long),
             text_ids=torch.arange(batch_size, device=device, dtype=torch.long),
@@ -318,6 +484,20 @@ class Sam3TensorForwardWrapper(nn.Module):
         exemplar_prompt_tokens: Optional[torch.Tensor],
         retrieval_prior: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
+        """调用官方 SAM3 模型完成完整前向推理。
+
+        参数：
+            - images: 输入图像张量。
+            - text_prompt: 文本提示列表。
+            - boxes: 框提示。
+            - points: 点提示。
+            - point_labels: 点标签。
+            - exemplar_prompt_tokens: 示例提示 token。
+            - retrieval_prior: 检索先验字典。
+
+        返回：
+            - 包含掩码、得分、嵌入及中间特征的标准输出字典。
+        """
         if not _is_official_sam3_model(self.model):
             raise TypeError("Current model is not an official SAM3 image model")
 
@@ -506,6 +686,20 @@ class Sam3TensorForwardWrapper(nn.Module):
         exemplar_prompt_tokens: Optional[torch.Tensor],
         retrieval_prior: Optional[dict[str, Any]],
     ) -> Any:
+        """根据模型类型分发到官方或占位模型的前向调用。
+
+        参数：
+            - images: 输入图像张量。
+            - text_prompt: 文本提示列表。
+            - boxes: 框提示。
+            - points: 点提示。
+            - point_labels: 点标签。
+            - exemplar_prompt_tokens: 示例提示 token。
+            - retrieval_prior: 检索先验字典。
+
+        返回：
+            - 模型前向输出（字典或张量）。
+        """
         if _is_official_sam3_model(self.model):
             return self._call_official_model(
                 images=images,
@@ -566,6 +760,21 @@ class Sam3TensorForwardWrapper(nn.Module):
         exemplar_prompt_tokens: Optional[torch.Tensor] = None,
         retrieval_prior: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
+        """执行张量化前向推理并对输出做标准化后处理。
+
+        参数：
+            - images: 输入图像张量，形状 [B,3,H,W]，取值 [0,1]。
+            - text_prompt: 文本提示列表。
+            - boxes: 框提示。
+            - points: 点提示。
+            - point_labels: 点标签。
+            - exemplar_prompt_tokens: 示例提示 token。
+            - retrieval_prior: 检索先验字典。
+
+        返回：
+            - 标准化后的输出字典，包含 masks、mask_logits、boxes、scores、
+              各类嵌入、intermediate_features 及使用标志。
+        """
         if images.dim() != 4 or images.shape[1] != 3:
             raise ValueError("images must have shape [B, 3, H, W]")
         if images.min() < 0 or images.max() > 1:
@@ -647,6 +856,19 @@ def run_tensor_forward_smoke_test(
     allow_dummy: bool,
     report_path: str,
 ) -> dict[str, Any]:
+    """运行张量化前向冒烟测试并生成报告。
+
+    参数：
+        - checkpoint_path: 权重路径。
+        - device: 目标设备。
+        - dtype: 数据类型字符串。
+        - image_size: 测试图像边长。
+        - allow_dummy: 是否允许占位回退。
+        - report_path: 报告输出路径。
+
+    返回：
+        - 包含前向/反向测试结果与形状信息的报告字典。
+    """
     destination = Path(report_path) if report_path else DEFAULT_TENSOR_FORWARD_REPORT
     destination.parent.mkdir(parents=True, exist_ok=True)
     report: dict[str, Any] = {

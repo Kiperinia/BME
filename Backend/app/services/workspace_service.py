@@ -24,6 +24,16 @@ from app.services.sam3_runtime import SAM3Engine
 
 
 class WorkspaceService:
+    """brief:
+        Represent WorkspaceService state and behavior.
+
+    parameter:
+        - settings: Input value for settings.
+        - sam3_engine: Input value for sam3_engine.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     _MORPHOLOGY_GROUP_LABELS = {
         "elevated": "隆起型",
         "flat": "平坦型",
@@ -31,11 +41,30 @@ class WorkspaceService:
     }
 
     def __init__(self, settings: Settings, sam3_engine: SAM3Engine):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - settings: Input value for settings.
+            - sam3_engine: Input value for sam3_engine.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.settings = settings
         self.sam3_engine = sam3_engine
         self.agent_runtime = AgentWorkflowService(settings=settings, sam3_engine=sam3_engine)
 
     def generate_report(self, payload: WorkspaceReportRequestSchema) -> WorkspaceReportResponseSchema:
+        """brief:
+            Handle generate report.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         image_bytes = self._decode_image_source(payload.image.dataUrl)
         image = self._decode_image_bytes(image_bytes)
         mask, points, bbox, uses_full_frame_fallback = self._resolve_mask_inputs(payload.segmentation, image)
@@ -105,6 +134,16 @@ class WorkspaceService:
         segmentation: WorkspaceSegmentationSchema,
         image: np.ndarray,
     ) -> tuple[np.ndarray, list[tuple[int, int]], tuple[int, int, int, int], bool]:
+        """brief:
+            Resolve mask inputs.
+
+        parameter:
+            - segmentation: Input value for segmentation.
+            - image: Input value for image.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if segmentation.maskDataUrl.strip():
             mask = self._decode_mask_source(segmentation.maskDataUrl, image_width=image.shape[1], image_height=image.shape[0])
             points, bbox = self._extract_points_and_bbox_from_mask(mask)
@@ -139,6 +178,17 @@ class WorkspaceService:
         diagnosis: Any,
         uses_full_frame_fallback: bool,
     ) -> AgentWorkflowSchema:
+        """brief:
+            Build workflow.
+
+        parameter:
+            - payload: Input value for payload.
+            - diagnosis: Input value for diagnosis.
+            - uses_full_frame_fallback: Input value for uses_full_frame_fallback.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         report_tool_calls = list(getattr(diagnosis.report, "tool_calls", []) or [])
         report_tool_names = [
             str(call.get("tool_name", "")).strip()
@@ -211,6 +261,17 @@ class WorkspaceService:
         expert_config: ExpertConfigurationSchema,
         segmentation: WorkspaceSegmentationSchema,
     ) -> str:
+        """brief:
+            Handle compose findings.
+
+        parameter:
+            - base_findings: Input value for base_findings.
+            - expert_config: Input value for expert_config.
+            - segmentation: Input value for segmentation.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         paris_statement = self._build_paris_statement(expert_config=expert_config)
         additions: list[str] = [base_findings.strip()]
         if expert_config.lesionType.strip():
@@ -225,6 +286,17 @@ class WorkspaceService:
         return " ".join(part for part in additions if part)
 
     def _compose_conclusion(self, *, base_conclusion: str, expert_config: ExpertConfigurationSchema, diagnosis: Any) -> str:
+        """brief:
+            Handle compose conclusion.
+
+        parameter:
+            - base_conclusion: Input value for base_conclusion.
+            - expert_config: Input value for expert_config.
+            - diagnosis: Input value for diagnosis.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         additions: list[str] = [base_conclusion.strip()]
         if expert_config.pathologyClassification.strip():
             additions.append(f"建议结合{expert_config.pathologyClassification.strip()}方向进行病理复核。")
@@ -237,6 +309,16 @@ class WorkspaceService:
 
     @staticmethod
     def _compose_recommendation(*, diagnosis: Any, expert_config: ExpertConfigurationSchema) -> str:
+        """brief:
+            Handle compose recommendation.
+
+        parameter:
+            - diagnosis: Input value for diagnosis.
+            - expert_config: Input value for expert_config.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         recommendation = diagnosis.risk_assessment.disposition_reason.strip() or diagnosis.report.layout_suggestion.strip()
         if expert_config.surfacePattern.strip():
             recommendation = f"{recommendation} 表面模式参考：{expert_config.surfacePattern.strip()}。"
@@ -252,6 +334,20 @@ class WorkspaceService:
         workflow: AgentWorkflowSchema,
         diagnosis: Any,
     ) -> str:
+        """brief:
+            Build report markdown.
+
+        parameter:
+            - payload: Input value for payload.
+            - findings: Input value for findings.
+            - conclusion: Input value for conclusion.
+            - recommendation: Input value for recommendation.
+            - workflow: Input value for workflow.
+            - diagnosis: Input value for diagnosis.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         paris_statement = self._build_paris_statement(expert_config=payload.expertConfig)
         lesion = workflow.lesions[0]
         return "\n".join(
@@ -317,9 +413,33 @@ class WorkspaceService:
         conclusion: str,
         recommendation: str,
     ) -> list[WorkspaceFeatureTagSchema]:
+        """brief:
+            Extract feature tags.
+
+        parameter:
+            - payload: Input value for payload.
+            - diagnosis: Input value for diagnosis.
+            - findings: Input value for findings.
+            - conclusion: Input value for conclusion.
+            - recommendation: Input value for recommendation.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         tags: list[WorkspaceFeatureTagSchema] = []
 
         def append_tag(label: str, category: str, tone: str) -> None:
+            """brief:
+                Handle append tag.
+
+            parameter:
+                - label: Input value for label.
+                - category: Input value for category.
+                - tone: Input value for tone.
+
+            retrival:
+                - Returns None; performs side effects described in the brief section.
+            """
             normalized = label.strip()
             if not normalized:
                 return
@@ -378,6 +498,18 @@ class WorkspaceService:
         findings: str,
         feature_tags: list[WorkspaceFeatureTagSchema],
     ) -> list[AgentTraceStepSchema]:
+        """brief:
+            Build agent trace.
+
+        parameter:
+            - payload: Input value for payload.
+            - diagnosis: Input value for diagnosis.
+            - findings: Input value for findings.
+            - feature_tags: Input value for feature_tags.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         llm_mode = "LLM-assisted" if self.agent_runtime.workflow_mode == "llm" else "rule-only"
         paris_detail = payload.expertConfig.parisDetail
         report_tool_calls = list(getattr(diagnosis.report, "tool_calls", []) or [])
@@ -515,6 +647,15 @@ class WorkspaceService:
         return trace_steps
 
     def _build_paris_statement(self, *, expert_config: ExpertConfigurationSchema) -> str:
+        """brief:
+            Build paris statement.
+
+        parameter:
+            - expert_config: Input value for expert_config.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if expert_config.parisClassification.strip():
             return expert_config.parisClassification.strip()
 
@@ -526,6 +667,15 @@ class WorkspaceService:
 
     @staticmethod
     def _decode_image_source(image_source: str) -> bytes:
+        """brief:
+            Handle decode image source.
+
+        parameter:
+            - image_source: Input value for image_source.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not image_source.startswith("data:"):
             raise AppException(400, 40051, "workspace image must be sent as a data URL")
 
@@ -541,6 +691,15 @@ class WorkspaceService:
 
     @staticmethod
     def _decode_image_bytes(image_bytes: bytes) -> np.ndarray:
+        """brief:
+            Handle decode image bytes.
+
+        parameter:
+            - image_bytes: Input value for image_bytes.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         image_array = np.frombuffer(image_bytes, dtype=np.uint8)
         image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
         if image is None:
@@ -549,6 +708,17 @@ class WorkspaceService:
 
     @staticmethod
     def _decode_mask_source(data_url: str, *, image_width: int, image_height: int) -> np.ndarray:
+        """brief:
+            Handle decode mask source.
+
+        parameter:
+            - data_url: Input value for data_url.
+            - image_width: Input value for image_width.
+            - image_height: Input value for image_height.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         mask_bytes = WorkspaceService._decode_image_source(data_url)
         image_array = np.frombuffer(mask_bytes, dtype=np.uint8)
         decoded = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
@@ -569,6 +739,15 @@ class WorkspaceService:
 
     @staticmethod
     def _extract_points_and_bbox_from_mask(mask: np.ndarray) -> tuple[list[tuple[int, int]], tuple[int, int, int, int]]:
+        """brief:
+            Extract points and bbox from mask.
+
+        parameter:
+            - mask: Input value for mask.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
             return [], (0, 0, 0, 0)
@@ -591,6 +770,17 @@ class WorkspaceService:
         image_width: int,
         image_height: int,
     ) -> list[tuple[int, int]]:
+        """brief:
+            Handle normalize points.
+
+        parameter:
+            - points: Input value for points.
+            - image_width: Input value for image_width.
+            - image_height: Input value for image_height.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         normalized: list[tuple[int, int]] = []
         for x_value, y_value in points:
             normalized.append(
@@ -603,6 +793,17 @@ class WorkspaceService:
 
     @staticmethod
     def _polygon_points_to_mask(points: list[tuple[int, int]], *, width: int, height: int) -> np.ndarray:
+        """brief:
+            Handle polygon points to mask.
+
+        parameter:
+            - points: Input value for points.
+            - width: Input value for width.
+            - height: Input value for height.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         mask = np.zeros((height, width), dtype=np.uint8)
         polygon = np.asarray(points, dtype=np.int32)
         cv2.fillPoly(mask, [polygon], 255)
@@ -613,6 +814,16 @@ class WorkspaceService:
         segmentation: WorkspaceSegmentationSchema,
         points: list[tuple[int, int]],
     ) -> tuple[int, int, int, int]:
+        """brief:
+            Resolve bbox.
+
+        parameter:
+            - segmentation: Input value for segmentation.
+            - points: Input value for points.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         x1, y1, x2, y2 = segmentation.boundingBox
         if x2 > x1 and y2 > y1:
             return (int(x1), int(y1), int(x2), int(y2))

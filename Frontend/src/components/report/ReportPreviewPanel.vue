@@ -3,6 +3,16 @@ import { computed } from 'vue'
 
 import type { PatientRecord } from '@/types/eis'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   patient: PatientRecord
   savedAtLabel: string
@@ -12,6 +22,16 @@ const props = defineProps<{
   annotationCount: number
 }>()
 
+/**
+ * brief:
+ *   Handle exam date label.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const examDateLabel = computed(() => {
   if (!props.patient.examDate) {
     return '未记录'
@@ -24,9 +44,49 @@ const examDateLabel = computed(() => {
   }).format(new Date(props.patient.examDate))
 })
 
+/**
+ * brief:
+ *   Handle findings label.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const findingsLabel = computed(() => props.findings.trim() || '待生成检查所见')
+/**
+ * brief:
+ *   Handle conclusion label.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const conclusionLabel = computed(() => props.conclusion.trim() || '待生成诊断结论')
+/**
+ * brief:
+ *   Handle layout suggestion label.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const layoutSuggestionLabel = computed(() => props.layoutSuggestion.trim() || '暂未提供排版建议')
+/**
+ * brief:
+ *   Handle status label.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const statusLabel = computed(() => {
   switch (props.patient.status) {
     case 0:

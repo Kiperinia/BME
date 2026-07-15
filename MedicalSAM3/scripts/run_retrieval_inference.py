@@ -1,4 +1,4 @@
-"""Run retrieval-conditioned inference for a single image or a folder."""
+"""对单张图像或文件夹运行检索条件推理。"""
 
 from __future__ import annotations
 
@@ -32,6 +32,15 @@ from MedicalSAM3.scripts.retrieval_runtime import (
 
 
 def _overlay_image(image: Image.Image, mask: np.ndarray) -> Image.Image:
+    """将二值掩码以半透明红色叠加到原始图像上。
+
+    参数：
+        - image: 原始 PIL 图像
+        - mask: 二值掩码数组
+
+    返回：
+        - 叠加后的 PIL 图像
+    """
     base = np.asarray(image).astype("float32")
     overlay = base.copy()
     overlay[mask > 0.5] = 0.65 * overlay[mask > 0.5] + 0.35 * np.array([255.0, 64.0, 64.0], dtype=np.float32)
@@ -44,6 +53,17 @@ def _save_preview(
     output_path: Path,
     image_size: int = 128,
 ) -> None:
+    """将检索到的正负示例缩略图拼接为预览图片。
+
+    参数：
+        - positive_entries: 正例条目列表
+        - negative_entries: 负例条目列表
+        - output_path: 输出图像路径
+        - image_size: 缩略图尺寸
+
+    返回：
+        - 无返回值，仅执行保存图像的副作用
+    """
     preview_paths = [entry.get("crop_path") for entry in positive_entries + negative_entries if entry.get("crop_path")]
     images = []
     for path in preview_paths:
@@ -63,6 +83,16 @@ def _resolve_bbox_for_image(
     bbox_literal: str | None,
     bbox_mapping: dict[str, list[float]],
 ) -> list[float]:
+    """解析图像对应的边界框（从命令行参数或映射字典）。
+
+    参数：
+        - image_path: 图像路径
+        - bbox_literal: 命令行直接指定的边界框
+        - bbox_mapping: 图像名到边界框的映射字典
+
+    返回：
+        - [x1, y1, x2, y2] 边界框列表
+    """
     if bbox_literal:
         return parse_bbox(bbox_literal)
     for key in [image_path.name, image_path.stem, image_path.as_posix()]:
@@ -72,6 +102,14 @@ def _resolve_bbox_for_image(
 
 
 def main() -> int:
+    """脚本命令行入口，运行检索条件推理并输出可视化结果与诊断信息。
+
+    参数：
+        - 无
+
+    返回：
+        - 进程退出码，0 表示成功
+    """
     parser = argparse.ArgumentParser(description="Run retrieval-conditioned inference.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--input-path", required=True)

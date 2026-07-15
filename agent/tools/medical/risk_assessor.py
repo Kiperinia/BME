@@ -50,14 +50,30 @@ PROMPT_DIR = Path(__file__).resolve().parents[3] / "prompts" / "medical"
 # ---------------------------------------------------------------------------
 
 class RiskLevel(str, Enum):
-    """风险等级"""
+    """brief:
+        Represent RiskLevel state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     LOW = "low"
     INTERMEDIATE = "intermediate"
     HIGH = "high"
 
 
 class Disposition(str, Enum):
-    """处理建议"""
+    """brief:
+        Represent Disposition state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     MONITOR = "monitor"              # 随访观察
     ENDOSCOPIC_RESECTION = "endoscopic_resection"  # 内镜下切除
     BIOPSY = "biopsy"                # 活检
@@ -67,7 +83,15 @@ class Disposition(str, Enum):
 
 @dataclass(slots=True)
 class DimensionScore:
-    """单维度评分"""
+    """brief:
+        Represent DimensionScore state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     name: str
     score: float       # 0~10
     weight: float      # 权重
@@ -77,7 +101,15 @@ class DimensionScore:
 
 @dataclass(slots=True)
 class RiskAssessmentResult:
-    """风险评估结果"""
+    """brief:
+        Represent RiskAssessmentResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     risk_level: RiskLevel = RiskLevel.LOW
     total_score: float = 0.0          # 加权总分 0~10
     dimension_scores: list[DimensionScore] = field(default_factory=list)
@@ -88,6 +120,15 @@ class RiskAssessmentResult:
     llm_reasoning: str = ""
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "risk_level": self.risk_level.value,
             "total_score": round(self.total_score, 2),
@@ -169,12 +210,33 @@ COLOR_RISK_SCORES: dict[ColorTone, float] = {
 # ---------------------------------------------------------------------------
 
 class LLMClient(Protocol):
+    """brief:
+        Represent LLMClient state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def chat(
         self,
         messages: list[dict[str, str]],
         temperature: float = 0.3,
         max_tokens: int = 512,
-    ) -> str: ...
+    ) -> str:
+        """brief:
+            Handle chat.
+
+        parameter:
+            - messages: Input value for messages.
+            - temperature: Input value for temperature.
+            - max_tokens: Input value for max_tokens.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
+        ...
 
 
 # ---------------------------------------------------------------------------
@@ -182,13 +244,16 @@ class LLMClient(Protocol):
 # ---------------------------------------------------------------------------
 
 class RiskAssessor:
-    """
-    恶性风险评估器。
+    """brief:
+        Represent RiskAssessor state and behavior.
 
-    Usage::
+    parameter:
+        - llm_client: Input value for llm_client.
+        - llm_confidence_threshold: Input value for llm_confidence_threshold.
+        - prompt_path: Input value for prompt_path.
 
-        assessor = RiskAssessor()
-        result = assessor.assess(morphology_result, paris_result, features)
+    retrival:
+        - Provides instances used by the surrounding workflow.
     """
 
     # 风险等级阈值
@@ -201,6 +266,17 @@ class RiskAssessor:
         llm_confidence_threshold: float = 0.65,
         prompt_path: Path | None = None,
     ):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - llm_client: Input value for llm_client.
+            - llm_confidence_threshold: Input value for llm_confidence_threshold.
+            - prompt_path: Input value for prompt_path.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.llm_client = llm_client
         self.llm_threshold = llm_confidence_threshold
         self._prompt_template = self._load_prompt(prompt_path)
@@ -213,7 +289,17 @@ class RiskAssessor:
         paris: ParisTypingResult,
         features: LesionFeatures,
     ) -> RiskAssessmentResult:
-        """综合评估恶性风险"""
+        """brief:
+            Handle assess.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         dimensions = self._compute_dimensions(morphology, paris, features)
         total = sum(d.weighted_score for d in dimensions)
 
@@ -254,7 +340,17 @@ class RiskAssessor:
         paris: ParisTypingResult,
         features: LesionFeatures,
     ) -> list[DimensionScore]:
-        """计算各维度评分"""
+        """brief:
+            Compute dimensions.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         dimensions: list[DimensionScore] = []
 
         # 1. Paris 分型
@@ -330,7 +426,15 @@ class RiskAssessor:
 
     @staticmethod
     def _score_vascularity(features: LesionFeatures) -> float:
-        """血管纹理评分"""
+        """brief:
+            Handle score vascularity.
+
+        parameter:
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         density = features.texture.vessel_density
 
         if density < 0.02:
@@ -346,7 +450,15 @@ class RiskAssessor:
 
     @staticmethod
     def _score_morphology(morphology: MorphologyResult) -> float:
-        """形态评分"""
+        """brief:
+            Handle score morphology.
+
+        parameter:
+            - morphology: Input value for morphology.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         morph_scores = {
             PedicleType.PEDUNCULATED: 1.5,
             PedicleType.SESSILE: 3.0,
@@ -359,6 +471,15 @@ class RiskAssessor:
     # ---- 风险分级 ----
 
     def _classify_risk(self, total_score: float) -> RiskLevel:
+        """brief:
+            Classify risk.
+
+        parameter:
+            - total_score: Input value for total_score.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if total_score >= self.HIGH_THRESHOLD:
             return RiskLevel.HIGH
         elif total_score >= self.INTERMEDIATE_THRESHOLD:
@@ -371,7 +492,17 @@ class RiskAssessor:
         morphology: MorphologyResult,
         paris: ParisTypingResult,
     ) -> tuple[Disposition, str]:
-        """基于风险等级推荐处理方案"""
+        """brief:
+            Handle recommend disposition.
+
+        parameter:
+            - risk_level: Input value for risk_level.
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if risk_level == RiskLevel.HIGH:
             if paris.invasion_risk == InvasionRisk.HIGH:
                 return (
@@ -407,7 +538,15 @@ class RiskAssessor:
 
     @staticmethod
     def _estimate_confidence(dimensions: list[DimensionScore]) -> float:
-        """估算综合置信度（基于各维度评分的一致性）"""
+        """brief:
+            Handle estimate confidence.
+
+        parameter:
+            - dimensions: Input value for dimensions.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not dimensions:
             return 0.0
 
@@ -433,6 +572,17 @@ class RiskAssessor:
         paris: ParisTypingResult,
         features: LesionFeatures,
     ) -> RiskAssessmentResult | None:
+        """brief:
+            Handle llm assess.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if self.llm_client is None:
             return None
 
@@ -454,6 +604,17 @@ class RiskAssessor:
         paris: ParisTypingResult,
         features: LesionFeatures,
     ) -> str:
+        """brief:
+            Build llm prompt.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - paris: Input value for paris.
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         morph_text = "\n".join(f"  {k}: {v}" for k, v in morphology.to_dict().items())
         paris_text = "\n".join(f"  {k}: {v}" for k, v in paris.to_dict().items())
         feat_text = "\n".join(
@@ -469,6 +630,15 @@ class RiskAssessor:
 
     @staticmethod
     def _parse_llm_response(response: str) -> RiskAssessmentResult | None:
+        """brief:
+            Handle parse llm response.
+
+        parameter:
+            - response: Input value for response.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         import json
 
         text = response.strip()
@@ -498,6 +668,15 @@ class RiskAssessor:
 
     @staticmethod
     def _load_prompt(custom_path: Path | None) -> str:
+        """brief:
+            Load prompt.
+
+        parameter:
+            - custom_path: Input value for custom_path.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         path = custom_path or (PROMPT_DIR / "risk_assessment.txt")
         if path.exists():
             return path.read_text(encoding="utf-8")

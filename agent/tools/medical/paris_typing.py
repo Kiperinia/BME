@@ -41,7 +41,15 @@ PROMPT_DIR = Path(__file__).resolve().parents[3] / "prompts" / "medical"
 # ---------------------------------------------------------------------------
 
 class ParisType(str, Enum):
-    """Paris 分型"""
+    """brief:
+        Represent ParisType state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     IP = "0-Ip"       # 有蒂型
     IS = "0-Is"       # 无蒂型
     IIA = "0-IIa"     # 浅表隆起型
@@ -53,7 +61,15 @@ class ParisType(str, Enum):
 
 
 class InvasionRisk(str, Enum):
-    """基于 Paris 分型的浸润风险"""
+    """brief:
+        Represent InvasionRisk state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     LOW = "low"           # 黏膜内 (M)
     MODERATE = "moderate" # 黏膜下层浅层 (SM1)
     HIGH = "high"         # 黏膜下层深层 (SM2+)
@@ -61,7 +77,15 @@ class InvasionRisk(str, Enum):
 
 @dataclass(slots=True)
 class ParisTypingResult:
-    """Paris 分型结果"""
+    """brief:
+        Represent ParisTypingResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     paris_type: ParisType = ParisType.UNCERTAIN
     sub_type: str = ""                # 混合型子分类，如 "0-IIa+IIc"
     invasion_risk: InvasionRisk = InvasionRisk.LOW
@@ -71,6 +95,15 @@ class ParisTypingResult:
     llm_reasoning: str = ""
 
     def to_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "paris_type": self.paris_type.value,
             "sub_type": self.sub_type,
@@ -113,12 +146,33 @@ _PARIS_INVASION_RISK: dict[ParisType, InvasionRisk] = {
 # ---------------------------------------------------------------------------
 
 class LLMClient(Protocol):
+    """brief:
+        Represent LLMClient state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def chat(
         self,
         messages: list[dict[str, str]],
         temperature: float = 0.3,
         max_tokens: int = 512,
-    ) -> str: ...
+    ) -> str:
+        """brief:
+            Handle chat.
+
+        parameter:
+            - messages: Input value for messages.
+            - temperature: Input value for temperature.
+            - max_tokens: Input value for max_tokens.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
+        ...
 
 
 # ---------------------------------------------------------------------------
@@ -126,19 +180,16 @@ class LLMClient(Protocol):
 # ---------------------------------------------------------------------------
 
 class ParisTypingEngine:
-    """
-    Paris 分型推理引擎。
+    """brief:
+        Represent ParisTypingEngine state and behavior.
 
-    流程：
-      1. 接收 MorphologyResult + LesionFeatures
-      2. 基于蒂型 + 几何特征做规则映射
-      3. 用凹陷/隆起特征修正（区分 IIa/IIb/IIc）
-      4. 可选 LLM 二次确认
+    parameter:
+        - llm_client: Input value for llm_client.
+        - llm_confidence_threshold: Input value for llm_confidence_threshold.
+        - prompt_path: Input value for prompt_path.
 
-    Usage::
-
-        engine = ParisTypingEngine()
-        result = engine.infer(morphology_result, lesion_features)
+    retrival:
+        - Provides instances used by the surrounding workflow.
     """
 
     def __init__(
@@ -147,6 +198,17 @@ class ParisTypingEngine:
         llm_confidence_threshold: float = 0.65,
         prompt_path: Path | None = None,
     ):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - llm_client: Input value for llm_client.
+            - llm_confidence_threshold: Input value for llm_confidence_threshold.
+            - prompt_path: Input value for prompt_path.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.llm_client = llm_client
         self.llm_threshold = llm_confidence_threshold
         self._prompt_template = self._load_prompt(prompt_path)
@@ -158,15 +220,15 @@ class ParisTypingEngine:
         morphology: MorphologyResult,
         features: LesionFeatures,
     ) -> ParisTypingResult:
-        """
-        从形态分类结果 + 定量特征推断 Paris 分型。
+        """brief:
+            Handle infer.
 
-        Args:
-            morphology: MorphologyClassifier 的输出
-            features:   FeatureExtractor 的输出
+        parameter:
+            - morphology: Input value for morphology.
+            - features: Input value for features.
 
-        Returns:
-            ParisTypingResult
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         result = self._rule_based_infer(morphology, features)
 
@@ -191,7 +253,17 @@ class ParisTypingEngine:
         mask: "np.ndarray",
         pixel_size_mm: float | None = None,
     ) -> ParisTypingResult:
-        """从图像 + 掩码直接推断（内部串联 extractor → classifier → paris）"""
+        """brief:
+            Infer from image.
+
+        parameter:
+            - image: Input value for image.
+            - mask: Input value for mask.
+            - pixel_size_mm: Input value for pixel_size_mm.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         extractor = FeatureExtractor(pixel_size_mm=pixel_size_mm)
         features = extractor.extract(image, mask)
 
@@ -207,6 +279,16 @@ class ParisTypingEngine:
         morphology: MorphologyResult,
         features: LesionFeatures,
     ) -> ParisTypingResult:
+        """brief:
+            Handle rule based infer.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         geo = features.geometric
         color = features.color
         texture = features.texture
@@ -251,13 +333,18 @@ class ParisTypingEngine:
         texture: "TextureFeatures",
         morphology: MorphologyResult,
     ) -> tuple[ParisType, float, str]:
-        """
-        用定量特征修正 Paris 分型。
+        """brief:
+            Handle refine with features.
 
-        关键区分：
-          - IIa vs IIb: 隆起高度（用 solidity + 边缘对比度近似）
-          - IIb vs IIc: 凹陷特征（用边缘对比度 + 颜色变化近似）
-          - 混合型 IIa+IIc: 表面不规则 + 颜色混杂
+        parameter:
+            - initial_type: Input value for initial_type.
+            - geo: Input value for geo.
+            - color: Input value for color.
+            - texture: Input value for texture.
+            - morphology: Input value for morphology.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
         """
         reasoning_parts: list[str] = []
         final_type = initial_type
@@ -316,6 +403,16 @@ class ParisTypingEngine:
         morphology: MorphologyResult,
         features: LesionFeatures,
     ) -> ParisTypingResult | None:
+        """brief:
+            Handle llm infer.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if self.llm_client is None:
             return None
 
@@ -336,6 +433,16 @@ class ParisTypingEngine:
         morphology: MorphologyResult,
         features: LesionFeatures,
     ) -> str:
+        """brief:
+            Build llm prompt.
+
+        parameter:
+            - morphology: Input value for morphology.
+            - features: Input value for features.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         morph_dict = morphology.to_dict()
         feat_dict = features.to_dict()
 
@@ -352,6 +459,15 @@ class ParisTypingEngine:
 
     @staticmethod
     def _parse_llm_response(response: str) -> ParisTypingResult | None:
+        """brief:
+            Handle parse llm response.
+
+        parameter:
+            - response: Input value for response.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         import json
 
         text = response.strip()
@@ -381,6 +497,15 @@ class ParisTypingEngine:
 
     @staticmethod
     def _load_prompt(custom_path: Path | None) -> str:
+        """brief:
+            Load prompt.
+
+        parameter:
+            - custom_path: Input value for custom_path.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         path = custom_path or (PROMPT_DIR / "paris_typing.txt")
         if path.exists():
             return path.read_text(encoding="utf-8")

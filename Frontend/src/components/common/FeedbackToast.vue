@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = withDefaults(
   defineProps<{
     visible: boolean
@@ -12,6 +22,16 @@ const props = withDefaults(
   },
 )
 
+/**
+ * brief:
+ *   Handle tone classes.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toneClasses = computed(() => {
   if (props.tone === 'success') {
     return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/70 dark:text-emerald-200'

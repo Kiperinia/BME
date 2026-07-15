@@ -10,7 +10,9 @@ from MedicalSAM3.utils.check_bank_leakage import run_bank_leakage_check
 
 
 class TestCheckBankLeakage(unittest.TestCase):
+    """测试银行泄漏检测工具对患者 ID 和感知哈希重叠的检测。"""
     def test_detects_patient_and_perceptual_hash_overlap(self) -> None:
+        """验证泄漏检测能同时识别患者 ID 重叠和感知哈希重叠。"""
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             eval_dir = root / "eval"

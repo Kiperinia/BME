@@ -32,6 +32,15 @@ logger = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class PreparedLesion:
+    """brief:
+        Represent PreparedLesion state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     lesion_id: str
     source_label: str
     image: np.ndarray
@@ -40,7 +49,27 @@ class PreparedLesion:
 
 
 class AgentWorkflowService:
+    """brief:
+        Represent AgentWorkflowService state and behavior.
+
+    parameter:
+        - settings: Input value for settings.
+        - sam3_engine: Input value for sam3_engine.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(self, settings: Settings, sam3_engine: SAM3Engine):
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - settings: Input value for settings.
+            - sam3_engine: Input value for sam3_engine.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         self.settings = settings
         self.sam3_engine = sam3_engine
         self.agent, self.workflow_mode, self.runtime_warnings = self._build_agent()
@@ -49,6 +78,15 @@ class AgentWorkflowService:
         self,
         payload: GenerateReportDraftRequestSchema,
     ) -> dict[str, Any]:
+        """brief:
+            Handle generate report draft.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         workflow = self._run_agent_workflow(
             context_data=payload.contextData,
             report_snippet=payload.contextData.initialOpinion or payload.contextData.reportSnippet,
@@ -67,6 +105,15 @@ class AgentWorkflowService:
         self,
         payload: FetchAnnotationTagsRequestSchema,
     ) -> dict[str, Any]:
+        """brief:
+            Infer annotation tags.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         workflow = self._run_agent_workflow(
             context_data=payload.contextData,
             report_snippet=payload.reportSnippet,
@@ -85,6 +132,15 @@ class AgentWorkflowService:
         self,
         payload: SaveReportDraftRequestSchema,
     ) -> ReportDraftRecordSchema:
+        """brief:
+            Save report draft.
+
+        parameter:
+            - payload: Input value for payload.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return ReportDraftRecordSchema(
             reportId=payload.reportId or f"draft-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
             patientId=payload.patientId,
@@ -95,6 +151,16 @@ class AgentWorkflowService:
         )
 
     def _run_agent_workflow(self, context_data: Any, report_snippet: str) -> dict[str, Any]:
+        """brief:
+            Run agent workflow.
+
+        parameter:
+            - context_data: Input value for context_data.
+            - report_snippet: Input value for report_snippet.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         prepared_lesions, segmentation_warnings = self._prepare_lesions(context_data)
         if not prepared_lesions:
             raise AppException(400, 40031, "no usable lesion images were provided for agent workflow")
@@ -141,6 +207,18 @@ class AgentWorkflowService:
         segmentation_warnings: list[str],
         closed_loop_result: dict[str, Any] | None = None,
     ) -> AgentWorkflowSchema:
+        """brief:
+            Build workflow summary.
+
+        parameter:
+            - batch_result: Input value for batch_result.
+            - prepared_lesions: Input value for prepared_lesions.
+            - segmentation_warnings: Input value for segmentation_warnings.
+            - closed_loop_result: Input value for closed_loop_result.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         agent_summary = self.agent.summary()
         report = batch_result.report
         lesion_summaries: list[AgentWorkflowLesionSchema] = []
@@ -215,6 +293,17 @@ class AgentWorkflowService:
         prepared_lesions: list[PreparedLesion],
         report_snippet: str,
     ) -> dict[str, Any] | None:
+        """brief:
+            Run closed loop summary.
+
+        parameter:
+            - context_data: Input value for context_data.
+            - prepared_lesions: Input value for prepared_lesions.
+            - report_snippet: Input value for report_snippet.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not prepared_lesions:
             return None
 
@@ -265,6 +354,15 @@ class AgentWorkflowService:
 
     @staticmethod
     def _build_doctor_annotations(context_data: Any) -> dict[str, Any]:
+        """brief:
+            Build doctor annotations.
+
+        parameter:
+            - context_data: Input value for context_data.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         details = context_data.tumorFocus.details
         return {
             "lesion_type": details.classification,
@@ -285,6 +383,16 @@ class AgentWorkflowService:
 
     @staticmethod
     def _build_closed_loop_sample(primary: PreparedLesion, doctor_annotations: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Build closed loop sample.
+
+        parameter:
+            - primary: Input value for primary.
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         area_ratio = float((primary.mask > 0).sum()) / max(float(primary.mask.shape[0] * primary.mask.shape[1]), 1.0)
         return {
             "image_id": primary.lesion_id,
@@ -302,6 +410,16 @@ class AgentWorkflowService:
 
     @staticmethod
     def _build_reference_sample(sample: dict[str, Any], doctor_annotations: dict[str, Any]) -> dict[str, Any]:
+        """brief:
+            Build reference sample.
+
+        parameter:
+            - sample: Input value for sample.
+            - doctor_annotations: Input value for doctor_annotations.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         reference = dict(sample)
         reference["image_id"] = f"{sample.get('image_id', 'case')}-reference"
         reference["sample_group"] = "clean"
@@ -311,6 +429,15 @@ class AgentWorkflowService:
 
     @staticmethod
     def _build_agent_runs(closed_loop_result: dict[str, Any] | None) -> list[AgentRunSchema]:
+        """brief:
+            Build agent runs.
+
+        parameter:
+            - closed_loop_result: Input value for closed_loop_result.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not closed_loop_result:
             return []
         runs: list[AgentRunSchema] = []
@@ -331,6 +458,15 @@ class AgentWorkflowService:
 
     @staticmethod
     def _build_closed_loop_summary(closed_loop_result: dict[str, Any] | None) -> dict[str, object]:
+        """brief:
+            Build closed loop summary.
+
+        parameter:
+            - closed_loop_result: Input value for closed_loop_result.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not closed_loop_result:
             return {}
         review = dict(closed_loop_result.get("review", {}) or {})
@@ -379,6 +515,17 @@ class AgentWorkflowService:
         timestamp: float,
         location_label: str,
     ) -> list[AnnotationTagSchema]:
+        """brief:
+            Build annotation tags.
+
+        parameter:
+            - workflow: Input value for workflow.
+            - timestamp: Input value for timestamp.
+            - location_label: Input value for location_label.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not workflow.lesions:
             return []
 
@@ -429,6 +576,15 @@ class AgentWorkflowService:
         return tags
 
     def _prepare_lesions(self, context_data: Any) -> tuple[list[PreparedLesion], list[str]]:
+        """brief:
+            Prepare lesions.
+
+        parameter:
+            - context_data: Input value for context_data.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         lesions: list[PreparedLesion] = []
         warnings: list[str] = []
         seen_sources: set[str] = set()
@@ -483,6 +639,18 @@ class AgentWorkflowService:
         fallback_polygons: Iterable[PolygonMaskSchema],
         filename: str,
     ) -> tuple[list[tuple[int, int]], tuple[int, int, int, int]]:
+        """brief:
+            Segment or fallback.
+
+        parameter:
+            - image_bytes: Input value for image_bytes.
+            - image: Input value for image.
+            - fallback_polygons: Input value for fallback_polygons.
+            - filename: Input value for filename.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         height, width = image.shape[:2]
         try:
             result = self.sam3_engine.predict_bytes(image_bytes, filename)
@@ -502,6 +670,15 @@ class AgentWorkflowService:
 
     @staticmethod
     def _decode_image_source(image_source: str) -> bytes:
+        """brief:
+            Handle decode image source.
+
+        parameter:
+            - image_source: Input value for image_source.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not image_source.startswith("data:"):
             raise AppException(400, 40032, "agent workflow expects rasterized image data URLs from frontend")
 
@@ -517,6 +694,15 @@ class AgentWorkflowService:
 
     @staticmethod
     def _decode_image_bytes(image_bytes: bytes) -> np.ndarray:
+        """brief:
+            Handle decode image bytes.
+
+        parameter:
+            - image_bytes: Input value for image_bytes.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         image_array = np.frombuffer(image_bytes, dtype=np.uint8)
         image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
         if image is None:
@@ -530,6 +716,17 @@ class AgentWorkflowService:
         width: int,
         height: int,
     ) -> list[tuple[int, int]]:
+        """brief:
+            Handle scale polygons.
+
+        parameter:
+            - polygons: Input value for polygons.
+            - width: Input value for width.
+            - height: Input value for height.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         scaled_points: list[tuple[int, int]] = []
         for polygon in polygons:
             if not polygon.points:
@@ -544,6 +741,17 @@ class AgentWorkflowService:
 
     @staticmethod
     def _polygon_points_to_mask(points: list[tuple[int, int]], width: int, height: int) -> np.ndarray:
+        """brief:
+            Handle polygon points to mask.
+
+        parameter:
+            - points: Input value for points.
+            - width: Input value for width.
+            - height: Input value for height.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         mask = np.zeros((height, width), dtype=np.uint8)
         polygon = np.asarray(points, dtype=np.int32)
         if polygon.size == 0:
@@ -553,6 +761,15 @@ class AgentWorkflowService:
 
     @staticmethod
     def _bounding_box_from_points(points: list[tuple[int, int]]) -> tuple[int, int, int, int]:
+        """brief:
+            Handle bounding box from points.
+
+        parameter:
+            - points: Input value for points.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         if not points:
             return (0, 0, 0, 0)
         xs = [point[0] for point in points]
@@ -560,6 +777,15 @@ class AgentWorkflowService:
         return (min(xs), min(ys), max(xs), max(ys))
 
     def _build_agent(self) -> tuple[Any, str, list[str]]:
+        """brief:
+            Build agent.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         agent_root = (WORKSPACE_DIR / "agent").resolve()
         agent_root_str = str(agent_root)
         if agent_root_str not in sys.path:

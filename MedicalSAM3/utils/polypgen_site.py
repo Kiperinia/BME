@@ -1,4 +1,4 @@
-"""PolypGen center/site resolution helpers."""
+"""PolypGen 中心/站点 ID 解析辅助工具。"""
 
 from __future__ import annotations
 
@@ -12,6 +12,14 @@ POLYPGEN_SITE_IDS = tuple(f"C{index}" for index in range(1, 7))
 
 
 def normalize_polypgen_site_id(value: str | None) -> str | None:
+    """标准化 PolypGen 站点 ID 为 "C1"~"C6" 格式。
+
+    参数：
+        - value: 原始站点 ID 字符串
+
+    返回：
+        - 标准化后的站点 ID，无法解析则返回 None
+    """
     if value is None:
         return None
     match = re.search(r"([1-6])", str(value))
@@ -27,6 +35,17 @@ def _candidate_strings(
     sample_id: str | None,
     dataset_name: str | None,
 ) -> Iterable[str]:
+    """生成可能包含站点 ID 的候选字符串。
+
+    参数：
+        - image_path: 图像路径
+        - metadata: 元数据字典
+        - sample_id: 样本 ID
+        - dataset_name: 数据集名称
+
+    返回：
+        - 候选字符串的迭代器
+    """
     if image_path:
         path_text = str(image_path)
         yield path_text
@@ -56,6 +75,14 @@ def _candidate_strings(
 
 
 def _extract_site_id(text: str) -> str | None:
+    """从文本中提取 PolypGen 站点 ID。
+
+    参数：
+        - text: 待解析的文本
+
+    返回：
+        - 站点 ID "C1"~"C6"，未找到则返回 None
+    """
     normalized = text.strip().lower()
     if not normalized:
         return None
@@ -92,6 +119,20 @@ def resolve_polypgen_site(
     dataset_name: str | None = None,
     warn: bool = True,
 ) -> Optional[str]:
+    """从多个来源解析 PolypGen 站点 ID。
+
+    依次检查图像路径、元数据、样本 ID 和数据集名称中的站点信息。
+
+    参数：
+        - image_path: 图像路径
+        - metadata: 元数据字典
+        - sample_id: 样本 ID
+        - dataset_name: 数据集名称
+        - warn: 无法解析时是否发出警告
+
+    返回：
+        - 解析到的站点 ID，未找到则返回 None
+    """
     for candidate in _candidate_strings(
         image_path=image_path,
         metadata=metadata,

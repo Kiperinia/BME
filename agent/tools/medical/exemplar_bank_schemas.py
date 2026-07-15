@@ -10,12 +10,30 @@ import torch
 
 
 class ExemplarPolarity(str, Enum):
+    """brief:
+        Represent ExemplarPolarity state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     POSITIVE = "positive"
     NEGATIVE = "negative"
     BOUNDARY = "boundary"
 
 
 class ExemplarLifecycleState(str, Enum):
+    """brief:
+        Represent ExemplarLifecycleState state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     CANDIDATE = "candidate"
     INDEXED = "indexed"
     ACTIVE = "active"
@@ -28,6 +46,15 @@ class ExemplarLifecycleState(str, Enum):
 
 
 class VectorBackend(str, Enum):
+    """brief:
+        Represent VectorBackend state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     FAISS = "faiss"
     MILVUS = "milvus"
     CHROMA = "chroma"
@@ -35,6 +62,15 @@ class VectorBackend(str, Enum):
 
 @dataclass(slots=True)
 class RetrievalStatistics:
+    """brief:
+        Represent RetrievalStatistics state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     retrieval_count: int = 0
     positive_hits: int = 0
     negative_hits: int = 0
@@ -49,6 +85,15 @@ class RetrievalStatistics:
 
 @dataclass(slots=True)
 class FeatureCentroid:
+    """brief:
+        Represent FeatureCentroid state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     semantic_centroid: list[float] = field(default_factory=list)
     spatial_centroid_path: str = ""
     boundary_centroid: list[float] = field(default_factory=list)
@@ -57,6 +102,15 @@ class FeatureCentroid:
 
 @dataclass(slots=True)
 class ExemplarEmbeddingRecord:
+    """brief:
+        Represent ExemplarEmbeddingRecord state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     sam_embedding_path: str = ""
     medical_semantic_embedding_path: str = ""
     spatial_embedding_path: str = ""
@@ -67,6 +121,15 @@ class ExemplarEmbeddingRecord:
 
 @dataclass(slots=True)
 class MedicalExemplarRecord:
+    """brief:
+        Represent MedicalExemplarRecord state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     exemplar_id: str
     image_path: str
     mask_path: str
@@ -93,6 +156,15 @@ class MedicalExemplarRecord:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_json_dict(self) -> dict[str, Any]:
+        """brief:
+            Handle to json dict.
+
+        parameter:
+            - None.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         payload = asdict(self)
         payload["polarity"] = self.polarity.value
         payload["state"] = self.state.value
@@ -101,6 +173,15 @@ class MedicalExemplarRecord:
 
 @dataclass(slots=True)
 class PrototypeClusterRecord:
+    """brief:
+        Represent PrototypeClusterRecord state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     cluster_id: str
     centroid_exemplar_id: str
     member_ids: list[str] = field(default_factory=list)
@@ -112,6 +193,15 @@ class PrototypeClusterRecord:
 
 @dataclass(slots=True)
 class MemoryBankSnapshot:
+    """brief:
+        Represent MemoryBankSnapshot state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     bank_id: str
     version: str
     generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -124,6 +214,15 @@ class MemoryBankSnapshot:
 
 @dataclass(slots=True)
 class VectorDocument:
+    """brief:
+        Represent VectorDocument state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     id: str
     embedding: list[float]
     metadata: dict[str, Any]
@@ -132,6 +231,15 @@ class VectorDocument:
 
 @dataclass(slots=True)
 class CacheRecord:
+    """brief:
+        Represent CacheRecord state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     cache_key: str
     exemplar_ids: list[str]
     retrieval_prior_path: str = ""
@@ -143,6 +251,15 @@ class CacheRecord:
 
 @dataclass(slots=True)
 class QueryFeatureBatch:
+    """brief:
+        Represent QueryFeatureBatch state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     query_id: str
     semantic_embedding: torch.Tensor
     spatial_embedding: torch.Tensor
@@ -155,6 +272,15 @@ class QueryFeatureBatch:
 
 @dataclass(slots=True)
 class RetrievalCandidate:
+    """brief:
+        Represent RetrievalCandidate state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     exemplar_id: str
     polarity: ExemplarPolarity
     similarity: float
@@ -166,6 +292,15 @@ class RetrievalCandidate:
 
 @dataclass(slots=True)
 class RetrievalPackage:
+    """brief:
+        Represent RetrievalPackage state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     prompt_tokens: torch.Tensor
     retrieval_prior: dict[str, torch.Tensor]
     confidence: torch.Tensor
@@ -175,6 +310,17 @@ class RetrievalPackage:
 
 
 def build_vector_document(record: MedicalExemplarRecord, embedding: list[float], backend: VectorBackend) -> VectorDocument:
+    """brief:
+        Build vector document.
+
+    parameter:
+        - record: Input value for record.
+        - embedding: Input value for embedding.
+        - backend: Input value for backend.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     base_metadata = {
         "domain_source": record.domain_source,
         "polarity": record.polarity.value,
@@ -200,6 +346,15 @@ def build_vector_document(record: MedicalExemplarRecord, embedding: list[float],
 
 
 def compute_dedup_signature(record: MedicalExemplarRecord) -> str:
+    """brief:
+        Compute dedup signature.
+
+    parameter:
+        - record: Input value for record.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     normalized = [
         Path(record.image_path).name.lower(),
         Path(record.mask_path).name.lower(),

@@ -1,4 +1,4 @@
-"""YOLO bbox adapters for SAM3 prompt generation."""
+"""YOLO 边界框适配器，用于生成 SAM3 提示。"""
 
 from .bbox_provider import YoloBoxProvider, create_box_provider
 from .detector import BBoxDetection, UltralyticsYoloDetector

@@ -33,6 +33,15 @@ logger = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class ExemplarAgentTrace:
+    """brief:
+        Represent ExemplarAgentTrace state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     step: str
     status: str
     detail: str
@@ -41,6 +50,15 @@ class ExemplarAgentTrace:
 
 @dataclass(slots=True)
 class ExemplarAgentResult:
+    """brief:
+        Represent ExemplarAgentResult state and behavior.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     bank_id: str
     traces: list[ExemplarAgentTrace] = field(default_factory=list)
     retrieval: RetrievalPackage | None = None
@@ -49,6 +67,17 @@ class ExemplarAgentResult:
 
 
 class ExemplarBankAgent(HelloAgent):
+    """brief:
+        Represent ExemplarBankAgent state and behavior.
+
+    parameter:
+        - llm: Input value for llm.
+        - memory_root: Input value for memory_root.
+        - hidden_dim: Input value for hidden_dim.
+
+    retrival:
+        - Provides instances used by the surrounding workflow.
+    """
     def __init__(
         self,
         llm: HelloAgentsLLM | None = None,
@@ -56,6 +85,17 @@ class ExemplarBankAgent(HelloAgent):
         memory_root: str | Path = "agent/memory/exemplar_agent_bank",
         hidden_dim: int = 256,
     ) -> None:
+        """brief:
+            Initialize this object.
+
+        parameter:
+            - llm: Input value for llm.
+            - memory_root: Input value for memory_root.
+            - hidden_dim: Input value for hidden_dim.
+
+        retrival:
+            - Returns None; performs side effects described in the brief section.
+        """
         resolved_llm = llm or RuleOnlyLLM(model="exemplar-bank-rule-only", provider="rule-only")
         super().__init__(
             name="exemplar-bank-agent",
@@ -69,6 +109,16 @@ class ExemplarBankAgent(HelloAgent):
         self.hidden_dim = hidden_dim
 
     def ingest(self, record: MedicalExemplarRecord, bank_id: str = "default-bank") -> ExemplarAgentResult:
+        """brief:
+            Handle ingest.
+
+        parameter:
+            - record: Input value for record.
+            - bank_id: Input value for bank_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         snapshot = self.memory.load(bank_id=bank_id)
         traces = [ExemplarAgentTrace("ingest", "started", f"ingesting exemplar {record.exemplar_id}")]
         decision = self.quality.decide(record)
@@ -102,6 +152,17 @@ class ExemplarBankAgent(HelloAgent):
         retrieved: RetrievedFeatureSet,
         bank_id: str = "default-bank",
     ) -> ExemplarAgentResult:
+        """brief:
+            Handle retrieve prior.
+
+        parameter:
+            - query: Input value for query.
+            - retrieved: Input value for retrieved.
+            - bank_id: Input value for bank_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         traces = [ExemplarAgentTrace("retrieve_prior", "started", f"query={query.query_id}")]
         package = self.retrieval_pipeline(query, retrieved)
         traces.append(
@@ -119,6 +180,17 @@ class ExemplarBankAgent(HelloAgent):
         feedback: dict[str, Any],
         bank_id: str = "default-bank",
     ) -> ExemplarAgentResult:
+        """brief:
+            Update with feedback.
+
+        parameter:
+            - exemplar_id: Input value for exemplar_id.
+            - feedback: Input value for feedback.
+            - bank_id: Input value for bank_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         snapshot = self.memory.load(bank_id=bank_id)
         traces = [ExemplarAgentTrace("feedback", "started", f"updating {exemplar_id}")]
         record = self._find_record(snapshot, exemplar_id)
@@ -144,11 +216,31 @@ class ExemplarBankAgent(HelloAgent):
         return ExemplarAgentResult(bank_id=bank_id, traces=traces, stored_record=record, evolution=decision)
 
     def run(self, input_text: str, **kwargs: Any) -> str:
+        """brief:
+            Handle run.
+
+        parameter:
+            - input_text: Input value for input_text.
+            - **kwargs: Input value for kwargs.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         payload = {"input_text": input_text, **kwargs}
         return json.dumps(payload, ensure_ascii=False)
 
     @staticmethod
     def _find_record(snapshot: MemoryBankSnapshot, exemplar_id: str) -> MedicalExemplarRecord | None:
+        """brief:
+            Handle find record.
+
+        parameter:
+            - snapshot: Input value for snapshot.
+            - exemplar_id: Input value for exemplar_id.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         for record in [*snapshot.positive_items, *snapshot.negative_items, *snapshot.boundary_items]:
             if record.exemplar_id == exemplar_id:
                 return record
@@ -156,6 +248,15 @@ class ExemplarBankAgent(HelloAgent):
 
     @staticmethod
     def _build_stats(snapshot: MemoryBankSnapshot) -> dict[str, Any]:
+        """brief:
+            Build stats.
+
+        parameter:
+            - snapshot: Input value for snapshot.
+
+        retrival:
+            - Returns the computed value for the caller or workflow.
+        """
         return {
             "positive": len(snapshot.positive_items),
             "negative": len(snapshot.negative_items),

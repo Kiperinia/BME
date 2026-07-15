@@ -3,31 +3,141 @@ import { computed, ref } from 'vue'
 
 import type { PolygonMask, TumorDetails, TumorMaskData } from '@/types/eis'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   tumorImageSrc: string
   maskData: TumorMaskData
   details: TumorDetails
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'toggle-mask', visible: boolean): void
   (event: 'expand-view'): void
 }>()
 
+/**
+ * brief:
+ *   Handle image width.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const imageWidth = ref(1200)
+/**
+ * brief:
+ *   Handle image height.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const imageHeight = ref(900)
+/**
+ * brief:
+ *   Handle is mask visible.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isMaskVisible = ref(true)
+/**
+ * brief:
+ *   Handle is magnifier visible.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const isMagnifierVisible = ref(false)
+/**
+ * brief:
+ *   Handle pointer position.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const pointerPosition = ref({ x: 50, y: 50, ratioX: 0.5, ratioY: 0.5 })
 
+/**
+ * brief:
+ *   Handle mask polygons.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const maskPolygons = computed<PolygonMask[]>(() => (Array.isArray(props.maskData) ? props.maskData : []))
+/**
+ * brief:
+ *   Handle mask image src.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const maskImageSrc = computed(() => (typeof props.maskData === 'string' ? props.maskData : ''))
 
+/**
+ * brief:
+ *   Handle magnifier transform style.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const magnifierTransformStyle = computed(() => ({
   transform: 'scale(2.1)',
   transformOrigin: `${pointerPosition.value.ratioX * 100}% ${pointerPosition.value.ratioY * 100}%`,
 }))
 
+/**
+ * brief:
+ *   Handle detail items.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const detailItems = computed(() => [
   { label: '预估尺寸', value: `${props.details.estimatedSizeMm.toFixed(1)} mm` },
   { label: '分类', value: props.details.classification },
@@ -36,16 +146,86 @@ const detailItems = computed(() => [
   { label: '置信度', value: `${(props.details.confidence * 100).toFixed(0)}%` },
 ])
 
+/**
+ * brief:
+ *   Handle image load.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handleImageLoad = (event: Event) => {
+  /**
+   * brief:
+   *   Handle image.
+   *
+   * parameter:
+   *   - event: Input value for event.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const image = event.target as HTMLImageElement
   imageWidth.value = image.naturalWidth || 1200
   imageHeight.value = image.naturalHeight || 900
 }
 
+/**
+ * brief:
+ *   Handle pointer move.
+ *
+ * parameter:
+ *   - event: Input value for event.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const handlePointerMove = (event: MouseEvent) => {
+  /**
+   * brief:
+   *   Handle target.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const target = event.currentTarget as HTMLElement
+  /**
+   * brief:
+   *   Handle rect.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const rect = target.getBoundingClientRect()
+  /**
+   * brief:
+   *   Handle ratio x.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const ratioX = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1)
+  /**
+   * brief:
+   *   Handle ratio y.
+   *
+   * parameter:
+   *   - None.
+   *
+   * retrival:
+   *   - Returns the computed value or updates local application state.
+   */
   const ratioY = Math.min(Math.max((event.clientY - rect.top) / rect.height, 0), 1)
 
   pointerPosition.value = {
@@ -56,6 +236,16 @@ const handlePointerMove = (event: MouseEvent) => {
   }
 }
 
+/**
+ * brief:
+ *   Toggle mask visibility.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const toggleMaskVisibility = () => {
   isMaskVisible.value = !isMaskVisible.value
   emit('toggle-mask', isMaskVisible.value)

@@ -12,6 +12,15 @@ from core.agent import build_minimal_agent
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """brief:
+        Build parser.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     parser = argparse.ArgumentParser(description="运行最小可用的 HelloAgent 医学诊断示例")
     parser.add_argument("--image", type=Path, help="输入内镜图像路径")
     parser.add_argument("--mask", type=Path, help="输入病灶掩码路径")
@@ -26,6 +35,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def load_case(image_path: Path | None, mask_path: Path | None) -> tuple[np.ndarray, np.ndarray, tuple[int, int, int, int] | None]:
+    """brief:
+        Load case.
+
+    parameter:
+        - image_path: Input value for image_path.
+        - mask_path: Input value for mask_path.
+
+    retrival:
+        - Returns the computed value for the caller or workflow.
+    """
     if bool(image_path) != bool(mask_path):
         raise ValueError("--image 和 --mask 必须同时提供。")
 
@@ -49,6 +68,15 @@ def load_case(image_path: Path | None, mask_path: Path | None) -> tuple[np.ndarr
 
 
 def main() -> None:
+    """brief:
+        Run the command-line entry point for this module.
+
+    parameter:
+        - None.
+
+    retrival:
+        - Returns None; performs side effects described in the brief section.
+    """
     if hasattr(sys.stdout, "reconfigure"):
         try:
             sys.stdout.reconfigure(encoding="utf-8")

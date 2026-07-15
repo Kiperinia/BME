@@ -3,6 +3,16 @@ import { computed } from 'vue'
 
 import type { PatientExamStatus, PatientGender } from '@/types/eis'
 
+/**
+ * brief:
+ *   Handle props.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const props = defineProps<{
   patientName: string
   gender: PatientGender
@@ -12,11 +22,31 @@ const props = defineProps<{
   status: PatientExamStatus
 }>()
 
+/**
+ * brief:
+ *   Handle emit.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const emit = defineEmits<{
   (event: 'edit', patientId: string): void
   (event: 'view-history'): void
 }>()
 
+/**
+ * brief:
+ *   Handle status meta.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const statusMeta = computed(() => {
   if (props.status === 2) {
     return {
@@ -38,6 +68,16 @@ const statusMeta = computed(() => {
   }
 })
 
+/**
+ * brief:
+ *   Handle info items.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const infoItems = computed(() => [
   { label: '患者姓名', value: props.patientName },
   { label: '性别', value: props.gender },

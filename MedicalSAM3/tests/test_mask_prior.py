@@ -10,12 +10,23 @@ from MedicalSAM3.retrieval.mask_prior import attach_retrieved_mask_priors
 
 
 class _Entry:
+    """测试辅助类，表示带掩码路径的检索条目。"""
     def __init__(self, mask_path: str | None) -> None:
+        """初始化条目。
+
+        参数：
+            - mask_path: 掩码文件路径
+
+        返回：
+            - 无
+        """
         self.mask_path = mask_path
 
 
 class TestMaskPrior(unittest.TestCase):
+    """测试检索掩码先验的生成与附加功能。"""
     def test_attach_retrieved_mask_priors_builds_soft_prior(self) -> None:
+        """验证能从检索条目的掩码构建软先验掩码。"""
         with tempfile.TemporaryDirectory() as tmpdir:
             mask_path = Path(tmpdir) / "mask.png"
             mask = np.zeros((8, 8), dtype=np.uint8)

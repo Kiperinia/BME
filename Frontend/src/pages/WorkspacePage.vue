@@ -12,6 +12,16 @@ import ReportAgentPanel from '@/components/workspace/ReportAgentPanel.vue'
 import { preloadWorkspaceSam3Model } from '@/api/workspace'
 import { useWorkspaceStore } from '@/stores/workspace'
 
+/**
+ * brief:
+ *   Handle workspace store.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const workspaceStore = useWorkspaceStore()
 const {
   patient,
@@ -34,6 +44,16 @@ const {
   canGenerateReport,
 } = storeToRefs(workspaceStore)
 
+/**
+ * brief:
+ *   Handle selected file size label.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const selectedFileSizeLabel = computed(() => {
   if (!uploadedImage.value) {
     return ''

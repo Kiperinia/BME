@@ -4,6 +4,16 @@ import PatientRecordsPage from '@/pages/PatientRecordsPage.vue'
 import SystemSettings from '@/pages/SystemSettings.vue'
 import WorkspacePage from '@/pages/WorkspacePage.vue'
 
+/**
+ * brief:
+ *   Handle router.
+ *
+ * parameter:
+ *   - None.
+ *
+ * retrival:
+ *   - Returns the computed value or updates local application state.
+ */
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
